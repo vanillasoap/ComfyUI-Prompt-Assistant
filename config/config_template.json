@@ -85,6 +85,131 @@
             ]
         },
         {
+            "id": "openai",
+            "type": "openai_compatible",
+            "name": "OpenAI",
+            "description": "ChatGPT, GPT-4o, o1, o3",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "disable_thinking": true,
+            "enable_advanced_params": true,
+            "filter_thinking_output": true,
+            "llm_models": [
+                {
+                    "name": "gpt-4o",
+                    "display_name": "GPT-4o",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                },
+                {
+                    "name": "gpt-4o-mini",
+                    "display_name": "GPT-4o Mini",
+                    "is_default": false,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                },
+                {
+                    "name": "o1",
+                    "display_name": "o1",
+                    "is_default": false,
+                    "temperature": 1.0,
+                    "max_tokens": 8000,
+                    "top_p": 1.0
+                }
+            ],
+            "vlm_models": [
+                {
+                    "name": "gpt-4o",
+                    "display_name": "GPT-4o",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                }
+            ]
+        },
+        {
+            "id": "google",
+            "type": "openai_compatible",
+            "name": "Google Gemini",
+            "description": "Gemini 2.0 Flash, Pro",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+            "api_key": "",
+            "disable_thinking": true,
+            "enable_advanced_params": true,
+            "filter_thinking_output": true,
+            "llm_models": [
+                {
+                    "name": "gemini-2.0-flash-exp",
+                    "display_name": "Gemini 2.0 Flash",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                },
+                {
+                    "name": "gemini-1.5-pro",
+                    "display_name": "Gemini 1.5 Pro",
+                    "is_default": false,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                }
+            ],
+            "vlm_models": [
+                {
+                    "name": "gemini-2.0-flash-exp",
+                    "display_name": "Gemini 2.0 Flash",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                }
+            ]
+        },
+        {
+            "id": "anthropic",
+            "type": "openai_compatible",
+            "name": "Anthropic Claude",
+            "description": "Claude 3.7 Sonnet, Opus",
+            "base_url": "https://api.anthropic.com/v1",
+            "api_key": "",
+            "disable_thinking": true,
+            "enable_advanced_params": true,
+            "filter_thinking_output": true,
+            "llm_models": [
+                {
+                    "name": "claude-3-7-sonnet-20250219",
+                    "display_name": "Claude 3.7 Sonnet",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                },
+                {
+                    "name": "claude-3-5-haiku-20241022",
+                    "display_name": "Claude 3.5 Haiku",
+                    "is_default": false,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                }
+            ],
+            "vlm_models": [
+                {
+                    "name": "claude-3-7-sonnet-20250219",
+                    "display_name": "Claude 3.7 Sonnet",
+                    "is_default": true,
+                    "temperature": 0.7,
+                    "max_tokens": 2048,
+                    "top_p": 0.9
+                }
+            ]
+        },
+        {
             "id": "ollama",
             "type": "ollama",
             "name": "Ollama",
