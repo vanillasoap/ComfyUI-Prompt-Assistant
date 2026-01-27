@@ -933,7 +933,7 @@ class APIConfigManager {
         const searchText = `${serviceName} ${serviceId}`.toLowerCase();
 
         // Zhipu service detection
-        if (searchText.includes('智谱') || searchText.includes('zhipu')) {
+        if (searchText.includes('zhipu')) {
             links.push({
                 text: 'Activate Zhipu API Service',
                 url: 'https://www.bigmodel.cn/invite?icode=Wz1tQAT40T9M8vwp%2F1db7nHEaazDlIZGj9HxftzTbt4%3D',
@@ -942,7 +942,7 @@ class APIConfigManager {
         }
 
         // SiliconFlow service detection
-        if (searchText.includes('硅基') || searchText.includes('siliconflow') || searchText.includes('silicon')) {
+        if (searchText.includes('siliconflow') || searchText.includes('silicon')) {
             links.push({
                 text: 'Activate SiliconFlow API Service',
                 url: 'https://cloud.siliconflow.cn/i/FCDL2zBQ',

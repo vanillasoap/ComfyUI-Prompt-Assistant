@@ -4888,7 +4888,7 @@ class TagManager {
 
         // 添加鼠标事件监听
         const mouseEnterCleanup = EventManager.addDOMListener(tagItem, 'mouseenter', () => {
-            const tooltipContent = `${tagValue}\n<span class="tooltip_path">类别: ${categoryPath.join(' > ')}</span>`;
+            const tooltipContent = `${tagValue}\n<span class="tooltip_path">Category: ${categoryPath.join(' > ')}</span>`;
             this._showTooltip(tagItem, tooltipContent);
         });
 
