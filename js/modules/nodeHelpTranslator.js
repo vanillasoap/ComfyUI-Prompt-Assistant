@@ -276,7 +276,7 @@ class NodeHelpTranslator {
             const activeTabText = activeTab ? activeTab.textContent.trim().toLowerCase() : '';
 
             // Simplified keyword recognition: just check if it contains 'info'
-            const isInfoActive = activeTabText.includes('info') || activeTabText.includes('信息');
+            const isInfoActive = activeTabText.includes('info');
 
             // Important: must find help content within the current panel
             const helpContent = v3Panel.querySelector('.node-help-content');

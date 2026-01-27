@@ -301,28 +301,28 @@ app.registerExtension({
                 nodes.forEach(node => {
                     if (!node || node.id === -1) return;
 
-                    // 重置初始化标记，允许重新创建
+                    // Reset initialization flags, allow re-creation
                     node._promptAssistantInitialized = false;
                     node._imageCaptionInitialized = false;
 
-                    // 注入钩子
+                    // Inject hooks
                     this._injectUniversalHooks(node);
 
-                    // 触发自动创建
+                    // Trigger auto-creation
                     this._handleNodeActive(node, { delay: false });
                 });
 
                 if (nodes.length > 0) {
-                    logger.debug(`[graphSwitch] 自动扫描完成 | 节点数: ${nodes.length}`);
+                    logger.debug(`[graphSwitch] Auto scan complete | Node count: ${nodes.length}`);
                 }
             }, delay);
         }
     },
 
     /**
-     * 为所有节点注入通用的交互钩子 (onSelected, onRemoved)
-     * 特别是针对动态创建的子图节点，确确保能够响应点击和资源清理
-     * @param {object} node - LiteGraph 节点实例
+     * Inject universal interaction hooks for all nodes (onSelected, onRemoved)
+     * Especially for dynamically created subgraph nodes, ensuring click response and resource cleanup
+     * @param {object} node - LiteGraph node instance
      */
     _injectUniversalHooks(node) {
         if (!node || node._promptAssistantHooksInjected) return;
@@ -331,7 +331,7 @@ app.registerExtension({
         const origOnSelected = node.onSelected;
         const origOnRemoved = node.onRemoved;
 
-        // 实例级覆盖 (针对动态创建或特殊节点)
+        // Instance-level override (for dynamically created or special nodes)
         node.onSelected = function () {
             if (origOnSelected) origOnSelected.apply(this, arguments);
             self._handleNodeActive(this, { reset: true, delay: true });
@@ -346,48 +346,48 @@ app.registerExtension({
     },
 
     /**
-     * @deprecated 已由 _injectUniversalHooks 替代，保留用于注册时的遗留支持
+     * @deprecated Replaced by _injectUniversalHooks, kept for legacy support during registration
      */
     _hookNoteNodeType(NodeType, typeName) {
         if (!NodeType || !NodeType.prototype) return;
 
-        // 我们不再重写原型方法，而是通过 onNodeAdded 动态注入实例方法
-        // 这在 Node 2.0 动态创建时更可靠
-        // logger.debug(`[_hookNoteNodeType] 类型已注册: ${typeName}`);
+        // We no longer override prototype methods, instead dynamically inject instance methods via onNodeAdded
+        // This is more reliable for Node 2.0 dynamic creation
+        // logger.debug(`[_hookNoteNodeType] Type registered: ${typeName}`);
     },
 
-    // ---其他方法保持不变---
+    // ---Other methods remain unchanged---
     async _setupOtherMethods() {
 
-        // 仅保留工作流ID识别功能，不处理工作流切换事件
+        // Only keep workflow ID identification functionality, do not handle workflow switch events
         try {
             const LGraph = app.graph.constructor;
             const origConfigure = LGraph.prototype.configure;
             LGraph.prototype.configure = function (data) {
-                // 在图表对象上存储工作流ID
+                // Store workflow ID on graph object
                 this._workflow_id = data.id || LiteGraph.uuidv4();
 
-                // 执行原始方法
+                // Execute original method
                 return origConfigure.apply(this, arguments);
             };
 
-            // 添加工作流加载监听，只标记切换状态，不做特殊处理
+            // Add workflow load listener, only mark switch state, no special handling
             const origLoadGraphData = app.loadGraphData;
             app.loadGraphData = async function (data) {
-                // 设置工作流切换标记，避免删除缓存
+                // Set workflow switch flag, avoid cache deletion
                 window.PROMPT_ASSISTANT_WORKFLOW_SWITCHING = true;
 
-                // 简化日志：仅在工作流ID变化时打印一次
-                const workflowId = data?.id || (data?.extra?.workflow_id) || "未知工作流";
+                // Simplified log: only print once when workflow ID changes
+                const workflowId = data?.id || (data?.extra?.workflow_id) || "Unknown workflow";
                 if (app.graph?._workflow_id !== workflowId) {
-                    logger.log(`[工作流] 切换: ${workflowId}`);
+                    logger.log(`[Workflow] Switch: ${workflowId}`);
                 }
 
                 try {
-                    // 调用原始加载方法
+                    // Call original load method
                     const result = await origLoadGraphData.apply(this, arguments);
 
-                    // 工作流加载完成后，统一处理现有节点的激活（包括自动创建判定）
+                    // After workflow load completes, uniformly handle existing node activation (including auto-creation determination)
                     requestAnimationFrame(() => {
                         if (app.graph && app.graph._nodes) {
                             app.graph._nodes.forEach(node => {
@@ -400,24 +400,24 @@ app.registerExtension({
 
                     return result;
                 } finally {
-                    // 延迟重置工作流切换标记
+                    // Delay resetting workflow switch flag
                     setTimeout(() => {
                         window.PROMPT_ASSISTANT_WORKFLOW_SWITCHING = false;
                     }, 500);
                 }
             };
         } catch (e) {
-            logger.error("[PromptAssistant] 注入 LGraph 设置工作流ID失败", e);
+            logger.error("[PromptAssistant] Failed to inject LGraph workflow ID setup", e);
         }
     },
 
-    // ---节点生命周期钩子---
+    // ---Node lifecycle hooks---
     /**
-     * 节点创建钩子
-     * 在节点创建时初始化特定类型节点的小助手
+     * Node creation hook
+     * Initializes assistants for specific node types when nodes are created
      */
     async nodeCreated(node) {
-        // nodeCreated 钩子现在主要用于补齐子图节点的特殊交互，大部分逻辑已通过 onNodeCreated 注入
+        // nodeCreated hook is now mainly for supplementing subgraph node interactions, most logic is already injected via onNodeCreated
         if (!node || node.id === -1) return;
         this._injectUniversalHooks(node);
     },
@@ -428,18 +428,18 @@ app.registerExtension({
     },
 
     /**
-     * 节点定义注册前钩子
-     * 向所有节点类型注入小助手相关功能
+     * Pre-registration hook for node definitions
+     * Injects assistant-related functionality into all node types
      */
 
 
-    // --- 统一生命周期管理逻辑 (重构点) ---
+    // --- Unified lifecycle management logic (refactoring point) ---
 
     /**
-     * 统一处理节点的“进入/激活”逻辑
-     * 涵盖：新节点创建(onNodeCreated), 全局节点添加(onNodeAdded), 节点选中(onSelected)
-     * @param {object} node - 节点实例
-     * @param {object} options - 配置参数 { reset: 是否强制重置标记, delay: 是否使用 raf 延迟 }
+     * Unified handler for node "enter/activate" logic
+     * Covers: new node creation (onNodeCreated), global node addition (onNodeAdded), node selection (onSelected)
+     * @param {object} node - Node instance
+     * @param {object} options - Configuration { reset: force reset flags, delay: use raf delay }
      */
     _handleNodeActive(node, options = {}) {
         if (!node || !window.FEATURES.enabled) return;
@@ -454,7 +454,7 @@ app.registerExtension({
         const run = () => {
             if (!node || !node.id || node.id === -1) return;
 
-            // 1. 提示词小助手核心入口
+            // 1. Prompt assistant core entry
             if (PromptAssistant.isValidNode(node)) {
                 const creationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.CreationMode") || "auto";
                 if ((creationMode === "auto" || reset) && !node._promptAssistantInitialized) {
@@ -463,7 +463,7 @@ app.registerExtension({
                 }
             }
 
-            // 2. 图像反推小助手入口
+            // 2. Image caption assistant entry
             const isSupportedICNode = imageCaption.isSupportedNode && imageCaption.isSupportedNode(node);
             if (window.FEATURES.imageCaption && isSupportedICNode) {
                 const icCreationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.ImageCaptionCreationMode") || "auto";
@@ -485,14 +485,14 @@ app.registerExtension({
     },
 
     /**
-     * 统一处理节点的“销毁/清理”逻辑
-     * @param {object} node - 节点实例
+     * Unified handler for node "destroy/cleanup" logic
+     * @param {object} node - Node instance
      */
     _handleNodeCleanup(node) {
         if (!node || node.id === undefined || node.id === -1) return;
         const nodeId = node.id;
 
-        // 执行清理并标记状态
+        // Execute cleanup and mark state
         if (node._promptAssistantInitialized || !node._promptAssistantCleaned) {
             promptAssistant.cleanup(nodeId, false);
             node._promptAssistantCleaned = true;
@@ -504,7 +504,7 @@ app.registerExtension({
     },
 
     /**
-     * 注册前的批量原型注入
+     * Batch prototype injection before registration
      */
     async beforeRegisterNodeDef(nodeType, nodeData) {
         const self = this;
@@ -514,19 +514,19 @@ app.registerExtension({
         const origOnSelected = proto.onSelected;
         const origOnRemoved = proto.onRemoved;
 
-        // 注入创建钩子 (原型级补救)
+        // Inject creation hook (prototype-level fallback)
         proto.onNodeCreated = function () {
             if (origOnCreated) origOnCreated.apply(this, arguments);
             self._handleNodeActive(this, { delay: true });
         };
 
-        // 注入选中钩子 (原型级补救)
+        // Inject selection hook (prototype-level fallback)
         proto.onSelected = function () {
             if (origOnSelected) origOnSelected.apply(this, arguments);
             self._handleNodeActive(this, { reset: true, delay: true });
         };
 
-        // 注入移除钩子 (原型级补救)
+        // Inject removal hook (prototype-level fallback)
         proto.onRemoved = function () {
             self._handleNodeCleanup(this);
             if (origOnRemoved) origOnRemoved.apply(this, arguments);
@@ -534,8 +534,8 @@ app.registerExtension({
     },
 
     /**
-     * 扩展卸载钩子
-     * 在扩展被卸载时清理所有资源
+     * Extension unload hook
+     * Cleans up all resources when the extension is unloaded
      */
     async beforeExtensionUnload() {
         promptAssistant.cleanup();

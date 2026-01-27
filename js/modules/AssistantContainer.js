@@ -60,44 +60,44 @@ export class AssistantContainer {
     }
 
     render() {
-        // 检查是否已销毁
+        // Check if already destroyed
         if (this.isDestroyed) return null;
 
-        // 主容器
+        // Main container
         this.element = document.createElement('div');
         this.element.className = `assistant-container-common ${this.type}-assistant-container`;
 
-        // 悬停区域（不可见，用于检测鼠标进入/离开）
+        // Hover area (invisible, used to detect mouse enter/leave)
         this.hoverArea = document.createElement('div');
         this.hoverArea.className = 'assistant-hover-area';
         this.element.appendChild(this.hoverArea);
 
-        // 指示器（图标）
+        // Indicator (icon)
         this.indicator = document.createElement('div');
         this.indicator.className = `assistant-indicator ${this.type}-assistant-indicator`;
 
-        // 添加入场动画类
+        // Add entrance animation class
         this.indicator.classList.add('indicator-init');
 
-        // 动画结束后移除初始化类
+        // Remove initialization class after animation ends
         this.indicator.addEventListener('animationend', () => {
             this.indicator.classList.remove('indicator-init');
         }, { once: true });
 
         this.element.appendChild(this.indicator);
 
-        // 按钮内容容器
+        // Button content container
         this.content = document.createElement('div');
         this.content.className = 'assistant-content';
         this.element.appendChild(this.content);
 
-        // 基于锚点的初始样式
+        // Initial style based on anchor point
         this.updatePosition();
 
-        // 绑定事件
+        // Bind events
         this._bindEvents();
 
-        // 设置 Sortable
+        // Set up Sortable
         if (this.enableDragSort) {
             this._setupSortable();
         }
@@ -108,7 +108,7 @@ export class AssistantContainer {
     mount(parentElement) {
         if (parentElement) {
             parentElement.appendChild(this.element);
-            // 挂载后强制回流/更新尺寸
+            // Force reflow/update dimensions after mount
             requestAnimationFrame(() => this.updateDimensions());
         }
     }
@@ -121,16 +121,16 @@ export class AssistantContainer {
 
     addButton(buttonElement, id) {
         if (!buttonElement) return;
-        buttonElement.dataset.id = id; // 用于 Sortable
+        buttonElement.dataset.id = id; // Used by Sortable
 
-        // 设置按钮索引，用于递进动画延迟
+        // Set button index for stagger animation delay
         const buttonIndex = this.buttons.length;
         buttonElement.style.setProperty('--button-index', buttonIndex);
 
         this.content.appendChild(buttonElement);
         this.buttons.push({ id, element: buttonElement });
 
-        // 如果是分割线，根据当前布局方向设置类名
+        // If it's a divider, set class name based on current layout direction
         if (buttonElement.classList.contains('prompt-assistant-divider') ||
             buttonElement.classList.contains('image-assistant-divider')) {
             const isVertical = this.anchorPosition.endsWith('-v');
@@ -142,15 +142,15 @@ export class AssistantContainer {
         this.updateDimensions();
     }
 
-    // 批量添加按钮，如果已存在Sortable，则会遵循Sortable的逻辑（通常append）
-    // 如果需要特定顺序，应该在添加前排好序
+    // Batch add buttons; if Sortable exists, follows Sortable logic (usually append)
+    // If specific order is needed, sort before adding
     addButtons(buttonElementsWithIds) {
         buttonElementsWithIds.forEach(({ element, id }) => {
             this.addButton(element, id);
         });
     }
 
-    // 清空按钮
+    // Clear buttons
     clearButtons() {
         this.content.innerHTML = '';
         this.buttons = [];
@@ -166,17 +166,17 @@ export class AssistantContainer {
     updatePosition() {
         if (!this.element) return;
 
-        // 保存当前展开/折叠状态
+        // Save current expanded/collapsed state
         const wasExpanded = !this.isCollapsed;
 
-        // 重置类名，保持当前状态
+        // Reset class names, maintain current state
         const stateClass = wasExpanded ? 'expanded' : 'collapsed';
         this.element.className = `assistant-container-common ${this.type}-assistant-container ${stateClass}`;
 
-        // 添加布局类名
+        // Add layout class name
         this.element.classList.add(`layout-${this.anchorPosition}`);
 
-        // 确保内容容器的 Flex 方向正确
+        // Ensure content container flex direction is correct
         const isVertical = this.anchorPosition.endsWith('-v');
         if (isVertical) {
             this.content.classList.add('flex-col');
@@ -186,14 +186,14 @@ export class AssistantContainer {
             this.content.classList.remove('flex-col');
         }
 
-        // 更新分割线类名：垂直布局时添加 divider-horizontal 类
+        // Update divider class: add divider-horizontal class for vertical layout
         this._updateDividerOrientation(isVertical);
 
-        // 触发尺寸重新计算
+        // Trigger dimension recalculation
         this.updateDimensions();
     }
 
-    // 更新分割线方向类名
+    // Update divider orientation class
     _updateDividerOrientation(isVertical) {
         if (!this.content) return;
         const dividers = this.content.querySelectorAll('.prompt-assistant-divider, .image-assistant-divider');
@@ -207,13 +207,13 @@ export class AssistantContainer {
     }
 
     /**
-     * 更新容器尺寸 (优化版：常量布局模式)
-     * 根据当前启用的按钮组合直接计算尺寸，避免 DOM 克隆测量带来的开销
+     * Update container dimensions (optimized: constant layout mode)
+     * Directly calculate dimensions based on currently enabled button combinations, avoiding DOM clone measurement overhead
      */
     updateDimensions() {
         if (!this.element || !this.content) return;
 
-        // --- 1. 获取当前状态统计 ---
+        // --- 1. Get current state statistics ---
         const buttons = Array.from(this.content.children).filter(el =>
             el.style.display !== 'none' &&
             !el.classList.contains('assistant-indicator')
@@ -222,56 +222,56 @@ export class AssistantContainer {
         const totalCount = buttons.length;
         if (totalCount === 0) return;
 
-        // 统计功能组
+        // Count feature groups
         const hasHistoryGroup = buttons.some(el => el.dataset.id === 'history' || el.dataset.id === 'undo' || el.dataset.id === 'redo');
         const hasDivider = buttons.some(el => el.classList.contains('prompt-assistant-divider') || el.classList.contains('image-assistant-divider'));
 
-        // 计算非历史且非分隔线的有效功能按钮数量
+        // Calculate effective feature button count excluding history and dividers
         const otherFeaturesCount = buttons.filter(el =>
             !['history', 'undo', 'redo'].includes(el.dataset.id) &&
             !el.classList.contains('prompt-assistant-divider') &&
             !el.classList.contains('image-assistant-divider')
         ).length;
 
-        // --- 2. 基于预设常量的尺寸映射 ---
-        let finalDimension = 28; // 默认单个按钮宽度 (或折叠尺寸)
+        // --- 2. Dimension mapping based on preset constants ---
+        let finalDimension = 28; // Default single button width (or collapsed size)
 
-        // 逻辑规则匹配 (根据用户提供的精确测量值)
+        // Logic rule matching (based on user-provided precise measurements)
         if (hasHistoryGroup && otherFeaturesCount === 3) {
-            finalDimension = 143; // 所有功能全开 (历史3 + 分隔线1 + 其它3)
+            finalDimension = 143; // All features on (history 3 + divider 1 + other 3)
         } else if (hasHistoryGroup && otherFeaturesCount === 2) {
-            finalDimension = 121; // 历史 + 两个其它
+            finalDimension = 121; // History + two others
         } else if (hasHistoryGroup && otherFeaturesCount === 1) {
-            finalDimension = 99;  // 历史 + 一个其它
+            finalDimension = 99;  // History + one other
         } else if (hasHistoryGroup && otherFeaturesCount === 0) {
-            finalDimension = 77;  // 只有历史功能
+            finalDimension = 77;  // History only
         } else if (!hasHistoryGroup && otherFeaturesCount === 3) {
-            finalDimension = 72;  // 关闭历史的三个功能
+            finalDimension = 72;  // Three features without history
         } else if (!hasHistoryGroup && otherFeaturesCount === 2) {
-            finalDimension = 50;  // 只有两个按钮
+            finalDimension = 50;  // Only two buttons
         } else if (!hasHistoryGroup && otherFeaturesCount === 1) {
-            finalDimension = 28;  // 只有一个按钮
+            finalDimension = 28;  // Only one button
         } else {
-            // 兜底动态计算逻辑: 基础28 + (额外按钮 * 22) + (如果有分隔线 ? 5 : 0)
+            // Fallback dynamic calculation: base 28 + (extra buttons * 22) + (has divider ? 5 : 0)
             const extraCount = totalCount - 1;
             finalDimension = 28 + (extraCount * 22);
             if (hasDivider) finalDimension += 5;
         }
 
-        // --- 3. 应用尺寸 ---
+        // --- 3. Apply dimensions ---
         const isVertical = this.anchorPosition.endsWith('-v');
         if (isVertical) {
-            // 竖向布局：宽度固定，高度动态
+            // Vertical layout: fixed width, dynamic height
             this.element.style.setProperty('--expanded-width', `28px`);
             this.element.style.setProperty('--expanded-height', `${finalDimension}px`);
         } else {
-            // 横向布局：高度固定，宽度动态
+            // Horizontal layout: fixed height, dynamic width
             this.element.style.setProperty('--expanded-width', `${finalDimension}px`);
             this.element.style.setProperty('--expanded-height', `28px`);
         }
 
-        /* 
-        // --- 原有自动测量代码 (已注释，备用) ---
+        /*
+        // --- Original auto-measurement code (commented out, backup) ---
         const clone = this.content.cloneNode(true);
         clone.style.cssText = `
             position: absolute; 
@@ -311,38 +311,38 @@ export class AssistantContainer {
     }
 
     _bindEvents() {
-        // 带中断逻辑的悬停处理
+        // Hover handling with interrupt logic
         const onMouseEnter = () => this.expand();
         const onMouseLeave = () => this.collapse();
 
-        // 绑定到悬停区域和元素本身
-        // 使用 EventManager 来绑定，以便于清理
+        // Bind to hover area and element itself
+        // Use EventManager for binding to facilitate cleanup
         this._cleanupFunctions.push(EventManager.addDOMListener(this.element, 'mouseenter', onMouseEnter));
         this._cleanupFunctions.push(EventManager.addDOMListener(this.element, 'mouseleave', onMouseLeave));
     }
 
     expand() {
-        // 检查是否已销毁
+        // Check if already destroyed
         if (this.isDestroyed) return;
 
-        // 清除任何挂起的折叠定时器
+        // Clear any pending collapse timers
         if (this._collapseTimer) {
             clearTimeout(this._collapseTimer);
             this._collapseTimer = null;
         }
 
-        // 先更新尺寸，确保 CSS 变量在展开前就设置好
+        // Update dimensions first, ensure CSS variables are set before expanding
         this.updateDimensions();
 
-        // 根据锚点位置调整按钮递进动画索引
+        // Adjust button stagger animation index based on anchor position
         this._updateButtonStaggerIndex();
 
-        // 立即展开
+        // Expand immediately
         this.isCollapsed = false;
         this.element.classList.remove('collapsed');
         this.element.classList.add('expanded');
 
-        // 隐藏指示器
+        // Hide indicator
         if (this.indicator) {
             this.indicator.style.opacity = '0';
             this.indicator.style.pointerEvents = 'none';

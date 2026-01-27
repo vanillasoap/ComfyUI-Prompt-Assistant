@@ -1163,7 +1163,7 @@ export function registerSettings() {
                         authorTag.appendChild(authorBadge);
                         cell.appendChild(authorTag);
 
-                        // B站徽标
+                        // Bilibili badge
                         const biliTag = document.createElement("a");
                         biliTag.href = "https://space.bilibili.com/520680644";
                         biliTag.target = "_blank";
@@ -1177,9 +1177,9 @@ export function registerSettings() {
                         biliBadge.style.height = "20px";
                         biliTag.appendChild(biliBadge);
                         cell.appendChild(biliTag);
-                        // 交流群徽标
+                        // Community group badge
                         const wechatTag = document.createElement("a");
-                        // 取消跳转；点击不再打开链接，避免本地缓存链接
+                        // Cancel navigation; clicking no longer opens link, avoid caching local link
                         wechatTag.href = 'javascript:void(0)';
                         wechatTag.addEventListener('click', (e) => { e.preventDefault(); toggleWechatQr(); });
                         wechatTag.style.textDecoration = "none";
@@ -1187,53 +1187,53 @@ export function registerSettings() {
                         wechatTag.style.alignItems = "center";
                         wechatTag.classList.add("has-tooltip", "pa-wechat-badge");
                         const wechatBadge = document.createElement("img");
-                        wechatBadge.alt = "交流反馈群";
+                        wechatBadge.alt = "Community Feedback Group";
                         wechatBadge.src = "https://img.shields.io/badge/%E4%BA%A4%E6%B5%81%E5%8F%8D%E9%A6%88-blue?logo=wechat&logoColor=green&labelColor=%23FFFFFF&color=%2307A3D7";
                         wechatBadge.style.display = "block";
                         wechatBadge.style.height = "20px";
                         wechatTag.appendChild(wechatBadge);
 
-                        // 悬浮显示二维码
+                        // Hover to show QR code
                         const wechatQr = document.createElement("div");
                         wechatQr.className = "pa-wechat-qr";
                         const wechatQrImg = document.createElement("img");
-                        // 优先加载远程二维码，失败则回退到本地备用图
+                        // Prioritize loading remote QR code, fallback to local backup image on failure
                         const remoteQrUrl = 'http://data.xflow.cc/wechat.png';
                         let qrFallbackTimer = null;
                         const localQrUrl = ResourceManager.getAssetUrl('wechat.png');
 
-                        // 每次显示时强制重新加载远程二维码（带时间戳），避免缓存
+                        // Force reload remote QR code (with timestamp) each time shown, avoid caching
                         const loadWechatQr = () => {
                             if (qrFallbackTimer) { clearTimeout(qrFallbackTimer); qrFallbackTimer = null; }
                             wechatQrImg.dataset.fallbackApplied = '';
                             wechatQrImg.dataset.source = 'remote';
                             wechatQrImg.src = `${remoteQrUrl}?t=${Date.now()}`;
-                            // 超时回退到本地，但需要判断图片是否已开始加载
+                            // Timeout fallback to local, check if image has started loading
                             qrFallbackTimer = setTimeout(() => {
-                                // 检查是否已标记为已回退
+                                // Check if already marked as fallback applied
                                 if (wechatQrImg.dataset.fallbackApplied === '1') return;
 
-                                // 检查图片是否已开始加载（naturalHeight > 0 说明图片正在加载）
+                                // Check if image has started loading (naturalHeight > 0 means loading in progress)
                                 if (wechatQrImg.naturalHeight > 0) {
-                                    Logger.log(2, '远程二维码加载中，延长等待时间');
-                                    // 图片已开始加载，继续等待 onload，取消超时回退
+                                    Logger.log(2, 'Remote QR code loading, extending wait time');
+                                    // Image has started loading, continue waiting for onload, cancel timeout fallback
                                     if (qrFallbackTimer) { clearTimeout(qrFallbackTimer); qrFallbackTimer = null; }
                                 } else {
-                                    // 图片未开始加载，可能是网络问题，回退到本地
-                                    Logger.log(1, '远程二维码加载超时，切换到本地备用图');
+                                    // Image has not started loading, likely network issue, fallback to local
+                                    Logger.log(1, 'Remote QR code load timeout, switching to local backup');
                                     loadLocalQr();
                                 }
-                            }, 3000); // 延长到 3 秒，给远程图片更多加载时间
+                            }, 3000); // Extended to 3 seconds, give remote image more loading time
                         };
-                        // 手动切换到本地二维码（带时间戳），清理超时
+                        // Manually switch to local QR code (with timestamp), clean up timeout
                         const loadLocalQr = () => {
                             if (qrFallbackTimer) { clearTimeout(qrFallbackTimer); qrFallbackTimer = null; }
                             wechatQrImg.dataset.fallbackApplied = '1';
                             wechatQrImg.dataset.source = 'local';
-                            wechatQrImg.src = localQrUrl; // 本地图片固定，不加时间戳
+                            wechatQrImg.src = localQrUrl; // Local image is fixed, no timestamp
                         };
 
-                        // 点击徽标时在远程/本地之间来回切换
+                        // Click badge to toggle between remote/local
                         const toggleWechatQr = () => {
                             if (wechatQrImg.dataset.source === 'local') {
                                 loadWechatQr();
@@ -1243,13 +1243,13 @@ export function registerSettings() {
                         };
 
 
-                        wechatQrImg.alt = "微信交流群二维码";
+                        wechatQrImg.alt = "WeChat Community Group QR Code";
                         wechatQrImg.className = "pa-wechat-qr-img";
 
-                        // 加载成功清理超时定时器
+                        // Clean up timeout timer on successful load
                         wechatQrImg.onload = () => { if (qrFallbackTimer) { clearTimeout(qrFallbackTimer); qrFallbackTimer = null; } };
 
-                        // 远程加载失败时回退到本地备用图（也带时间戳避免缓存）
+                        // Fallback to local backup image on remote load failure (also with timestamp to avoid caching)
                         wechatQrImg.onerror = () => {
                             if (qrFallbackTimer) { clearTimeout(qrFallbackTimer); qrFallbackTimer = null; }
                             if (wechatQrImg.dataset.fallbackApplied !== '1') {
@@ -1257,7 +1257,7 @@ export function registerSettings() {
                             }
                         };
 
-                        // 初次渲染和每次鼠标进入都触发重新加载
+                        // Trigger reload on initial render and each mouse enter
                         loadWechatQr();
                         wechatTag.addEventListener('mouseenter', loadWechatQr);
 
@@ -1271,12 +1271,12 @@ export function registerSettings() {
                     }
                 },
 
-                // 规则配置按钮
+                // Rules configuration button
                 {
                     id: "PromptAssistant.Features.RulesConfig",
-                    name: "提示词优化和反推规则修改",
-                    category: ["✨提示词小助手", " 配置", "规则"],
-                    tooltip: "可以自定义提示词优化规则，和反推提示词规则，使得提示词生成更加符合你的需求",
+                    name: "Prompt Optimization and Captioning Rules",
+                    category: ["✨Prompt Assistant", " Configuration", "Rules"],
+                    tooltip: "Customize prompt optimization rules and captioning prompt rules to make prompt generation better suit your needs",
                     type: () => {
                         const row = document.createElement("tr");
                         row.className = "promptwidget-settings-row";
@@ -1286,7 +1286,7 @@ export function registerSettings() {
                         row.appendChild(labelCell);
 
                         const buttonCell = document.createElement("td");
-                        const button = createLoadingButton("规则管理器", async () => {
+                        const button = createLoadingButton("Rules Manager", async () => {
                             showRulesConfigModal();
                         }, false);
 
@@ -1299,10 +1299,10 @@ export function registerSettings() {
             ]
         });
 
-        logger.log("小助手设置注册成功");
+        logger.log("Assistant settings registered successfully");
         return true;
     } catch (error) {
-        logger.error(`小助手设置注册失败: ${error.message}`);
+        logger.error(`Assistant settings registration failed: ${error.message}`);
         return false;
     }
 }

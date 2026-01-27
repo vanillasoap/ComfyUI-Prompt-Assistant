@@ -697,46 +697,46 @@ export class ButtonMenu {
         let topOffset;
         switch (align) {
             case 'top':
-                // 上对齐：子菜单顶部与父项顶部对齐
+                // Top-aligned: submenu top aligns with parent item top
                 topOffset = 0;
                 break;
             case 'bottom':
-                // 下对齐：子菜单底部与父项底部对齐
+                // Bottom-aligned: submenu bottom aligns with parent item bottom
                 topOffset = parentRect.height - submenuRect.height;
                 break;
             case 'center':
             default:
-                // 居中：子菜单中心与父项中心对齐
+                // Centered: submenu center aligns with parent item center
                 topOffset = (parentRect.height - submenuRect.height) / 2;
                 break;
         }
 
-        // 计算子菜单实际的 top 位置（基于视口）
+        // Calculate submenu's actual top position (viewport-based)
         let actualTop = parentRect.top + topOffset;
 
-        // 限制在视口范围内（动态调整）
+        // Constrain within viewport (dynamic adjustment)
         if (actualTop < margin) {
-            // 超出顶部，调整到顶部边缘
+            // Exceeds top, adjust to top edge
             topOffset = margin - parentRect.top;
         } else if (actualTop + submenuRect.height > viewportHeight - margin) {
-            // 超出底部，调整到底部边缘
+            // Exceeds bottom, adjust to bottom edge
             topOffset = viewportHeight - margin - submenuRect.height - parentRect.top;
         }
 
-        // 设置垂直位置
+        // Set vertical position
         submenu.style.top = `${topOffset}px`;
         submenu.style.bottom = 'auto';
 
-        // 检查水平位置：如果右侧超出视口，尝试显示在左侧
+        // Check horizontal position: if exceeds right viewport, try showing on left
         const rightEdge = parentRect.right + submenuRect.width + 4;
         if (rightEdge > viewportWidth - margin) {
-            // 显示在父菜单左侧
+            // Show on left side of parent menu
             submenu.style.left = 'auto';
             submenu.style.right = '100%';
             submenu.style.marginLeft = '0';
             submenu.style.marginRight = '2px';
         } else {
-            // 默认显示在父菜单右侧
+            // Default: show on right side of parent menu
             submenu.style.left = '100%';
             submenu.style.right = 'auto';
             submenu.style.marginLeft = '2px';
@@ -745,62 +745,62 @@ export class ButtonMenu {
     }
 
     /**
-     * 公开方法：设置按钮右键菜单
-     * @param {HTMLElement} button 按钮元素
-     * @param {Function} getMenuItems 获取菜单项的函数，接收上下文参数，返回菜单项数组或Promise
-     * @param {Object} context 上下文数据
+     * Public method: set up button right-click menu
+     * @param {HTMLElement} button Button element
+     * @param {Function} getMenuItems Function to get menu items, receives context parameter, returns menu items array or Promise
+     * @param {Object} context Context data
      */
     setupButtonMenu(button, getMenuItems, context = {}) {
         if (!button || typeof getMenuItems !== 'function') return;
 
-        // 清理可能已存在的事件监听器
+        // Clean up potentially existing event listeners
         if (button._menuEventCleanup) {
             button._menuEventCleanup();
         }
 
-        // 添加右键菜单事件
+        // Add right-click context menu event
         const removeContextMenu = EventManager.addDOMListener(button, 'contextmenu', async (event) => {
             event.preventDefault();
             event.stopPropagation();
 
-            // 获取当前菜单项 - 支持异步函数
+            // Get current menu items - supports async functions
             try {
                 const menuItems = await Promise.resolve(getMenuItems(context));
                 if (!menuItems || menuItems.length === 0) return;
 
-                // 显示菜单
+                // Show menu
                 await this.showMenu(button, menuItems, context, event);
             } catch (error) {
-                logger.error(`获取菜单项失败: ${error.message}`);
+                logger.error(`Failed to get menu items: ${error.message}`);
             }
         });
 
-        // 保存清理函数
+        // Save cleanup function
         button._menuEventCleanup = () => {
             removeContextMenu();
         };
 
-        // 返回清理函数，方便外部调用
+        // Return cleanup function for external use
         return button._menuEventCleanup;
     }
 }
 
 
-// 创建并导出样式
+// Create and export styles
 export function addButtonMenuStyles() {
-    // 确保资源管理器已初始化
+    // Ensure resource manager is initialized
     if (!ResourceManager.isInitialized()) {
         ResourceManager.init();
     }
 
-    // 样式已经在popup.css中定义，不需要额外添加
-    logger.debug("按钮菜单样式已从popup.css加载");
+    // Styles are already defined in popup.css, no need to add extra
+    logger.debug("Button menu styles loaded from popup.css");
 }
 
 /**
- * 导出默认实例
+ * Export default instance
  */
 export const buttonMenu = ButtonMenu.getInstance();
 
-// 自动添加样式
-addButtonMenuStyles(); 
+// Auto-add styles
+addButtonMenuStyles();
