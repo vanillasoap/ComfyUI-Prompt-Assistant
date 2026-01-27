@@ -348,22 +348,22 @@ export class AssistantContainer {
             this.indicator.style.pointerEvents = 'none';
         }
 
-        // 显示内容
+        // Show content
         if (this.content) {
             this.content.style.opacity = '1';
             this.content.style.pointerEvents = 'auto';
         }
     }
 
-    // 根据锚点位置调整按钮递进动画索引
+    // Adjust button stagger animation index based on anchor position
     _updateButtonStaggerIndex() {
         if (!this.content) return;
 
         const children = Array.from(this.content.children);
         const totalButtons = children.length;
 
-        // 判断是否需要反向索引
-        // 右侧布局向左展开、底部布局向上展开时，需要反向（最后的按钮先显示）
+        // Determine if reverse index is needed
+        // Right-side layout expands left, bottom layout expands up - need reverse (last button shows first)
         const needReverse = this._isReverseStaggerDirection();
 
         children.forEach((child, index) => {
@@ -372,18 +372,18 @@ export class AssistantContainer {
         });
     }
 
-    // 判断递进动画是否需要反向
+    // Determine if stagger animation needs reverse
     _isReverseStaggerDirection() {
-        // 从右侧/底部展开的布局需要反向
-        // right 布局：从右向左展开，最右边的按钮先显示
-        // bottom-v 布局：从下向上展开，最下面的按钮先显示
+        // Layouts expanding from right/bottom need reverse
+        // right layout: expands right to left, rightmost button shows first
+        // bottom-v layout: expands bottom to top, bottommost button shows first
         const pos = this.anchorPosition;
 
-        // 横向布局：右侧的需要反向
+        // Horizontal layout: right-side needs reverse
         if (pos.includes('right') && pos.endsWith('-h')) {
             return true;
         }
-        // 竖向布局：底部的需要反向（column-reverse）
+        // Vertical layout: bottom needs reverse (column-reverse)
         if (pos.includes('bottom') && pos.endsWith('-v')) {
             return true;
         }
@@ -392,21 +392,21 @@ export class AssistantContainer {
     }
 
     collapse() {
-        // 检查是否已销毁
+        // Check if already destroyed
         if (this.isDestroyed) return;
 
-        // 调试模式：禁止自动折叠
+        // Debug mode: disable auto-collapse
         if (window.PA_DEBUG_NO_COLLAPSE) return;
 
-        // 检查是否应阻止折叠（例如：激活的菜单）
+        // Check if collapse should be prevented (e.g., active menu)
         if (this.shouldCollapse && !this.shouldCollapse()) {
             return;
         }
 
-        // 折叠前设置短暂延迟，允许鼠标在间隙/按钮之间移动
-        // 但如果用户移回，expand() 会取消此操作。
+        // Set brief delay before collapse, allowing mouse movement between gaps/buttons
+        // If user moves back, expand() will cancel this operation.
         this._collapseTimer = setTimeout(() => {
-            // 再次检查，因为在延迟期间状态可能已改变
+            // Check again, as state may have changed during delay
             if (this.shouldCollapse && !this.shouldCollapse()) {
                 return;
             }
@@ -415,34 +415,34 @@ export class AssistantContainer {
             this.element.classList.remove('expanded');
             this.element.classList.add('collapsed');
 
-            // 显示指示器（清除内联样式，让 CSS 变量 --assistant-icon-opacity 生效）
+            // Show indicator (clear inline styles, let CSS variable --assistant-icon-opacity take effect)
             if (this.indicator) {
                 this.indicator.style.opacity = '';
                 this.indicator.style.pointerEvents = '';
             }
 
-            // 隐藏内容
+            // Hide content
             if (this.content) {
                 this.content.style.opacity = '0';
                 this.content.style.pointerEvents = 'none';
             }
 
-            // 折叠完成后，检测鼠标是否仍在热区内
-            // 解决自动折叠后鼠标仍在热区，但需要移出再移入才能展开的问题
+            // After collapse completes, detect if mouse is still in hover area
+            // Fixes issue where mouse remains in hover area after auto-collapse but requires move out and back to expand
             this._checkMouseStillInHoverArea();
-        }, 150); // 为了易用性设置的小延迟
+        }, 150); // Small delay for usability
     }
 
-    // ---检测鼠标是否仍在热区内---
+    // ---Detect if mouse is still in hover area---
     _checkMouseStillInHoverArea() {
         if (!this.element) return;
 
-        // 使用 requestAnimationFrame 确保 DOM 已更新
+        // Use requestAnimationFrame to ensure DOM has updated
         requestAnimationFrame(() => {
-            // 获取当前鼠标位置下的元素
+            // Get element under current mouse position
             const hoveredElements = document.querySelectorAll(':hover');
 
-            // 检查小助手容器或其子元素是否被悬停
+            // Check if assistant container or its children are being hovered
             let isMouseInside = false;
             for (const el of hoveredElements) {
                 if (this.element.contains(el) || el === this.element) {
@@ -451,7 +451,7 @@ export class AssistantContainer {
                 }
             }
 
-            // 如果鼠标仍在热区内，且当前是折叠状态，则触发展开
+            // If mouse is still in hover area and currently collapsed, trigger expand
             if (isMouseInside && this.isCollapsed) {
                 this.expand();
             }
@@ -469,12 +469,12 @@ export class AssistantContainer {
                     .map(el => el.dataset.id)
                     .filter(Boolean);
 
-                // 保存排序
+                // Save sort order
                 if (this.onButtonOrderChange) {
                     this.onButtonOrderChange(newOrder);
                 }
 
-                // 持久化到 settings
+                // Persist to settings
                 this._saveOrderToSettings(newOrder);
             }
         });
@@ -482,8 +482,8 @@ export class AssistantContainer {
 
     _saveOrderToSettings(order) {
         const settingKey = `PromptAssistant.ButtonOrder.${this.type}`;
-        // 使用 app.ui.settings 保存
-        // ComfyUI 设置通常通过 app.ui.settings.setSettingValue(id, value) 设置
+        // Save using app.ui.settings
+        // ComfyUI settings are typically set via app.ui.settings.setSettingValue(id, value)
         if (app.ui && app.ui.settings) {
             app.ui.settings.setSettingValue(settingKey, JSON.stringify(order));
         }
@@ -500,7 +500,7 @@ export class AssistantContainer {
             const order = JSON.parse(orderStr);
             if (!Array.isArray(order) || order.length === 0) return;
 
-            // 按ID创建现有按钮的映射
+            // Create mapping of existing buttons by ID
             const buttonMap = new Map();
             Array.from(this.content.children).forEach(el => {
                 if (el.dataset.id) {
@@ -508,11 +508,11 @@ export class AssistantContainer {
                 }
             });
 
-            // 按保存的顺序恢复按钮位置,新增按钮放在末尾
+            // Restore button positions in saved order, new buttons go at the end
             const existingButtons = Array.from(this.content.children);
             const orderedIds = new Set(order);
 
-            // 首先追加排序后的项
+            // First append sorted items
             order.forEach(id => {
                 const el = buttonMap.get(id);
                 if (el) {
@@ -520,7 +520,7 @@ export class AssistantContainer {
                 }
             });
 
-            // 然后追加任何剩余项，如果它们不在顺序列表中
+            // Then append any remaining items not in the order list
             existingButtons.forEach(el => {
                 if (el.dataset.id && !orderedIds.has(el.dataset.id)) {
                     this.content.appendChild(el);
@@ -529,16 +529,16 @@ export class AssistantContainer {
 
             this.updateDimensions();
         } catch (e) {
-            logger.warn("[PromptAssistant] 恢复按钮顺序失败:", e);
+            logger.warn("[PromptAssistant] Failed to restore button order:", e);
         }
     }
 
     destroy() {
-        // 防止重复销毁
+        // Prevent duplicate destruction
         if (this.isDestroyed) return;
         this.isDestroyed = true;
 
-        // 清理定时器
+        // Clean up timers
         if (this._collapseTimer) {
             clearTimeout(this._collapseTimer);
             this._collapseTimer = null;
@@ -548,22 +548,22 @@ export class AssistantContainer {
             this._expandTimer = null;
         }
 
-        // 清理监听器
+        // Clean up listeners
         this._cleanupFunctions.forEach(fn => fn && fn());
         this._cleanupFunctions = [];
 
-        // 销毁 Sortable
+        // Destroy Sortable
         if (this._sortable) {
             this._sortable.destroy();
             this._sortable = null;
         }
 
-        // 移除元素
+        // Remove element
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
 
-        // 清空所有引用
+        // Clear all references
         this.element = null;
         this.container = null;
         this.content = null;

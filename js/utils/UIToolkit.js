@@ -148,29 +148,29 @@ class UIToolkit {
             }
         }
 
-        // 方法2: 检查widget名称（Vue模式下可能只有名称）
+        // Method 2: Check widget name (Vue mode may only have name)
         if (widget.name === 'text' && nodeRef && nodeRef.type?.toLowerCase().includes('markdown')) {
             return true;
         }
 
-        // 方法3: 通过 DOM 结构检测
+        // Method 3: Detect through DOM structure
         let element = widget.element || widget.inputEl;
         if (!element) return false;
 
-        // 向上查找 .comfy-markdown 容器
+        // Search upward for .comfy-markdown container
         let parent = element.parentElement;
         while (parent) {
             if (parent.classList && parent.classList.contains('comfy-markdown')) {
                 return true;
             }
-            // Vue模式下检测 widget-markdown 类
+            // Detect widget-markdown class in Vue mode
             if (parent.classList && parent.classList.contains('widget-markdown')) {
                 return true;
             }
             parent = parent.parentElement;
         }
 
-        // 检查元素本身是否是 Tiptap 编辑器
+        // Check if element itself is a Tiptap editor
         if (element.classList &&
             (element.classList.contains('tiptap') || element.classList.contains('ProseMirror'))) {
             return true;
@@ -180,14 +180,14 @@ class UIToolkit {
     }
 
     /**
-     * 获取 Markdown Note 的 Tiptap 编辑器实例
-     * @param {HTMLElement} element - 输入框元素或相关元素
-     * @returns {Object|null} Tiptap 编辑器实例，如果找不到则返回 null
+     * Get Tiptap editor instance for Markdown Note
+     * @param {HTMLElement} element - Input element or related element
+     * @returns {Object|null} Tiptap editor instance, or null if not found
      */
     static getMarkdownNoteEditor(element) {
         if (!element) return null;
 
-        // 查找 .comfy-markdown 容器
+        // Find .comfy-markdown container
         let container = element;
         if (!container.classList || !container.classList.contains('comfy-markdown')) {
             container = element.closest('.comfy-markdown');
@@ -195,22 +195,22 @@ class UIToolkit {
 
         if (!container) return null;
 
-        // 查找 Tiptap 编辑器元素
+        // Find Tiptap editor element
         const editorElement = container.querySelector('.tiptap.ProseMirror, .ProseMirror.tiptap');
         if (!editorElement) return null;
 
-        // 尝试从元素获取 Tiptap 编辑器实例
-        // Tiptap 通常会将编辑器实例存储在元素的某个属性中
+        // Try to get Tiptap editor instance from element
+        // Tiptap usually stores editor instance in an element property
         if (editorElement.__tiptap_editor) {
             return editorElement.__tiptap_editor;
         }
 
-        // 尝试从全局或父元素查找
+        // Try to find from global or parent element
         if (container.__tiptap_editor) {
             return container.__tiptap_editor;
         }
 
-        // 如果找不到实例，返回编辑器元素本身，后续可以通过 DOM 操作
+        // If instance not found, return editor element itself for later DOM operation
         return {
             element: editorElement,
             getHTML: () => editorElement.innerHTML,
@@ -219,9 +219,9 @@ class UIToolkit {
                 if (editorElement.__tiptap_editor) {
                     editorElement.__tiptap_editor.commands.setContent(content);
                 } else {
-                    // 降级方案：直接操作 DOM
+                    // Fallback: directly operate DOM
                     editorElement.innerHTML = content;
-                    // 触发更新事件
+                    // Trigger update event
                     editorElement.dispatchEvent(new Event('input', { bubbles: true }));
                     editorElement.dispatchEvent(new Event('change', { bubbles: true }));
                 }
@@ -230,24 +230,24 @@ class UIToolkit {
     }
 
     /**
-     * 显示状态提示
+     * Show status tip
      */
     static showStatusTip(anchorElement, type, message, position = null) {
-        // 移除同一按钮上的旧提示
+        // Remove old tip from same button
         this.removeStatusTip(anchorElement);
 
-        // 创建提示元素
+        // Create tip element
         const tipElement = document.createElement('div');
         tipElement.className = `statustip ${type}`;
         tipElement.textContent = message;
         document.body.appendChild(tipElement);
 
-        // 设置位置和样式
+        // Set position and style
         const { posX, posY } = this._calculateTipPosition(anchorElement, position);
         tipElement.style.left = `${posX}px`;
         tipElement.style.top = `${posY}px`;
 
-        // 根据position类型调整transform
+        // Adjust transform based on position type
         if (position === 'top') {
             tipElement.style.transform = 'translate(-50%, -100%) translateY(-12px)';
         } else {
@@ -256,47 +256,47 @@ class UIToolkit {
 
         tipElement.classList.add('statustip-show');
 
-        // 记录提示元素
+        // Record tip element
         this.#statusTips.set(anchorElement, tipElement);
 
-        // 设置自动消失
+        // Set auto-dismiss
         this._setupTipAutoHide(tipElement, anchorElement);
 
         return tipElement;
     }
 
     /**
-     * 移除指定按钮的状态提示
+     * Remove status tip for specified button
      */
     static removeStatusTip(anchorElement) {
         const existingTip = this.#statusTips.get(anchorElement);
         if (existingTip) {
-            // 移除动画类
+            // Remove animation class
             existingTip.classList.remove('statustip-show');
-            // 立即移除元素
+            // Remove element immediately
             existingTip.parentNode?.removeChild(existingTip);
-            // 从管理器中移除记录
+            // Remove record from manager
             this.#statusTips.delete(anchorElement);
         }
     }
 
     /**
-     * 计算提示气泡位置
+     * Calculate tip bubble position
      */
     static _calculateTipPosition(anchorElement, position) {
         let posX, posY;
 
         if (typeof position === 'object' && position !== null) {
-            // 如果position是对象，直接使用其x,y值
+            // If position is an object, use its x,y values directly
             posX = position.x;
             posY = position.y;
         } else if (position === 'top') {
-            // 如果position是'top'，将提示放在元素上方中央
+            // If position is 'top', place tip above element center
             const rect = anchorElement.getBoundingClientRect();
             posX = rect.left + rect.width / 2;
             posY = rect.top;
         } else {
-            // 默认情况，使用元素的位置
+            // Default case, use element position
             const rect = anchorElement.getBoundingClientRect();
             posX = rect.left + rect.width / 2;
             posY = rect.top;
@@ -306,32 +306,32 @@ class UIToolkit {
     }
 
     /**
-     * 设置提示自动隐藏
+     * Set tip auto-hide
      */
     static _setupTipAutoHide(tipElement, anchorElement) {
-        // 增加显示时间到2秒
+        // Increase display time to 2 seconds
         setTimeout(() => {
-            // 检查提示是否仍然存在
+            // Check if tip still exists
             if (this.#statusTips.get(anchorElement) === tipElement) {
                 tipElement.classList.remove('statustip-show');
                 tipElement.classList.add('statustip-hide');
 
                 setTimeout(() => {
-                    // 再次检查提示是否仍然存在
+                    // Check again if tip still exists
                     if (this.#statusTips.get(anchorElement) === tipElement) {
                         tipElement.parentNode?.removeChild(tipElement);
                         this.#statusTips.delete(anchorElement);
                     }
-                }, 400); // 这是提示框淡出动画的时长
+                }, 400); // This is the tip fade-out animation duration
             }
-        }, 1000); // 显示1秒
+        }, 1000); // Display for 1 second
     }
 
     /**
-     * 为按钮添加图标
-     * @param {HTMLElement} button 按钮元素
-     * @param {string} icon 图标名称，支持SVG或PrimeIcons，例如'icon-history.svg'或'pi-times'
-     * @param {string} alt 替代文本
+     * Add icon to button
+     * @param {HTMLElement} button Button element
+     * @param {string} icon Icon name, supports SVG or PrimeIcons, e.g. 'icon-history.svg' or 'pi-times'
+     * @param {string} alt Alternative text
      */
     static addIconToButton(button, icon, alt) {
         if (!icon) return;
@@ -339,7 +339,7 @@ class UIToolkit {
         try {
             button.innerHTML = '';
 
-            // 判断是否是PrimeIcon
+            // Check if it's a PrimeIcon
             if (icon.startsWith('pi-')) {
                 const iconSpan = document.createElement('span');
                 iconSpan.className = `pi ${icon}`;
@@ -348,25 +348,25 @@ class UIToolkit {
                 return;
             }
 
-            // 获取图标名称（确保带有.svg后缀）
+            // Get icon name (ensure .svg suffix)
             const iconName = icon.endsWith('.svg') ? icon : `${icon}.svg`;
 
-            // 从ResourceManager获取图标
+            // Get icon from ResourceManager
             const cachedImg = ResourceManager.getIcon(iconName);
             if (cachedImg) {
                 button.appendChild(cachedImg);
                 cachedImg.alt = alt || '';
                 cachedImg.draggable = false;
             } else {
-                logger.warn(`图标加载 | 结果:失败 | 图标: ${icon}, 原因: 未找到缓存`);
+                logger.warn(`Icon load | Result: Failed | Icon: ${icon}, Reason: Cache not found`);
             }
         } catch (error) {
-            logger.warn(`图标加载 | 结果:失败 | 图标: ${icon}, 错误: ${error.message}`);
+            logger.warn(`Icon load | Result: Failed | Icon: ${icon}, Error: ${error.message}`);
         }
     }
 
     /**
-     * 判断元素是否可见
+     * Check if element is visible
      */
     static isElementVisible(element) {
         return element &&
@@ -375,12 +375,12 @@ class UIToolkit {
     }
 
     /**
-     * 创建并添加DOM元素
+     * Create and add DOM element
      */
     static createElement(tagName, props = {}, parent = null) {
         const element = document.createElement(tagName);
 
-        // 设置属性
+        // Set attributes
         Object.entries(props).forEach(([key, value]) => {
             if (key === 'className') {
                 element.className = value;
@@ -393,7 +393,7 @@ class UIToolkit {
             }
         });
 
-        // 添加到父元素
+        // Add to parent element
         if (parent) {
             parent.appendChild(element);
         }
@@ -401,38 +401,38 @@ class UIToolkit {
         return element;
     }
 
-    // ====================== 按钮状态管理 ======================
+    // ====================== Button State Management ======================
 
     /**
-     * 获取当前激活的按钮信息
+     * Get current active button info
      */
     static getActiveButtonInfo() {
         return this.#activeButtonInfo;
     }
 
     /**
-     * 设置当前激活的按钮信息
+     * Set current active button info
      */
     static setActiveButton(buttonInfo) {
-        // 如果新旧按钮信息相同，不做任何处理
+        // If old and new button info are the same, do nothing
         if (this.#activeButtonInfo && buttonInfo &&
             this.#activeButtonInfo.widget === buttonInfo.widget &&
             this.#activeButtonInfo.buttonId === buttonInfo.buttonId) {
             return;
         }
 
-        // 清理旧的激活按钮状态
+        // Clean up old active button state
         if (this.#activeButtonInfo) {
             const oldInfo = this.#activeButtonInfo;
-            // 重置旧按钮状态
+            // Reset old button state
             this.setButtonState(oldInfo.widget, oldInfo.buttonId, 'active', false);
             // logger.debug(`按钮状态重置 | 按钮:${oldInfo.buttonId} | 节点:${oldInfo.widget.nodeId}`);
         }
 
-        // 设置新的激活按钮
+        // Set new active button
         this.#activeButtonInfo = buttonInfo;
 
-        // 如果有新的按钮信息，设置其状态为激活
+        // If there's new button info, set its state to active
         if (buttonInfo) {
             this.setButtonState(buttonInfo.widget, buttonInfo.buttonId, 'active', true);
             // logger.debug(`按钮激活 | 按钮:${buttonInfo.buttonId} | 节点:${buttonInfo.widget.nodeId}`);
@@ -440,7 +440,7 @@ class UIToolkit {
     }
 
     /**
-     * 检查按钮是否为当前激活按钮
+     * Check if button is currently active
      */
     static isActiveButton(widget, buttonId) {
         return this.#activeButtonInfo &&
@@ -449,7 +449,7 @@ class UIToolkit {
     }
 
     /**
-     * 处理弹窗相关按钮点击
+     * Handle popup-related button click
      */
     static handlePopupButtonClick(e, widget, buttonId, showPopupFn, hidePopupFn) {
         e.preventDefault();
@@ -457,43 +457,43 @@ class UIToolkit {
 
         // logger.debug(`弹窗按钮点击 | 按钮: ${buttonId} | 节点: ${widget.nodeId}`);
 
-        // 检查当前按钮状态
+        // Check current button state
         const isCurrentActive = this.isActiveButton(widget, buttonId);
 
-        // 如果当前按钮已激活，则关闭弹窗
+        // If current button is active, close popup
         if (isCurrentActive) {
-            // 重置按钮状态并隐藏弹窗
+            // Reset button state and hide popup
             this.setActiveButton(null);
             hidePopupFn();
             return;
         }
 
-        // 设置新的激活按钮状态
+        // Set new active button state
         const buttonInfo = {
             widget,
             buttonId,
             timestamp: Date.now()
         };
 
-        // **不要**在这里设置激活按钮，让弹窗管理器在清理完其他窗口后设置
+        // **Do not** set active button here, let popup manager set it after cleaning up other windows
         // this.setActiveButton(buttonInfo);
 
-        // 显示弹窗
+        // Show popup
         showPopupFn({
             anchorButton: e.currentTarget,
             nodeId: widget.nodeId,
             inputId: widget.inputId,
             buttonInfo: buttonInfo,
             onClose: () => {
-                // 弹窗关闭时，如果当前按钮仍为激活状态，则重置
+                // When popup closes, reset if current button is still active
                 if (this.isActiveButton(widget, buttonId)) {
                     this.setActiveButton(null);
                 }
 
-                // 确保按钮状态恢复默认
+                // Ensure button state returns to default
                 this.setButtonState(widget, buttonId, 'active', false);
 
-                // 触发额外的回调
+                // Trigger additional callback
                 if (typeof widget.onPopupClosed === 'function') {
                     widget.onPopupClosed(buttonId);
                 }
@@ -502,11 +502,11 @@ class UIToolkit {
     }
 
     /**
-     * 获取按钮当前状态
+     * Get button current state
      */
     static getButtonState(widget, buttonId) {
         if (!widget || !widget.buttons || !widget.buttons[buttonId]) {
-            logger.error(`按钮状态获取 | 结果:失败 | 原因:按钮未找到 | 按钮ID:${buttonId}`);
+            logger.error(`Button state get | Result: Failed | Reason: Button not found | ButtonID:${buttonId}`);
             return null;
         }
 
@@ -520,7 +520,7 @@ class UIToolkit {
     }
 
     /**
-     * 设置按钮状态
+     * Set button state
      */
     static setButtonState(widget, buttonId, stateType, value = true) {
         try {
@@ -531,86 +531,86 @@ class UIToolkit {
 
             if (value) {
                 button.classList.add(stateClass);
-                // 如果是禁用状态，添加disabled属性
+                // If disabled, add disabled attribute
                 if (stateType === 'disabled') {
                     button.setAttribute('disabled', 'disabled');
                 }
             } else {
                 button.classList.remove(stateClass);
-                // 如果取消禁用状态，移除disabled属性
+                // If un-disabling, remove disabled attribute
                 if (stateType === 'disabled') {
                     button.removeAttribute('disabled');
                 }
             }
 
-            // 更新按钮可点击状态
+            // Update button clickable state
             this._updateButtonClickability(button);
 
         } catch (error) {
-            logger.error(`按钮状态 | 设置失败 | 按钮:${buttonId} | 状态:${stateType} | 错误:${error.message}`);
+            logger.error(`Button state | Set failed | Button:${buttonId} | State:${stateType} | Error:${error.message}`);
         }
     }
 
     /**
-     * 更新按钮可点击状态
+     * Update button clickable state
      */
     static _updateButtonClickability(button) {
-        // 检查按钮是否处于禁用状态
+        // Check if button is in disabled state
         const isDisabled = button.classList.contains('button-disabled');
 
         if (isDisabled) {
-            // 如果按钮被禁用，阻止点击事件
+            // If button is disabled, prevent click event
             button.style.pointerEvents = 'none';
         } else {
-            // 其他所有情况（包括processing）都允许点击，
-            // 具体操作由事件监听器内部逻辑决定
+            // All other cases (including processing) allow clicking,
+            // Specific actions determined by event listener internal logic
             button.style.pointerEvents = 'auto';
         }
     }
 
     /**
-     * 重置按钮状态
+     * Reset button state
      */
     static resetButtonState(widget, buttonId = null) {
         try {
             const resetButton = (button, id) => {
                 if (button) {
-                    // 移除所有状态类
+                    // Remove all state classes
                     button.classList.remove('button-active', 'button-processing', 'button-disabled');
-                    // 移除disabled属性
+                    // Remove disabled attribute
                     button.removeAttribute('disabled');
-                    // 恢复点击事件
+                    // Restore click events
                     button.style.pointerEvents = 'auto';
                 }
             };
 
             if (buttonId) {
-                // 重置指定按钮
+                // Reset specified button
                 const button = widget.buttons[buttonId];
                 resetButton(button, buttonId);
             } else {
-                // 重置所有按钮
+                // Reset all buttons
                 Object.entries(widget.buttons).forEach(([id, button]) => {
                     resetButton(button, id);
                 });
             }
         } catch (error) {
-            logger.error(`按钮状态 | 重置失败 | 按钮:${buttonId || 'all'} | 错误:${error.message}`);
+            logger.error(`Button state | Reset failed | Button:${buttonId || 'all'} | Error:${error.message}`);
         }
     }
 
     /**
-     * 更新撤销/重做按钮状态
+     * Update undo/redo button state
      */
     static updateUndoRedoButtonState(widget, LocalHistoryService) {
-        // 更新撤销按钮状态
+        // Update undo button state
         const undoButton = widget.buttons['undo'];
         if (undoButton) {
             const canUndo = LocalHistoryService.canUndo(widget.nodeId, widget.inputId);
             this.setButtonState(widget, 'undo', 'disabled', !canUndo);
         }
 
-        // 更新重做按钮状态
+        // Update redo button state
         const redoButton = widget.buttons['redo'];
         if (redoButton) {
             const canRedo = LocalHistoryService.canRedo(widget.nodeId, widget.inputId);
@@ -619,82 +619,82 @@ class UIToolkit {
     }
 
     /**
-     * 处理按钮点击操作
+     * Handle button click operation
      */
     static handleButtonOperation(e, widget, buttonId, operation, LocalHistoryService) {
         e.preventDefault();
         e.stopPropagation();
 
-        // 获取按钮状态
+        // Get button state
         const state = this.getButtonState(widget, buttonId);
 
-        // 如果按钮已禁用或正在处理中，不执行操作
+        // If button is disabled or processing, don't execute operation
         if (!state || state.disabled || state.processing) {
-            logger.debug(`按钮操作 | 结果:跳过 | 按钮:${buttonId} | 原因:${state.disabled ? '已禁用' : '处理中'}`);
+            logger.debug(`Button op | Result: Skipped | Button:${buttonId} | Reason:${state.disabled ? 'Disabled' : 'Processing'}`);
             return;
         }
 
-        // 设置按钮为处理中状态
+        // Set button to processing state
         this.setButtonState(widget, buttonId, 'processing', true);
-        // logger.debug(`按钮操作 | 动作:开始 | 按钮:${buttonId}`);
+        // logger.debug(`Button op | Action: Start | Button:${buttonId}`);
 
-        // 执行操作（接收一个回调函数用于处理操作完成后的逻辑）
+        // Execute operation (receives a callback for post-operation logic)
         try {
             const callback = (success = true, error = null) => {
-                // 重置按钮状态
+                // Reset button state
                 this.setButtonState(widget, buttonId, 'processing', false);
 
-                // 如果操作成功且有结果，将结果写入历史记录
+                // If operation succeeds with result, write to history
                 if (success && widget.inputEl && widget.inputEl.value) {
-                    // 添加到历史
-                    // logger.debug(`准备写入历史｜ ${buttonId}操作完成｜ node_id=${widget.nodeId}`);
+                    // Add to history
+                    // logger.debug(`Preparing to write history｜ ${buttonId}Operation complete｜ node_id=${widget.nodeId}`);
                     LocalHistoryService.addHistory({
                         workflow_id: '',
                         node_id: widget.nodeId,
                         input_id: widget.inputId,
                         content: widget.inputEl.value,
-                        operation_type: buttonId, // 使用按钮ID作为操作类型
+                        operation_type: buttonId, // Use button ID as operation type
                     });
                 }
 
                 if (error) {
-                    logger.error(`按钮操作完成 | 结果:失败 | 按钮:${buttonId} | 错误:${error}`);
+                    logger.error(`Button op complete | Result: Failed | Button:${buttonId} | Error:${error}`);
                     this.showStatusTip(
                         e.currentTarget,
                         'error',
-                        `操作失败: ${error?.message || '未知错误'}`,
+                        `Operation failed: ${error?.message || 'Unknown error'}`,
                         null
                     );
                 } else {
-                    // logger.debug(`按钮操作完成 | 结果:${success ? '成功' : '失败'} | 按钮:${buttonId}`);
+                    // logger.debug(`Button op complete | Result:${success ? 'Success' : 'Failed'} | 按钮:${buttonId}`);
                     this.showStatusTip(
                         e.currentTarget,
                         'success',
-                        `${e.currentTarget.title || buttonId} 操作完成`,
+                        `${e.currentTarget.title || buttonId} Operation complete`,
                         null
                     );
                 }
             };
 
-            // 执行操作并传入回调
-            // logger.debug(`历史缓存 ｜ 按钮操作准备执行 node_id=${widget.nodeId} input_id=${widget.inputId} type=${buttonId}`);
+            // Execute operation and pass callback
+            // logger.debug(`History cache | Button operation ready to execute node_id=${widget.nodeId} input_id=${widget.inputId} type=${buttonId}`);
             operation(callback);
         } catch (error) {
-            // 出现异常时重置按钮状态
+            // Reset button state when exception occurs
             this.setButtonState(widget, buttonId, 'processing', false);
-            logger.error(`按钮操作 | 结果:异常 | 按钮:${buttonId} | 错误:${error.message}`);
+            logger.error(`Button op | Result: Exception | Button:${buttonId} | Error:${error.message}`);
             this.showStatusTip(
                 e.currentTarget,
                 'error',
-                `操作异常: ${error.message}`,
+                `Operation exception: ${error.message}`,
                 null
             );
         }
     }
 
     /**
-     * 处理按钮点击
-     * 显示状态提示信息
+     * Handle button click
+     * Show status tip message
      */
     static handleButtonClick(e, widget, message, type) {
         const btnRect = e.target.getBoundingClientRect();
@@ -707,7 +707,7 @@ class UIToolkit {
     }
 
     /**
-     * 写入内容到输入框
+     * Write content to input
      */
     static writeToInput(content, nodeId, inputId, options = { highlight: true, focus: false }) {
         const mappingKey = `${nodeId}_${inputId}`;
@@ -716,54 +716,54 @@ class UIToolkit {
         if (mapping && mapping.inputEl) {
             const inputEl = mapping.inputEl;
 
-            // 检查是否为 Markdown Note
+            // Check if Markdown Note
             const editor = this.getMarkdownNoteEditor(inputEl);
             if (editor) {
-                // 使用 Tiptap 编辑器写入内容
+                // Write content using Tiptap editor
                 editor.setContent(content);
 
-                // 添加高亮效果（对编辑器元素）
+                // Add highlight effect (to editor element)
                 if (options.highlight && editor.element) {
                     this._highlightInput(editor.element);
                 }
 
-                // 聚焦编辑器
+                // Focus editor
                 if (options.focus && editor.element) {
                     editor.element.focus();
                 }
 
-                logger.debug(`内容写入 | 结果:成功 | 节点:${nodeId} | 输入框:${inputId} | 类型:Markdown Note`);
+                logger.debug(`Content write | Result: Success | Node:${nodeId} | Input:${inputId} | Type: Markdown Note`);
                 return true;
             }
 
-            // 标准输入框处理
-            // 将内容写入输入框
+            // Standard input handling
+            // Write content to input
             inputEl.value = content;
 
-            // 触发input事件，确保UI和数据同步
+            // Trigger input event to ensure UI and data sync
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-            // 添加高亮效果
+            // Add highlight effect
             if (options.highlight) {
                 this._highlightInput(inputEl);
             }
 
-            // 聚焦输入框
+            // Focus input
             if (options.focus) {
                 inputEl.focus();
             }
 
-            logger.debug(`内容写入 | 结果:成功 | 节点:${nodeId} | 输入框:${inputId}`);
+            logger.debug(`Content write | Result: Success | Node:${nodeId} | Input:${inputId}`);
             return true;
         } else {
-            logger.error(`内容写入 | 结果:失败 | 节点:${nodeId} | 输入框:${inputId} | 原因:找不到输入框`);
+            logger.error(`Content write | Result: Failed | Node:${nodeId} | Input:${inputId} | Reason: Input not found`);
             return false;
         }
     }
 
     /**
-     * 在光标位置插入内容
+     * Insert content at cursor position
      */
     static insertAtCursor(content, nodeId, inputId, options = { highlight: true, keepFocus: true }) {
         const mappingKey = `${nodeId}_${inputId}`;
@@ -772,16 +772,16 @@ class UIToolkit {
         if (mapping && mapping.inputEl) {
             const inputEl = mapping.inputEl;
 
-            // 检查是否为 Markdown Note
+            // Check if Markdown Note
             const editor = this.getMarkdownNoteEditor(inputEl);
             if (editor) {
-                // 对于 Markdown Note，使用 Tiptap 的插入命令
+                // For Markdown Note, use Tiptap insert command
                 if (editor.element && editor.element.__tiptap_editor) {
                     const tiptapEditor = editor.element.__tiptap_editor;
-                    // 使用 Tiptap 的 insertContent 命令
+                    // Use Tiptap's insertContent command
                     tiptapEditor.commands.insertContent(content);
                 } else {
-                    // 降级方案：获取当前文本，插入内容，然后设置回去
+                    // Fallback: get current text, insert content, then set back
                     const currentText = editor.getText();
                     const selection = window.getSelection();
                     let cursorPos = 0;
@@ -798,90 +798,90 @@ class UIToolkit {
                     editor.setContent(newContent);
                 }
 
-                // 添加高亮效果
+                // Add highlight effect
                 if (options.highlight && editor.element) {
                     this._highlightInput(editor.element);
                 }
 
-                // 保持焦点
+                // Keep focus
                 if (options.keepFocus && editor.element) {
                     editor.element.focus();
                 }
 
-                logger.debug(`内容插入 | 结果:成功 | 节点:${nodeId} | 输入框:${inputId} | 类型:Markdown Note`);
+                logger.debug(`Content insert | Result: Success | Node:${nodeId} | Input:${inputId} | Type: Markdown Note`);
                 return true;
             }
 
-            // 标准输入框处理
+            // Standard input handling
             const currentValue = inputEl.value;
             const cursorPos = inputEl.selectionStart;
             const beforeText = currentValue.substring(0, cursorPos);
             const afterText = currentValue.substring(inputEl.selectionEnd);
 
-            // 插入内容
+            // Insert content
             const newValue = beforeText + content + afterText;
             inputEl.value = newValue;
 
-            // 触发事件
+            // Trigger event
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-            // 更新光标位置
+            // Update cursor position
             const newPos = cursorPos + content.length;
             inputEl.setSelectionRange(newPos, newPos);
 
-            // 添加高亮效果
+            // Add highlight effect
             if (options.highlight) {
                 this._highlightInput(inputEl);
             }
 
-            // 根据参数决定是否保持焦点
+            // Decide whether to keep focus based on parameters
             if (options.keepFocus) {
                 inputEl.focus();
             }
 
-            logger.debug(`内容插入 | 结果:成功 | 节点:${nodeId} | 输入框:${inputId}`);
+            logger.debug(`Content insert | Result: Success | Node:${nodeId} | Input:${inputId}`);
             return true;
         } else {
-            logger.error(`内容插入 | 结果:失败 | 节点:${nodeId} | 输入框:${inputId} | 原因:找不到输入框`);
+            logger.error(`Content insert | Result: Failed | Node:${nodeId} | Input:${inputId} | Reason: Input not found`);
             return false;
         }
     }
 
     /**
-     * 为输入框添加高亮动画效果
+     * Add highlight animation effect to input
      */
     static _highlightInput(inputEl) {
         if (!inputEl) return;
 
-        // 移除旧的高亮状态
+        // Remove old highlight state
         this.removeHighlight(inputEl);
 
-        // 强制重绘，确保动画可以重新开始
+        // Force repaint to ensure animation can restart
         void inputEl.offsetWidth;
 
-        // 添加动画类
+        // Add animation class
         inputEl.classList.add('input-highlight');
 
-        // 动画结束后移除类
-        // 使用 200ms 匹配 CSS 中的动画时长 (common.css: L181)
+        // Remove class after animation ends
+        // Use 200ms to match CSS animation duration (common.css: L181)
         inputEl._highlightTimer = setTimeout(() => {
             this.removeHighlight(inputEl);
         }, 200);
     }
 
     /**
-     * 显式移除元素的高亮状态并清理定时器
-     * 用于在布局重排（如滚动条出现）前清理渲染负担
-     * @param {HTMLElement} inputEl 目标元素
+     * Explicitly remove element highlight state and clean up timers
+     * Used to clean up rendering load before layout reflow (e.g. scrollbar appearing)
+     * @param {HTMLElement} inputEl Target element
      */
     static removeHighlight(inputEl) {
         if (!inputEl) return;
 
-        // 移除动画类
+        // Remove animation class
         inputEl.classList.remove('input-highlight');
 
-        // 清理定时器
+        // Clean up timers
         if (inputEl._highlightTimer) {
             clearTimeout(inputEl._highlightTimer);
             inputEl._highlightTimer = null;
@@ -889,13 +889,13 @@ class UIToolkit {
     }
 
     /**
-     * 处理异步按钮操作
+     * Handle async button operation
      */
     static async handleAsyncButtonOperation(widget, buttonId, buttonElement, asyncOperation) {
         const statusConfig = this.STATUS_TEXTS[buttonId] || {
-            loading: '处理中',
-            success: '完成',
-            error: (msg) => msg || '操作失败'
+            loading: 'Processing',
+            success: 'Complete',
+            error: (msg) => msg || 'Operation failed'
         };
 
         let currentRequestId = null;
@@ -903,42 +903,42 @@ class UIToolkit {
         let cancelClickHandler = null;
 
         try {
-            // 设置当前按钮为处理中状态
+            // Set current button to processing state
             this.setButtonState(widget, buttonId, 'processing', true);
-            // 禁用其他按钮
+            // Disable other buttons
             Object.keys(widget.buttons).forEach(id => {
                 if (id !== buttonId) {
                     this.setButtonState(widget, id, 'disabled', true);
                 }
             });
 
-            // 执行异步操作，并捕获请求ID
+            // Execute async operation and capture request ID
             const result = await asyncOperation((requestId) => {
                 currentRequestId = requestId;
 
-                // 0.5秒后允许取消
+                // 0.5seconds later allow cancel
                 cancellationTimer = setTimeout(() => {
-                    // 检查按钮是否仍在处理中
+                    // Check if button is still processing
                     const currentState = this.getButtonState(widget, buttonId);
                     if (currentState && currentState.processing) {
                         buttonElement.classList.add('cancellable');
-                        // 临时添加取消事件
+                        // Temporarily add cancel event
                         cancelClickHandler = async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             if (currentRequestId) {
-                                logger.debug(`用户取消请求 | ID: ${currentRequestId}`);
+                                logger.debug(`User cancelled request | ID: ${currentRequestId}`);
                                 await APIService.cancelRequest(currentRequestId);
 
-                                // 根据按钮ID显示不同的取消提示
-                                let cancelMessage = '请求已取消';
+                                // Show different cancel tips based on button ID
+                                let cancelMessage = 'Request cancelled';
                                 if (buttonId === 'expand') {
-                                    cancelMessage = '提示词优化已取消';
+                                    cancelMessage = 'Prompt enhance cancelled';
                                 } else if (buttonId === 'translate') {
-                                    cancelMessage = '翻译已取消';
+                                    cancelMessage = 'Translation cancelled';
                                 }
 
-                                // 显示取消提示
+                                // Show cancel tip
                                 this.showStatusTip(buttonElement, 'info', cancelMessage);
                             }
                         };
@@ -947,7 +947,7 @@ class UIToolkit {
                 }, 500);
             });
 
-            // 根据操作结果显示不同的提示
+            // Show different tips based on operation result
             if (result && result.success) {
                 const btnRect = buttonElement.getBoundingClientRect();
                 const tipPosition = { x: btnRect.left + btnRect.width / 2, y: btnRect.top };
@@ -968,14 +968,14 @@ class UIToolkit {
                     );
                 }
             } else {
-                // 如果是用户取消的，则不显示错误
+                // If cancelled by user, don't show error
                 if (!result?.cancelled) {
                     throw new Error(statusConfig.error(result?.error));
                 }
             }
 
         } catch (error) {
-            // 如果是用户取消的，错误信息已在API层处理，这里不再显示
+            // If cancelled by user, error already handled at API layer, not shown here
             if (error.name !== 'AbortError' && !error.message.includes('aborted')) {
                 const btnRect = buttonElement.getBoundingClientRect();
                 this.showStatusTip(
@@ -984,30 +984,30 @@ class UIToolkit {
                     error.message,
                     { x: btnRect.left + btnRect.width / 2, y: btnRect.top }
                 );
-                logger.error(`按钮操作失败 | 按钮:${buttonId} | 错误:${error.message}`);
+                logger.error(`Button op failed | Button:${buttonId} | Error:${error.message}`);
             }
 
         } finally {
-            // 清理
+            // Clean up
             if (cancellationTimer) clearTimeout(cancellationTimer);
             if (cancelClickHandler) buttonElement.removeEventListener('click', cancelClickHandler);
             buttonElement.classList.remove('cancellable');
 
-            // 恢复为旧的、可靠的重置逻辑
-            // 重置当前按钮状态
+            // Restore to old, reliable reset logic
+            // Reset current button state
             this.setButtonState(widget, buttonId, 'processing', false);
-            // 恢复其他按钮状态
+            // Restore other button states
             Object.keys(widget.buttons).forEach(id => {
                 if (id !== buttonId) {
                     this.setButtonState(widget, id, 'disabled', false);
                 }
             });
 
-            // 操作完成后，触发小助手自动折叠
+            // After operation, trigger assistant auto-collapse
             setTimeout(() => {
                 if (window.promptAssistant && typeof window.promptAssistant.triggerAutoCollapse === 'function') {
                     window.promptAssistant.triggerAutoCollapse(widget);
-                    logger.debug(`异步操作完成 | 触发自动折叠 | 按钮:${buttonId}`);
+                    logger.debug(`Async op complete | Trigger auto-collapse | Button:${buttonId}`);
                 }
             }, 1500);
         }

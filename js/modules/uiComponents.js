@@ -1359,7 +1359,7 @@ export function createConfirmPopup(options) {
     const footer = document.createElement('div');
     footer.className = 'pa-confirm-popup-footer';
 
-    // 单按钮模式：只显示确认按钮
+    // Single button mode: only show confirm button
     if (singleButton) {
         const confirmButton = document.createElement('button');
         confirmButton.className = confirmDanger
@@ -1373,13 +1373,13 @@ export function createConfirmPopup(options) {
                 }
                 closePopup();
             } catch (error) {
-                logger.error('确认操作失败', error);
-                // 如果确认操作失败，不关闭气泡框
+                logger.error('Confirm operation failed', error);
+                // If confirm operation fails, don't close bubble
             }
         };
         footer.appendChild(confirmButton);
     } else {
-        // 双按钮模式：显示取消和确认按钮
+        // Dual button mode: show cancel and confirm buttons
         const cancelButton = document.createElement('button');
         cancelButton.className = 'p-button p-component p-button-secondary p-button-sm';
         cancelButton.innerHTML = `<span class="p-button-icon-left pi pi-times"></span><span class="p-button-label">${cancelLabel}</span>`;
@@ -1397,12 +1397,12 @@ export function createConfirmPopup(options) {
         confirmButton.innerHTML = `<span class="p-button-icon-left pi pi-check"></span><span class="p-button-label">${confirmLabel}</span>`;
         confirmButton.onclick = async () => {
             try {
-                // 将表单容器传递给 onConfirm 回调
+                // Pass form container to onConfirm callback
                 await onConfirm(formContainer);
                 closePopup();
             } catch (error) {
-                logger.error('确认操作失败', error);
-                // 如果确认操作失败，不关闭气泡框
+                logger.error('Confirm operation failed', error);
+                // If confirm operation fails, don't close bubble
             }
         };
 
@@ -1411,26 +1411,26 @@ export function createConfirmPopup(options) {
     }
     content.appendChild(footer);
 
-    // 创建指针（箭头）
+    // Create pointer (arrow)
     const arrow = document.createElement('div');
     arrow.className = 'pa-confirm-popup-arrow';
 
     popup.appendChild(arrow);
     popup.appendChild(content);
 
-    // 关闭气泡框的函数
+    // Function to close bubble
     const closePopup = () => {
         popup.classList.add('pa-confirm-popup-hide');
         setTimeout(() => {
             if (popup.parentNode) {
                 popup.parentNode.removeChild(popup);
             }
-            // 移除点击外部关闭的事件监听
+            // Remove click-outside-close event listener
             document.removeEventListener('click', handleOutsideClick, true);
         }, 200);
     };
 
-    // 点击外部关闭
+    // Click outside to close
     const handleOutsideClick = (e) => {
         if (!popup.contains(e.target) && !target.contains(e.target)) {
             if (onCancel) {
@@ -1440,12 +1440,12 @@ export function createConfirmPopup(options) {
         }
     };
 
-    // ---定位气泡框---
+    // ---Position bubble---
     const positionPopup = () => {
         const targetRect = target.getBoundingClientRect();
         const popupRect = popup.getBoundingClientRect();
         const margin = 10;
-        const gap = 12; // 气泡与目标之间的间隙
+        const gap = 12; // Gap between bubble and target
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
@@ -1453,26 +1453,26 @@ export function createConfirmPopup(options) {
         let arrowPosition = '';
         let finalPosition = position;
 
-        // 如果开启自动定位，根据目标元素位置计算最佳方向
+        // If auto-positioning enabled, calculate best direction based on target position
         if (autoPosition) {
-            // 计算各方向可用空间
+            // Calculate available space in each direction
             const spaceTop = targetRect.top - margin;
             const spaceBottom = viewportHeight - targetRect.bottom - margin;
             const spaceLeft = targetRect.left - margin;
             const spaceRight = viewportWidth - targetRect.right - margin;
 
-            // 判断各方向是否能容纳气泡
+            // Determine if each direction can fit the bubble
             const canFitTop = spaceTop >= popupRect.height + gap;
             const canFitBottom = spaceBottom >= popupRect.height + gap;
             const canFitLeft = spaceLeft >= popupRect.width + gap;
             const canFitRight = spaceRight >= popupRect.width + gap;
 
-            // 根据目标元素位置选择最佳方向
-            // 优先级：用户指定的方向 > 相反方向 > 垂直/水平替代方向
+            // Choose best direction based on target element position
+            // Priority: user-specified > opposite > vertical/horizontal alternatives
             const preferHorizontal = (position === 'left' || position === 'right');
 
             if (preferHorizontal) {
-                // 用户偏好水平方向
+                // User prefers horizontal direction
                 if (position === 'left' && canFitLeft) {
                     finalPosition = 'left';
                 } else if (position === 'right' && canFitRight) {
@@ -1486,11 +1486,11 @@ export function createConfirmPopup(options) {
                 } else if (canFitTop) {
                     finalPosition = 'top';
                 } else {
-                    // 空间都不够，选择垂直空间最大的方向
+                    // Not enough space, choose direction with most vertical space
                     finalPosition = spaceBottom >= spaceTop ? 'bottom' : 'top';
                 }
             } else {
-                // 用户偏好垂直方向（默认）
+                // User prefers vertical direction (default)
                 if (position === 'bottom' && canFitBottom) {
                     finalPosition = 'bottom';
                 } else if (position === 'top' && canFitTop) {
@@ -1504,13 +1504,13 @@ export function createConfirmPopup(options) {
                 } else if (canFitLeft) {
                     finalPosition = 'left';
                 } else {
-                    // 空间都不够，选择垂直空间最大的方向
+                    // Not enough space, choose direction with most vertical space
                     finalPosition = spaceBottom >= spaceTop ? 'bottom' : 'top';
                 }
             }
         }
 
-        // 根据最终方向计算位置
+        // Calculate position based on final direction
         switch (finalPosition) {
             case 'top':
                 top = targetRect.top - popupRect.height - gap;
@@ -1535,14 +1535,14 @@ export function createConfirmPopup(options) {
                 break;
         }
 
-        // 水平边界检查（确保气泡不超出视口）
+        // Horizontal boundary check (ensure bubble doesn't exceed viewport)
         if (left < margin) {
             left = margin;
         } else if (left + popupRect.width > viewportWidth - margin) {
             left = viewportWidth - popupRect.width - margin;
         }
 
-        // 垂直边界检查
+        // Vertical boundary check
         if (top < margin) {
             top = margin;
         } else if (top + popupRect.height > viewportHeight - margin) {
@@ -1552,34 +1552,34 @@ export function createConfirmPopup(options) {
         popup.style.top = `${top}px`;
         popup.style.left = `${left}px`;
 
-        // 设置箭头位置
+        // Set arrow position
         arrow.className = `pa-confirm-popup-arrow ${arrowPosition}`;
 
-        // 计算箭头的偏移，使其指向触发元素的中心
+        // Calculate arrow offset to point at trigger element center
         if (arrowPosition === 'top' || arrowPosition === 'bottom') {
             let arrowLeft = targetRect.left + (targetRect.width / 2) - left;
-            // 确保箭头不超出气泡边界
+            // Ensure arrow doesn't exceed bubble boundary
             arrowLeft = Math.max(16, Math.min(arrowLeft, popupRect.width - 16));
             arrow.style.left = `${arrowLeft}px`;
             arrow.style.top = '';
         } else if (arrowPosition === 'left' || arrowPosition === 'right') {
             let arrowTop = targetRect.top + (targetRect.height / 2) - top;
-            // 确保箭头不超出气泡边界
+            // Ensure arrow doesn't exceed bubble boundary
             arrowTop = Math.max(16, Math.min(arrowTop, popupRect.height - 16));
             arrow.style.top = `${arrowTop}px`;
             arrow.style.left = '';
         }
     };
 
-    // 将气泡框添加到 body
+    // Add bubble to body
     document.body.appendChild(popup);
 
-    // 定位气泡框
+    // Position bubble
     requestAnimationFrame(() => {
         positionPopup();
         popup.classList.add('pa-confirm-popup-show');
 
-        // 延迟添加外部点击监听，防止立即触发
+        // Delay adding outside click listener to prevent immediate trigger
         setTimeout(() => {
             document.addEventListener('click', handleOutsideClick, true);
         }, 100);
@@ -1592,24 +1592,24 @@ export function createConfirmPopup(options) {
 }
 
 /**
- * 创建右键菜单组件 (参考 PrimeVue Menu)
- * @param {Object} options 配置选项
- * @param {HTMLElement} options.target 触发元素，右键菜单会在此元素上触发
- * @param {Array<Object>} options.items 菜单项列表
- * @param {string} options.items[].label 菜单项文本
- * @param {string} [options.items[].icon] 菜单项图标类名（可选）
- * @param {Function} options.items[].onClick 菜单项点击回调
- * @param {boolean} [options.items[].separator] 是否为分隔符（可选）
- * @param {boolean} [options.items[].disabled] 是否禁用（可选）
- * @returns {Object} 包含 destroy 方法的对象
+ * Create context menu component (ref PrimeVue Menu)
+ * @param {Object} options Configuration options
+ * @param {HTMLElement} options.target Trigger element, context menu triggers on this element
+ * @param {Array<Object>} options.items Menu items list
+ * @param {string} options.items[].label Menu item text
+ * @param {string} [options.items[].icon] Menu item icon class name (optional)
+ * @param {Function} options.items[].onClick Menu item click callback
+ * @param {boolean} [options.items[].separator] Whether it's a separator (optional)
+ * @param {boolean} [options.items[].disabled] Whether disabled (optional)
+ * @returns {Object} Object containing destroy method
  */
 /**
- * 显示右键菜单 (动态显示，不需要绑定特定元素)
- * @param {Object} options 配置选项
- * @param {number} options.x 显示位置 X 坐标
- * @param {number} options.y 显示位置 Y 坐标
- * @param {Array<Object>} options.items 菜单项列表
- * @param {Function} [options.onClose] 菜单关闭回调
+ * Show context menu (dynamic display, no need to bind specific element)
+ * @param {Object} options Configuration options
+ * @param {number} options.x Display position X coordinate
+ * @param {number} options.y Display position Y coordinate
+ * @param {Array<Object>} options.items Menu items list
+ * @param {Function} [options.onClose] Menu close callback
  */
 export function showContextMenu(options) {
     const {
@@ -1619,16 +1619,16 @@ export function showContextMenu(options) {
         onClose
     } = options;
 
-    // 移除现有的右键菜单（但不移除 Split Button 的菜单和下拉菜单）
+    // Remove existing context menu (but not Split Button menu or dropdown)
     const existingMenu = document.querySelector('.pa-context-menu:not(.pa-split-button-menu):not(.pa-dropdown-menu)');
     if (existingMenu) {
         existingMenu.remove();
     }
 
     const menu = document.createElement('div');
-    menu.className = 'pa-context-menu pa-context-menu-show'; // 直接显示
+    menu.className = 'pa-context-menu pa-context-menu-show'; // Display directly
 
-    // 我们需要手动设置样式以确保它立即可见但可以被定位
+    // We need to manually set styles to ensure it's immediately visible but positionable
     menu.style.display = 'block';
 
     const menuList = document.createElement('ul');
@@ -1700,7 +1700,7 @@ export function showContextMenu(options) {
     menu.appendChild(menuList);
     document.body.appendChild(menu);
 
-    // 定位菜单
+    // Position menu
     const menuRect = menu.getBoundingClientRect();
     let left = x;
     let top = y;
@@ -1719,14 +1719,14 @@ export function showContextMenu(options) {
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
 
-    // 点击外部关闭
+    // Click outside to close
     const handleOutsideClick = (e) => {
         if (menu && !menu.contains(e.target)) {
             closeMenu();
         }
     };
 
-    // 延迟添加外部点击监听
+    // Delay adding outside click listener
     setTimeout(() => {
         document.addEventListener('click', handleOutsideClick, true);
         document.addEventListener('contextmenu', handleOutsideClick, true);
@@ -1738,11 +1738,11 @@ export function showContextMenu(options) {
 }
 
 /**
- * 创建右键菜单组件 (参考 PrimeVue Menu)
- * @param {Object} options 配置选项
- * @param {HTMLElement} options.target 触发元素,右键菜单会在此元素上触发
- * @param {Array<Object>|Function} options.items 菜单项列表或返回菜单项列表的函数
- * @returns {Object} 包含 destroy 方法的对象
+ * Create context menu component (ref PrimeVue Menu)
+ * @param {Object} options Configuration options
+ * @param {HTMLElement} options.target Trigger element, context menu triggers on this element
+ * @param {Array<Object>|Function} options.items Menu items list or function that returns menu items
+ * @returns {Object} Object containing destroy method
  */
 export function createContextMenu(options) {
     const {
@@ -1754,7 +1754,7 @@ export function createContextMenu(options) {
         e.preventDefault();
         e.stopPropagation();
 
-        // 如果 items 是函数,则调用它获取最新的菜单项列表
+        // If items is a function, call it to get latest menu items
         const menuItems = typeof items === 'function' ? items() : items;
 
         showContextMenu({
@@ -1776,12 +1776,12 @@ export function createContextMenu(options) {
 }
 
 /**
- * 创建 Tooltip 提示框 (参考 PrimeVue Tooltip)
- * @param {Object} options 配置选项
- * @param {HTMLElement} options.target 触发元素
- * @param {string} options.content 提示内容
- * @param {string} [options.position='top'] 提示框位置 ('top', 'bottom', 'left', 'right')
- * @returns {Object} 包含 destroy 方法的对象
+ * Create Tooltip (ref PrimeVue Tooltip)
+ * @param {Object} options Configuration options
+ * @param {HTMLElement} options.target Trigger element
+ * @param {string} options.content Tooltip content
+ * @param {string} [options.position='top'] Tooltip position ('top', 'bottom', 'left', 'right')
+ * @returns {Object} Object containing destroy method
  */
 export function createTooltip(options) {
     const {
@@ -1794,13 +1794,13 @@ export function createTooltip(options) {
     let showTimeout = null;
     let hideTimeout = null;
 
-    // 创建 tooltip 元素
+    // Create tooltip element
     const createTooltipElement = () => {
         tooltip = document.createElement('div');
         tooltip.className = 'pa-tooltip';
         tooltip.textContent = content;
 
-        // 创建箭头
+        // Create arrow
         const arrow = document.createElement('div');
         arrow.className = 'pa-tooltip-arrow';
         tooltip.appendChild(arrow);
@@ -1808,7 +1808,7 @@ export function createTooltip(options) {
         document.body.appendChild(tooltip);
     };
 
-    // 定位 tooltip
+    // Position tooltip
     const positionTooltip = () => {
         if (!tooltip) return;
 
@@ -1841,7 +1841,7 @@ export function createTooltip(options) {
                 break;
         }
 
-        // 边界检查
+        // Boundary check
         const margin = 10;
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
@@ -1867,7 +1867,7 @@ export function createTooltip(options) {
         }
     };
 
-    // 显示 tooltip
+    // Show tooltip
     const showTooltip = () => {
         clearTimeout(hideTimeout);
         showTimeout = setTimeout(() => {
@@ -1878,10 +1878,10 @@ export function createTooltip(options) {
             requestAnimationFrame(() => {
                 tooltip.classList.add('pa-tooltip-show');
             });
-        }, 200); // 延迟 200ms 显示
+        }, 200); // Delay 200ms to show
     };
 
-    // 隐藏 tooltip
+    // Hide tooltip
     const hideTooltip = () => {
         clearTimeout(showTimeout);
         if (tooltip) {
@@ -1895,11 +1895,11 @@ export function createTooltip(options) {
         }
     };
 
-    // 绑定事件
+    // Bind events
     target.addEventListener('mouseenter', showTooltip);
     target.addEventListener('mouseleave', hideTooltip);
 
-    // 销毁方法
+    // Destroy method
     const destroy = () => {
         clearTimeout(showTimeout);
         clearTimeout(hideTimeout);
@@ -1917,32 +1917,32 @@ export function createTooltip(options) {
 }
 
 /**
- * 创建多选 Listbox 组件
- * @param {Object} options 配置选项
- * @param {HTMLElement} options.triggerElement 触发元素（按钮），用于定位
- * @param {string} options.placeholder 搜索框占位符
- * @param {Function} options.fetchItems 异步获取数据的函数，返回 Promise<Array>
- * @param {Function} options.onConfirm 确认选择回调，参数为选中项数组
- * @param {Function} options.onCancel 取消回调（可选）
+ * Create multi-select Listbox component
+ * @param {Object} options Configuration options
+ * @param {HTMLElement} options.triggerElement Trigger element (button), used for positioning
+ * @param {string} options.placeholder Search box placeholder
+ * @param {Function} options.fetchItems Async function to fetch data, returns Promise<Array>
+ * @param {Function} options.onConfirm Confirm selection callback, parameter is selected items array
+ * @param {Function} options.onCancel Cancel callback (optional)
  * @returns {void}
  */
 export function createMultiSelectListbox(options) {
     const {
         triggerElement,
-        placeholder = '搜索...',
+        placeholder = 'Search...',
         fetchItems,
         onConfirm,
         onCancel = null
     } = options;
 
-    // 获取触发按钮的位置
+    // Get trigger button position
     const btnRect = triggerElement.getBoundingClientRect();
 
-    // 创建listbox容器
+    // Create listbox container
     const listbox = document.createElement('div');
     listbox.className = 'pa-multi-listbox';
 
-    // 创建搜索框容器
+    // Create search box container
     const searchContainer = document.createElement('div');
     searchContainer.className = 'pa-multi-listbox-search';
 
@@ -1962,29 +1962,29 @@ export function createMultiSelectListbox(options) {
     searchContainer.appendChild(searchWrapper);
     listbox.appendChild(searchContainer);
 
-    // 创建列表容器
+    // Create list container
     const listContainer = document.createElement('div');
     listContainer.className = 'pa-multi-listbox-content';
     listbox.appendChild(listContainer);
 
-    // 创建底部操作栏
+    // Create bottom action bar
     const footer = document.createElement('div');
     footer.className = 'pa-multi-listbox-footer';
 
     const countLabel = document.createElement('span');
     countLabel.className = 'pa-multi-listbox-count';
-    countLabel.textContent = '已选 0 项';
+    countLabel.textContent = '0 items selected';
 
     const actions = document.createElement('div');
     actions.className = 'pa-multi-listbox-actions';
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'p-button p-component p-button-secondary p-button-sm';
-    cancelBtn.innerHTML = '<span class="p-button-icon-left pi pi-times"></span><span class="p-button-label">取消</span>';
+    cancelBtn.innerHTML = '<span class="p-button-icon-left pi pi-times"></span><span class="p-button-label">Cancel</span>';
 
     const confirmBtn = document.createElement('button');
     confirmBtn.className = 'p-button p-component p-button-sm';
-    confirmBtn.innerHTML = '<span class="p-button-icon-left pi pi-check"></span><span class="p-button-label">确定</span>';
+    confirmBtn.innerHTML = '<span class="p-button-icon-left pi pi-check"></span><span class="p-button-label">OK</span>';
     confirmBtn.disabled = true;
 
     actions.appendChild(cancelBtn);
@@ -1994,42 +1994,42 @@ export function createMultiSelectListbox(options) {
     footer.appendChild(actions);
     listbox.appendChild(footer);
 
-    // 数据存储
+    // Data storage
     let allItems = [];
     let selectedItems = new Set();
 
-    // 显示loading状态
+    // Show loading state
     const showLoading = () => {
         listContainer.innerHTML = `
             <div class="loading-container">
                 <div class="loading-spinner"></div>
-                <div class="loading-text">加载中...</div>
+                <div class="loading-text">Loading...</div>
             </div>
         `;
     };
 
-    // 显示错误信息
+    // Show error message
     const showError = (message) => {
         listContainer.innerHTML = `
             <div style="text-align: center; padding: 40px 20px;">
                 <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-                <div style="font-size: 14px; color: var(--p-text-color); margin-bottom: 8px;">加载失败</div>
+                <div style="font-size: 14px; color: var(--p-text-color); margin-bottom: 8px;">Load failed</div>
                 <div style="font-size: 13px; color: var(--p-red-500);">${message}</div>
-                <div style="font-size: 12px; color: var(--p-text-muted-color); margin-top: 12px;">你仍然可以在搜索框中手动输入模型名称</div>
+                <div style="font-size: 12px; color: var(--p-text-muted-color); margin-top: 12px;">You can still manually enter model names in the search box</div>
             </div>
         `;
-        // 不禁用搜索框,允许用户手动输入模型名称
+        // Don't disable search box, allow user to manually enter model names
     };
 
-    // 更新选中计数
+    // Update selected count
     const updateCount = () => {
-        countLabel.textContent = `已选 ${selectedItems.size} 项`;
-        // 如果有选中项或搜索框有内容,则启用确认按钮
+        countLabel.textContent = `selected ${selectedItems.size} items`;
+        // Enable confirm button if items selected or search has content
         const hasInput = searchInput.value.trim().length > 0;
         confirmBtn.disabled = selectedItems.size === 0 && !hasInput;
     };
 
-    // 渲染列表
+    // Render list
     const renderList = (searchTerm = '') => {
         listContainer.innerHTML = '';
 
@@ -2040,7 +2040,7 @@ export function createMultiSelectListbox(options) {
         if (filteredItems.length === 0) {
             const emptyHint = document.createElement('div');
             emptyHint.className = 'pa-multi-listbox-empty';
-            emptyHint.textContent = searchTerm ? '未找到匹配项' : '暂无可用项';
+            emptyHint.textContent = searchTerm ? 'No matches found' : 'No items available';
             listContainer.appendChild(emptyHint);
             return;
         }
@@ -2061,7 +2061,7 @@ export function createMultiSelectListbox(options) {
             item.appendChild(checkbox);
             item.appendChild(label);
 
-            // 点击切换选中状态
+            // Click to toggle selection
             item.addEventListener('click', () => {
                 if (selectedItems.has(itemName)) {
                     selectedItems.delete(itemName);
@@ -2077,28 +2077,28 @@ export function createMultiSelectListbox(options) {
         });
     };
 
-    // 初始化数据
+    // Initialize data
     const initialize = async () => {
         showLoading();
         try {
             const items = await fetchItems();
             if (!items || !Array.isArray(items)) {
-                throw new Error('数据格式错误');
+                throw new Error('Data format error');
             }
             allItems = items;
             renderList();
         } catch (error) {
-            showError(error.message || '未知错误');
+            showError(error.message || 'Unknown error');
         }
     };
 
-    // 搜索框事件
+    // Search box events
     searchInput.addEventListener('input', (e) => {
         renderList(e.target.value);
-        updateCount(); // 输入时更新按钮状态
+        updateCount(); // Update button state on input
     });
 
-    // 取消按钮
+    // Cancel button
     cancelBtn.addEventListener('click', () => {
         if (onCancel) {
             onCancel();
@@ -2106,15 +2106,15 @@ export function createMultiSelectListbox(options) {
         close();
     });
 
-    // 确定按钮
+    // OK button
     confirmBtn.addEventListener('click', () => {
         const selected = Array.from(selectedItems);
-        const searchValue = searchInput.value; // 获取搜索框的值
-        onConfirm(selected, searchValue); // 将搜索框的值作为第二个参数传递
+        const searchValue = searchInput.value; // Get search box value
+        onConfirm(selected, searchValue); // Pass search box value as second parameter
         close();
     });
 
-    // 创建透明背景层
+    // Create transparent backdrop
     const overlay = document.createElement('div');
     overlay.style.cssText = `
         position: fixed;
@@ -2128,7 +2128,7 @@ export function createMultiSelectListbox(options) {
     overlay.appendChild(listbox);
     document.body.appendChild(overlay);
 
-    // 计算并设置位置（右对齐按钮，自适应上下）
+    // Calculate and set position (right-aligned to button, auto top/bottom)
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     const listboxHeight = 400; // max-height
@@ -2136,24 +2136,24 @@ export function createMultiSelectListbox(options) {
     const spaceAbove = btnRect.top;
 
     if (spaceBelow >= listboxHeight || spaceBelow > spaceAbove) {
-        // 显示在按钮下方
+        // Show below button
         listbox.style.top = `${btnRect.bottom + 4}px`;
     } else {
-        // 显示在按钮上方
+        // Show above button
         listbox.style.bottom = `${viewportHeight - btnRect.top + 4}px`;
     }
 
-    // 右对齐按钮
+    // Right-align to button
     listbox.style.right = `${viewportWidth - btnRect.right}px`;
 
-    // 关闭函数
+    // Close function
     const close = () => {
         if (overlay.parentNode) {
             document.body.removeChild(overlay);
         }
     };
 
-    // 点击背景关闭
+    // Click backdrop to close
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
             if (onCancel) {
@@ -2163,21 +2163,21 @@ export function createMultiSelectListbox(options) {
         }
     });
 
-    // 初始化数据
+    // Initialize data
     initialize();
 
-    // 聚焦搜索框
+    // Focus search box
     setTimeout(() => searchInput.focus(), 100);
 }
 
 /**
- * 创建 SplitButton 组件 (参考 PrimeVue SplitButton)
- * @param {Object} options 配置选项
- * @param {string} options.label 按钮文本
- * @param {string} options.icon 按钮图标
- * @param {string} options.className 自定义类名
- * @param {Function} options.onClick 主按钮点击回调
- * @param {Array} options.items 下拉菜单项 [{label, icon, command, separator, checked, disabled}]
+ * Create SplitButton component (ref PrimeVue SplitButton)
+ * @param {Object} options Configuration options
+ * @param {string} options.label Button text
+ * @param {string} options.icon Button icon
+ * @param {string} options.className Custom class name
+ * @param {Function} options.onClick Main button click callback
+ * @param {Array} options.items Dropdown menu items [{label, icon, command, separator, checked, disabled}]
  * @returns {Object} { container, updateLabel, updateIcon, updateMenu, setMainButtonDisabled, setMenuButtonDisabled }
  */
 export function createSplitButton(options) {
@@ -2188,7 +2188,7 @@ export function createSplitButton(options) {
     container.style.display = 'inline-flex';
     container.style.position = 'relative';
 
-    // 1. 主按钮
+    // 1. Main button
     const mainKey = document.createElement('button');
     mainKey.className = 'p-button p-component p-button-text p-button-sm';
     mainKey.type = 'button';
@@ -2196,7 +2196,7 @@ export function createSplitButton(options) {
     mainKey.style.borderBottomRightRadius = '0';
     mainKey.style.borderRight = '0 none';
 
-    // 内容容器
+    // Content container
     const mainContent = document.createElement('span');
     mainContent.className = 'p-button-label p-c';
     mainContent.style.display = 'flex';
@@ -2227,7 +2227,7 @@ export function createSplitButton(options) {
         onClick(e);
     });
 
-    // 2. 下拉触发按钮
+    // 2. Dropdown trigger button
     const menuBtn = document.createElement('button');
     menuBtn.className = 'p-button p-component p-button-icon-only p-button-text p-button-sm p-splitbutton-menubutton';
     menuBtn.type = 'button';
@@ -2238,13 +2238,13 @@ export function createSplitButton(options) {
     container.appendChild(mainKey);
     container.appendChild(menuBtn);
 
-    // 3. 下拉菜单
+    // 3. Dropdown menu
     const menuPanel = document.createElement('div');
     menuPanel.className = 'pa-context-menu pa-split-button-menu';
     menuPanel.style.display = 'none';
     menuPanel.style.position = 'fixed';
     menuPanel.style.minWidth = '12rem';
-    // z-index 由 CSS 的 --settings-context-menu-z-index 变量管理
+    // z-index Managed by CSS --settings-context-menu-z-index variable
 
     const menuList = document.createElement('ul');
     menuList.className = 'pa-context-menu-list';
@@ -2254,9 +2254,9 @@ export function createSplitButton(options) {
 
     let currentItems = items;
     let isOpen = false;
-    let submenuPanels = []; // 存储所有子菜单面板，用于关闭时清理
+    let submenuPanels = []; // Store all submenu panels for cleanup on close
 
-    // 创建单个菜单项（支持二级子菜单）
+    // Create single menu item (supports second-level submenu)
     const createMenuItem = (item, parentPanel) => {
         if (item.separator) {
             const sep = document.createElement('li');
@@ -2284,7 +2284,7 @@ export function createSplitButton(options) {
             iconHtml = '<span class="pa-context-menu-item-icon"></span>';
         }
 
-        // 检查是否有子菜单
+        // Check if has submenu
         const hasSubmenu = item.items && item.items.length > 0;
 
         itemContent.innerHTML = `
@@ -2295,11 +2295,11 @@ export function createSplitButton(options) {
 
         li.appendChild(itemContent);
 
-        // 如果有子菜单
+        // If has submenu
         if (hasSubmenu) {
             li.classList.add('pa-context-menu-item-has-submenu');
 
-            // 创建子菜单面板
+            // Create submenu panel
             const submenuPanel = document.createElement('div');
             submenuPanel.className = 'pa-context-menu pa-context-submenu';
             submenuPanel.style.display = 'none';
@@ -2317,19 +2317,19 @@ export function createSplitButton(options) {
             submenuPanel.appendChild(submenuList);
             document.body.appendChild(submenuPanel);
 
-            // 将子菜单面板添加到列表中，用于关闭时清理
+            // Add submenu panel to list for cleanup on close
             submenuPanels.push(submenuPanel);
 
             let submenuTimeout = null;
 
-            // 显示子菜单
+            // Show submenu
             const showSubmenu = () => {
                 clearTimeout(submenuTimeout);
                 submenuPanel.style.display = 'block';
                 submenuPanel.style.zIndex = parseInt(menuPanel.style.zIndex || getComfyUIDialogZIndex()) + 5;
                 submenuPanel.classList.add('pa-context-menu-show');
 
-                // 定位子菜单
+                // Position submenu
                 const liRect = li.getBoundingClientRect();
                 const submenuRect = submenuPanel.getBoundingClientRect();
                 const viewportWidth = window.innerWidth;
@@ -2338,12 +2338,12 @@ export function createSplitButton(options) {
                 let left = liRect.right + 2;
                 let top = liRect.top;
 
-                // 如果右边空间不够，显示在左边
+                // If not enough space on right, show on left
                 if (left + submenuRect.width > viewportWidth - 10) {
                     left = liRect.left - submenuRect.width - 2;
                 }
 
-                // 垂直边界检查
+                // Vertical boundary check
                 if (top + submenuRect.height > viewportHeight - 10) {
                     top = viewportHeight - submenuRect.height - 10;
                 }
@@ -2353,7 +2353,7 @@ export function createSplitButton(options) {
                 submenuPanel.style.top = `${top}px`;
             };
 
-            // 隐藏子菜单
+            // Hide submenu
             const hideSubmenu = () => {
                 submenuTimeout = setTimeout(() => {
                     submenuPanel.classList.remove('pa-context-menu-show');
@@ -2365,18 +2365,18 @@ export function createSplitButton(options) {
                 }, 100);
             };
 
-            // 鼠标进入父项显示子菜单
+            // Mouse enter parent item to show submenu
             li.addEventListener('mouseenter', showSubmenu);
             li.addEventListener('mouseleave', hideSubmenu);
 
-            // 保持子菜单打开（当鼠标在子菜单上时）
+            // Keep submenu open (when mouse is on submenu)
             submenuPanel.addEventListener('mouseenter', () => {
                 clearTimeout(submenuTimeout);
             });
             submenuPanel.addEventListener('mouseleave', hideSubmenu);
 
         } else if (!item.disabled) {
-            // 无子菜单且未禁用，绑定点击事件
+            // No submenu and not disabled, bind click event
             li.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (item.command) {
@@ -2390,7 +2390,7 @@ export function createSplitButton(options) {
     };
 
     const renderMenu = () => {
-        // 先清理之前的子菜单面板
+        // First clean up previous submenu panels
         submenuPanels.forEach(panel => {
             if (panel.parentNode) {
                 panel.parentNode.removeChild(panel);
@@ -2409,7 +2409,7 @@ export function createSplitButton(options) {
         if (!isOpen) return;
         const containerRect = container.getBoundingClientRect();
 
-        // 先确保面板是显示的以便获取宽度
+        // First ensure panel is visible to get width
         menuPanel.style.display = 'block';
         const panelRect = menuPanel.getBoundingClientRect();
 
@@ -2420,11 +2420,11 @@ export function createSplitButton(options) {
             left = containerRect.right - panelRect.width;
         }
 
-        // 边界检查：防止溢出屏幕右侧
+        // Boundary check: prevent overflow on right side
         if (left + panelRect.width > window.innerWidth) {
             left = window.innerWidth - panelRect.width - 5;
         }
-        // 边界检查：防止溢出屏幕左侧
+        // Boundary check: prevent overflow on left side
         if (left < 0) left = 5;
 
         menuPanel.style.top = `${top}px`;
@@ -2435,7 +2435,7 @@ export function createSplitButton(options) {
         if (!isOpen) return;
         isOpen = false;
 
-        // 清理所有子菜单面板
+        // Clean up all submenu panels
         submenuPanels.forEach(panel => {
             if (panel.parentNode) {
                 panel.parentNode.removeChild(panel);
@@ -2463,14 +2463,14 @@ export function createSplitButton(options) {
         }
         isOpen = true;
 
-        // 支持动态获取菜单项 (如果 items 是函数)
+        // Support dynamic menu items (if items is a function)
         if (typeof options.items === 'function') {
             currentItems = options.items();
         }
 
         renderMenu(); // Render fresh on open to catch state changes
         menuPanel.style.display = 'block';
-        // 动态计算 z-index，确保在 ComfyUI 弹窗之上
+        // Dynamically calculate z-index to ensure above ComfyUI popups
         menuPanel.style.zIndex = getComfyUIDialogZIndex() + 20;
         menuPanel.classList.add('pa-context-menu-show');
         updatePosition();
@@ -2511,16 +2511,16 @@ export function createSplitButton(options) {
 }
 
 /**
- * 创建 SelectButton 组件 (参考 PrimeVue SelectButton)
- * 支持单选、多选、切换三种模式
- * @param {string} label 标签文本
- * @param {Array<Object>} options 选项数组，每个选项包含 { value: string, label: string, icon?: string, disabled?: boolean }
- * @param {string|Array<string>} initialValue 初始值，单选为字符串，多选为数组
- * @param {Object} config 配置选项
- * @param {string} config.mode 模式：'single'(单选), 'multiple'(多选), 'toggle'(切换，相当于开关)
- * @param {string} config.size 尺寸：'small', 'normal', 'large'
- * @param {boolean} config.allowEmpty 是否允许全部不选（仅多选模式有效）
- * @param {Function} config.onChange 值变化回调函数
+ * Create SelectButton component (ref PrimeVue SelectButton)
+ * Supports single-select, multi-select, and toggle modes
+ * @param {string} label Label text
+ * @param {Array<Object>} options Options array, each option contains { value: string, label: string, icon?: string, disabled?: boolean }
+ * @param {string|Array<string>} initialValue Initial value, string for single-select, array for multi-select
+ * @param {Object} config Configuration options
+ * @param {string} config.mode Mode: 'single', 'multiple', 'toggle' (acts as switch)
+ * @param {string} config.size Size: 'small', 'normal', 'large'
+ * @param {boolean} config.allowEmpty Whether to allow none selected (only for multi-select)
+ * @param {Function} config.onChange Value change callback function
  * @returns {Object} { group: HTMLElement, getValue: Function, setValue: Function }
  */
 export function createSelectButtonGroup(label, options, initialValue, config = {}) {
@@ -2531,11 +2531,11 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
         onChange = null
     } = config;
 
-    // ---创建容器---
+    // ---Create container---
     const group = document.createElement('div');
     group.className = 'pa-form-group pa-select-button-group';
 
-    // 标签
+    // Label
     if (label) {
         const labelEl = document.createElement('label');
         labelEl.className = 'pa-form-label';
@@ -2543,16 +2543,16 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
         group.appendChild(labelEl);
     }
 
-    // 按钮容器
+    // Button container
     const buttonContainer = document.createElement('div');
     buttonContainer.className = `pa-select-button pa-select-button-${size}`;
 
-    // 当前选中值
+    // Current selected value
     let currentValue = mode === 'multiple'
         ? (Array.isArray(initialValue) ? [...initialValue] : [])
         : initialValue;
 
-    // 渲染选项按钮
+    // Render option buttons
     const renderButtons = () => {
         buttonContainer.innerHTML = '';
 
@@ -2561,7 +2561,7 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
             button.type = 'button';
             button.className = 'pa-select-button-item';
 
-            // 判断是否选中
+            // Check if selected
             const isSelected = mode === 'multiple'
                 ? currentValue.includes(option.value)
                 : currentValue === option.value;
@@ -2575,14 +2575,14 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
                 button.disabled = true;
             }
 
-            // 图标
+            // Icon
             if (option.icon) {
                 const icon = document.createElement('span');
                 icon.className = `pa-select-button-icon pi ${option.icon}`;
                 button.appendChild(icon);
             }
 
-            // 标签
+            // Label
             if (option.label) {
                 const labelSpan = document.createElement('span');
                 labelSpan.className = 'pa-select-button-label';
@@ -2590,7 +2590,7 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
                 button.appendChild(labelSpan);
             }
 
-            // 点击事件
+            // Click event
             if (!option.disabled) {
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -2603,43 +2603,43 @@ export function createSelectButtonGroup(label, options, initialValue, config = {
         });
     };
 
-    // 处理点击事件
+    // Handle click event
     const handleClick = (value) => {
         const prevValue = mode === 'multiple' ? [...currentValue] : currentValue;
 
         if (mode === 'multiple') {
-            // 多选模式：切换选中状态
+            // Multi-select mode: toggle selection
             const index = currentValue.indexOf(value);
             if (index === -1) {
                 currentValue.push(value);
             } else {
-                // 检查是否允许取消选择
+                // Check if deselection is allowed
                 if (allowEmpty || currentValue.length > 1) {
                     currentValue.splice(index, 1);
                 }
             }
         } else if (mode === 'toggle') {
-            // 切换模式：点击切换开关状态
+            // Toggle mode: click to toggle switch state
             currentValue = currentValue === value ? null : value;
         } else {
-            // 单选模式：直接选中
+            // Single-select mode: select directly
             currentValue = value;
         }
 
-        // 重新渲染按钮
+        // Re-render buttons
         renderButtons();
 
-        // 触发回调
+        // Trigger callback
         if (onChange) {
             onChange(currentValue, prevValue);
         }
     };
 
-    // 初始渲染
+    // Initial render
     renderButtons();
     group.appendChild(buttonContainer);
 
-    // ---返回组件API---
+    // ---Return component API---
     return {
         group,
         getValue: () => mode === 'multiple' ? [...currentValue] : currentValue,

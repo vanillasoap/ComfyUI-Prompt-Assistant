@@ -893,7 +893,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
         tempMarker.dataset.frame = state.rangeStart;
         markerTrack.appendChild(tempMarker);
 
-        // 添加 tooltip
+        // Add tooltip
         createTooltip({
             target: tempMarker,
             content: `Range start: ${state.rangeStart}`,
@@ -951,7 +951,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                 leftHandle.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    clearTooltips(); // 拖动时立即清理 tooltip
+                    clearTooltips(); // Clean up tooltip immediately when dragging
 
                     let isDragging = false;
                     let dragLabel = null;
@@ -1020,7 +1020,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                 rightHandle.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    clearTooltips(); // 拖动时立即清理 tooltip
+                    clearTooltips(); // Clean up tooltip immediately when dragging
 
                     let isDragging = false;
                     let dragLabel = null;
@@ -1030,7 +1030,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     const onMouseMove = (moveEvent) => {
                         if (!isDragging) {
                             isDragging = true;
-                            // 创建跟随标签
+                            // Create follow label
                             dragLabel = document.createElement("div");
                             dragLabel.className = "drag-label";
                             markerTrack.appendChild(dragLabel);
@@ -1041,30 +1041,30 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                         const newPercent = Math.max(0, Math.min(1, offsetX / trackRect.width));
                         const newEnd = Math.round(newPercent * (totalFrames - 1));
 
-                        // 限制不能小于起始帧
+                        // Cannot be less than start frame
                         const clampedEnd = Math.max(originalStart + 1, Math.min(totalFrames - 1, newEnd));
 
-                        // 更新宽度（使用统一的百分比转换）
+                        // Update width (using unified percentage conversion)
                         const leftPercent = frameToPercent(originalStart);
                         const rightPercent = frameToPercent(clampedEnd);
                         rangeEl.style.width = `${rightPercent - leftPercent}%`;
                         rangeEl.dataset.range = `${originalStart}-${clampedEnd}`;
 
-                        // 更新跟随标签
+                        // Update follow label
                         if (dragLabel) {
-                            dragLabel.textContent = `帧 ${originalStart}-${clampedEnd}`;
-                            // 标签位置定位在右边缘
+                            dragLabel.textContent = `Frame ${originalStart}-${clampedEnd}`;
+                            // Position label at right edge
                             dragLabel.style.left = `${rightPercent}%`;
                         }
 
-                        // 同步 video 预览到新的结束帧
+                        // Sync video preview to new end frame
                         state.currentFrameIndex = clampedEnd;
                         videoElement.currentTime = clampedEnd / state.fps;
                         updateDisplay();
                     };
 
                     const onMouseUp = () => {
-                        // 移除跟随标签
+                        // Remove follow label
                         if (dragLabel) {
                             dragLabel.remove();
                             dragLabel = null;
@@ -1084,16 +1084,16 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     document.addEventListener('mouseup', onMouseUp);
                 });
 
-                // 中间区域拖动（整体平移）
+                // Middle area dragging (overall translation)
                 rangeEl.addEventListener('mousedown', (e) => {
-                    // 检查是否点击在手柄上，如果是则不处理
+                    // Check if clicked on handle, if so skip
                     if (e.target.classList.contains('range-handle')) {
                         return;
                     }
 
                     e.stopPropagation();
                     e.preventDefault();
-                    clearTooltips(); // 拖动时立即清理 tooltip
+                    clearTooltips(); // Clean up tooltip immediately when dragging
 
                     let isDragging = false;
                     let dragLabel = null;
@@ -1105,7 +1105,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     const onMouseMove = (moveEvent) => {
                         if (!isDragging) {
                             isDragging = true;
-                            // 创建跟随标签
+                            // Create follow label
                             dragLabel = document.createElement("div");
                             dragLabel.className = "drag-label";
                             markerTrack.appendChild(dragLabel);
@@ -1119,7 +1119,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                         let newStart = originalStart + deltaFrames;
                         let newEnd = originalEnd + deltaFrames;
 
-                        // 限制范围不能超出边界
+                        // Constrain range within boundaries
                         if (newStart < 0) {
                             newStart = 0;
                             newEnd = rangeWidth;
@@ -1128,27 +1128,27 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                             newStart = newEnd - rangeWidth;
                         }
 
-                        // 更新位置（使用统一的百分比转换）
+                        // Update position (using unified percentage conversion)
                         const newLeftPercent = frameToPercent(newStart);
                         rangeEl.style.left = `${newLeftPercent}%`;
                         rangeEl.dataset.range = `${newStart}-${newEnd}`;
 
-                        // 更新跟随标签
+                        // Update follow label
                         if (dragLabel) {
-                            dragLabel.textContent = `帧 ${newStart}-${newEnd}`;
-                            // 标签位置定位在范围中心
+                            dragLabel.textContent = `Frame ${newStart}-${newEnd}`;
+                            // Position label at range center
                             const centerFrame = (newStart + newEnd) / 2;
                             dragLabel.style.left = `${frameToPercent(centerFrame)}%`;
                         }
 
-                        // 同步 video 预览到新的起始帧
+                        // Sync video preview to new start frame
                         state.currentFrameIndex = newStart;
                         videoElement.currentTime = newStart / state.fps;
                         updateDisplay();
                     };
 
                     const onMouseUp = () => {
-                        // 移除跟随标签
+                        // Remove follow label
                         if (dragLabel) {
                             dragLabel.remove();
                             dragLabel = null;
@@ -1168,7 +1168,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     document.addEventListener('mouseup', onMouseUp);
                 });
 
-                // 双击范围帧跳转到起始帧
+                // Double-click range to jump to start frame
                 rangeEl.addEventListener('dblclick', (e) => {
                     e.stopPropagation();
                     const range = rangeEl.dataset.range;
@@ -1180,14 +1180,14 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
 
                 markerTrack.appendChild(rangeEl);
 
-                // 使用 createTooltip 显示帧范围
+                // Use createTooltip to display frame range
                 createTooltip({
                     target: rangeEl,
-                    content: `帧 ${item}`,
+                    content: `Frame ${item}`,
                     position: 'top'
                 });
             } else {
-                // 单帧标记（使用统一的帧到百分比转换）
+                // Single frame marker (using unified frame-to-percentage conversion)
                 const frame = typeof item === 'number' ? item : parseInt(item);
                 const leftPercent = frameToPercent(frame);
 
@@ -1197,11 +1197,11 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                 markerEl.dataset.frame = frame;
                 markerEl.dataset.originalItem = item;
 
-                // 添加拖动功能
+                // Add drag functionality
                 markerEl.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    clearTooltips(); // 拖动时立即清理 tooltip
+                    clearTooltips(); // Clean up tooltip immediately when dragging
 
                     const originalFrame = parseInt(markerEl.dataset.frame);
                     const originalItem = markerEl.dataset.originalItem;
@@ -1211,7 +1211,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     const onMouseMove = (moveEvent) => {
                         if (!isDragging) {
                             isDragging = true;
-                            // 创建跟随标签
+                            // Create follow label
                             dragLabel = document.createElement("div");
                             dragLabel.className = "drag-label";
                             markerTrack.appendChild(dragLabel);
@@ -1222,27 +1222,27 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                         const newPercent = Math.max(0, Math.min(1, offsetX / trackRect.width));
                         const newFrame = Math.round(newPercent * (totalFrames - 1));
 
-                        // 限制范围
+                        // Constrain range
                         const clampedFrame = Math.max(0, Math.min(totalFrames - 1, newFrame));
 
-                        // 实时更新位置（使用统一的百分比转换）
+                        // Real-time position update (using unified percentage conversion)
                         markerEl.style.left = `${frameToPercent(clampedFrame)}%`;
                         markerEl.dataset.frame = clampedFrame;
 
-                        // 更新跟随标签
+                        // Update follow label
                         if (dragLabel) {
-                            dragLabel.textContent = `帧 ${clampedFrame}`;
+                            dragLabel.textContent = `Frame ${clampedFrame}`;
                             dragLabel.style.left = `${frameToPercent(clampedFrame)}%`;
                         }
 
-                        // 同步 video 预览
+                        // Sync video preview
                         state.currentFrameIndex = clampedFrame;
                         videoElement.currentTime = clampedFrame / state.fps;
                         updateDisplay();
                     };
 
                     const onMouseUp = () => {
-                        // 移除跟随标签
+                        // Remove follow label
                         if (dragLabel) {
                             dragLabel.remove();
                             dragLabel = null;
@@ -1251,7 +1251,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                         if (isDragging) {
                             const newFrame = parseInt(markerEl.dataset.frame);
 
-                            // 更新 selectedFrames
+                            // Update selectedFrames
                             if (typeof originalItem === 'number') {
                                 state.selectedFrames.delete(originalItem);
                             } else {
@@ -1259,7 +1259,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                             }
                             state.selectedFrames.add(newFrame);
 
-                            // 重新渲染
+                            // Re-render
                             renderTags();
                         }
 
@@ -1271,7 +1271,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
                     document.addEventListener('mouseup', onMouseUp);
                 });
 
-                // 双击跳转到对应帧
+                // Double-click to jump to frame
                 markerEl.addEventListener('dblclick', (e) => {
                     e.stopPropagation();
                     const targetFrame = parseInt(markerEl.dataset.frame);
@@ -1282,17 +1282,17 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
 
                 markerTrack.appendChild(markerEl);
 
-                // 使用 createTooltip 显示帧号
+                // Use createTooltip to display frame number
                 createTooltip({
                     target: markerEl,
-                    content: `帧 ${frame}`,
+                    content: `Frame ${frame}`,
                     position: 'top'
                 });
             }
         });
     };
 
-    // --- 渲染底部帧标签 ---
+    // --- Render bottom frame tags ---
     const renderTags = () => {
         tagsList.innerHTML = "";
         const sorted = Array.from(state.selectedFrames).sort((a, b) => {
@@ -1302,7 +1302,7 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
 
         sorted.forEach(item => {
             const tag = document.createElement("div");
-            // 根据类型添加对应的样式类
+            // Add corresponding style class based on type
             const isRange = typeof item === 'string' && item.includes('-');
             tag.className = `frame-tag ${isRange ? 'frame-tag-range' : 'frame-tag-single'}`;
             tag.innerHTML = `<span>${item}</span>`;
@@ -1319,11 +1319,11 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
             tagsList.appendChild(tag);
         });
 
-        // 同步更新标记轨道
+        // Sync update marker track
         renderMarkers();
     };
 
-    // --- 帧滑块点击支持（在标记轨道上点击跳转到指定帧）---
+    // --- Frame slider click support (click on marker track to jump to frame) ---
     markerTrack.addEventListener('click', (e) => {
         if (e.target === markerTrack) {
             const rect = markerTrack.getBoundingClientRect();
@@ -1333,30 +1333,30 @@ function renderVideoInterface(container, state, videoInfo, headerElement) {
         }
     });
 
-    // --- 初始化：加载第一帧 ---
+    // --- Initialize: load first frame ---
     loadFrame(0);
     renderTags();
 }
 
 /**
- * 递归查找连接的视频源
- * @param {Object} node 起始节点
- * @returns {Promise<Object|null>} 视频信息对象 {url, filename, type}
+ * Recursively find connected video source
+ * @param {Object} node Starting node
+ * @returns {Promise<Object|null>} Video info object {url, filename, type}
  */
 async function findConnectedVideo(node) {
     if (!node.inputs) return null;
 
-    // 辅助函数：从节点提取视频文件信息
+    // Helper: extract video file info from node
     const extractVideoFile = (node) => {
         let filename = null;
         let subfolder = "";
         let type = "input";
         let forceRate = 0;
 
-        // 检测是否为VideoHelperSuite的Load Video节点
+        // Check if it's a VideoHelperSuite Load Video node
         const isLoadVideoNode = node.type?.includes("VHS_LoadVideo");
 
-        // 策略1: 从 serialize.widgets_values 获取
+        // Strategy 1: Get from serialize.widgets_values
         if (node.serialize) {
             const serialized = node.serialize();
             if (serialized?.widgets_values?.length > 0) {
@@ -1364,7 +1364,7 @@ async function findConnectedVideo(node) {
             }
         }
 
-        // 策略2: 从 widgets 获取
+        // Strategy 2: Get from widgets
         if (!filename && node.widgets?.length > 0) {
             for (const w of node.widgets) {
                 if (w.value && typeof w.value === 'string' && w.value.length > 0) {
@@ -1374,12 +1374,12 @@ async function findConnectedVideo(node) {
             }
         }
 
-        // 策略3: 从 properties 获取
+        // Strategy 3: Get from properties
         if (!filename && node.properties) {
             filename = node.properties.video || node.properties.filename || node.properties.upload;
         }
 
-        // 提取force_rate参数（来自VideoHelperSuite的Load Video节点）
+        // Extract force_rate parameter (from VideoHelperSuite Load Video node)
         if (node.widgets) {
             const forceRateWidget = node.widgets.find(w => w.name === "force_rate");
             if (forceRateWidget && forceRateWidget.value != null) {
@@ -1393,16 +1393,16 @@ async function findConnectedVideo(node) {
         return null;
     };
 
-    // 辅助函数：递归遍历图
+    // Helper: recursively traverse graph
     const findVideoSource = (currentNode, visited = new Set()) => {
         if (!currentNode || visited.has(currentNode.id)) return null;
         visited.add(currentNode.id);
 
-        // 检查当前节点是否有视频文件
+        // Check if current node has video file
         const videoFile = extractVideoFile(currentNode);
         if (videoFile) return videoFile;
 
-        // 递归查找上游节点
+        // Recursively find upstream nodes
         if (currentNode.inputs) {
             for (const input of currentNode.inputs) {
                 if (input.link) {
@@ -1418,8 +1418,8 @@ async function findConnectedVideo(node) {
         return null;
     };
 
-    // 1. 优先查找 Video 类型输入
-    const videoInput = node.inputs.find(i => i.name === "视频" || i.type === "VIDEO");
+    // 1. Prioritize finding Video type input
+    const videoInput = node.inputs.find(i => i.name === "Video" || i.type === "VIDEO");
     if (videoInput?.link) {
         const link = app.graph.links[videoInput.link];
         if (link) {
@@ -1438,8 +1438,8 @@ async function findConnectedVideo(node) {
         }
     }
 
-    // 2. 查找 Image 类型输入（图像序列）
-    const imageInput = node.inputs.find(i => i.name === "图像序列" || i.type === "IMAGE");
+    // 2. Find Image type input (image sequence)
+    const imageInput = node.inputs.find(i => i.name === "图像序列" || i.name === "Image Sequence" || i.type === "IMAGE");
     if (imageInput?.link) {
         const link = app.graph.links[imageInput.link];
         if (link) {
@@ -1458,7 +1458,7 @@ async function findConnectedVideo(node) {
             } else {
                 return {
                     type: "image_sequence",
-                    error: "检测到图像序列输入，但无法追溯到原始视频文件。请确保图像序列来自视频加载节点（如 VHS Load Video）。"
+                    error: "Image sequence input detected, but unable to trace back to original video file. Please ensure the image sequence comes from a video loading node (e.g. VHS Load Video)."
                 };
             }
         }
