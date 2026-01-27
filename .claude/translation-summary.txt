@@ -1,0 +1,173 @@
+================================================================================
+  ComfyUI-Prompt-Assistant: Chinese-to-English Translation Summary
+  Branch: claude/translate-to-english-VlYWV
+  Date: 2026-01-27
+================================================================================
+
+OBJECTIVE
+---------
+Translate the ComfyUI-Prompt-Assistant codebase from Chinese to English,
+ensuring nothing breaks and future merges with the main repository remain
+possible. Scope was later narrowed to frontend files only (JS + JSON).
+
+APPROACH
+--------
+- Used phrase-level translation dictionaries applied via Python scripts for
+  bulk replacements (word-level was tried first but produced garbled text).
+- Parallel background agents were used for initial bulk translation across
+  many files simultaneously.
+- Work was committed incrementally in 6 batches to maintain safe checkpoints.
+- Chinese service detection patterns (e.g. '智谱', '硅基') in
+  apiConfigManager.js were kept as-is since they are matching patterns, not
+  display strings.
+- Backward-compatible alternatives were added where needed (e.g. adding
+  English name checks alongside Chinese ones in .find() calls).
+
+COMMITS (6 batches)
+--------------------
+1. 8efe909 - Translate Chinese text to English in core files (batch 1)
+   Files: __init__.py, config/config_template.json, config_manager.py,
+          js/index.js, js/modules/AssistantContainer.js,
+          js/services/features.js, js/utils/UIToolkit.js,
+          services/__init__.py, services/llm.py
+
+2. 0ab02e3 - Translate Chinese to English across node, service, utility,
+             and JS files (batch 2)
+   Files: 24 files across node/*.py, services/*.py, utils/*.py,
+          js/modules/*.js, js/services/*.js, js/utils/*.js
+
+3. 0514fdc - Translate Chinese to English in server, config, and UI files
+             (batch 3)
+   Files: server.py, config_manager.py, js/modules/settings.js,
+          js/modules/uiComponents.js, js/services/cache.js,
+          js/services/NodeMountService.js, config/tags_template.json,
+          config/kontext_presets_template.json
+
+4. b465ca1 - Translate Chinese to English in JS modules, Python files, and
+             configs (batch 4)
+   Files: js/modules/apiConfigManager.js, js/modules/rulesConfigManager.js,
+          js/modules/imageCaption.js, js/modules/tag.js,
+          js/modules/uiComponents.js, js/modules/PromptAssistant.js,
+          config/system_prompts_template.json, services/thinking_control.py,
+          utils/migration_tool.py
+
+5. d24f82d - Translate Chinese to English in JS cleanup files (batch 5)
+   Files: js/index.js, js/modules/AssistantContainer.js,
+          js/modules/settings.js, js/services/features.js,
+          js/services/btnMenu.js, js/utils/nodeHelpTranslator.js
+
+6. 15c372f - Translate frontend UI strings and comments to English (batch 6)
+   Files: js/utils/UIToolkit.js, js/modules/uiComponents.js,
+          js/node/captionFrame.js, js/utils/resourceManager.js,
+          js/modules/AssistantContainer.js
+
+TOTAL FILES MODIFIED: 46+ files across Python, JavaScript, and JSON
+
+FILES TRANSLATED (Frontend - JS/JSON)
+--------------------------------------
+js/index.js
+js/modules/AssistantContainer.js
+js/modules/apiConfigManager.js
+js/modules/history.js
+js/modules/imageCaption.js
+js/modules/rulesConfigManager.js
+js/modules/settings.js
+js/modules/uiComponents.js
+js/node/captionFrame.js
+js/services/api.js
+js/services/btnMenu.js
+js/services/cache.js
+js/services/features.js
+js/services/NodeMountService.js
+js/utils/UIToolkit.js
+js/utils/logger.js
+js/utils/popupManager.js
+js/utils/eventManager.js
+js/utils/resourceManager.js
+js/utils/promptFormatter.js
+js/utils/markdownNoteTranslate.js
+js/utils/nodeHelpTranslator.js
+config/config_template.json
+config/tags_template.json
+config/kontext_presets_template.json
+config/system_prompts_template.json
+
+FILES TRANSLATED (Backend - Python, scope later narrowed)
+----------------------------------------------------------
+__init__.py
+config_manager.py
+server.py
+services/__init__.py
+services/llm.py
+services/vlm.py
+services/baidu.py
+services/core.py
+services/openai_base.py
+services/model_list.py
+services/thinking_control.py
+node/expand.py
+node/image_caption.py
+node/video_caption.py
+node/translate.py
+node/kontext_preset.py
+node/base/base_node.py
+node/base/base_expansion.py
+utils/common.py
+utils/image.py
+utils/video.py
+utils/migration_tool.py
+
+NOTABLE DECISIONS
+-----------------
+- '用户标签.csv' was renamed to 'user_tags.csv' in JS resourceManager.js
+  (referenced in both Python config_manager.py and JS).
+- Chinese service detection patterns ('智谱', '硅基') in apiConfigManager.js
+  were preserved since they are used for API provider identification, not UI.
+- In captionFrame.js, backward-compatible checks were added:
+  i.name === "Video" || i.type === "VIDEO" (alongside existing Chinese check).
+- The locales/ directory (locales/en/nodeDefs.json, locales/zh/, locales/zh-TW/)
+  was left untouched as it is part of the existing i18n system.
+
+ERRORS AND REVERSIONS
+---------------------
+- Word-level dictionary translation attempt produced garbled Chinglish output
+  (e.g. "IfinsertedFormatDoes not exist或未找到"). Files were reverted with
+  git checkout and phrase-level approach was used instead.
+- Duplicate condition created in captionFrame.js when both manual edit and
+  script translated the same string; fixed by deduplication.
+
+REMAINING CHINESE TEXT (as of final session)
+---------------------------------------------
+Total remaining Chinese characters in JS files: 12,769
+
+  js/modules/tag.js:              8,888 chars (comments + logger strings)
+  js/modules/PromptAssistant.js:  3,873 chars (comments + logger strings)
+  js/node/captionFrame.js:            4 chars (minor residual)
+  js/modules/apiConfigManager.js:     4 chars (intentional detection patterns)
+
+Unstaged changes exist for:
+  js/modules/PromptAssistant.js (partially translated, 222 lines changed)
+  js/modules/uiComponents.js (2 lines, minor fix)
+  js/utils/UIToolkit.js (8 lines, minor fix)
+
+TODOS
+-----
+[x] Explore codebase and identify all Chinese text
+[x] Translate Python backend files (batches 1-4)
+[x] Translate JS frontend files (batches 1-6)
+[x] Translate JSON config files
+[x] Commit and push batches 1-6
+[ ] Translate tag.js (~8,888 Chinese chars remaining - mostly comments)
+[ ] Translate PromptAssistant.js (~3,873 Chinese chars remaining - mostly comments)
+[ ] Commit and push all remaining translations
+[ ] Final verification pass
+
+STATISTICS
+----------
+- Codebase: ~42,041 total lines of code across 53+ files
+- Original Chinese text: widespread across all source files
+- Translation method: phrase-level dictionary scripts + manual edits
+- Commits: 6 batches
+- Files modified: 46+
+- Chinese characters translated: ~30,000+ (estimated)
+- Chinese characters remaining: ~12,769 (in 4 files, mostly comments)
