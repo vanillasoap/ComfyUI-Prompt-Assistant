@@ -1,21 +1,21 @@
 /**
- * 提示词格式化工具
- * 提供提示词相关的格式化方法
+ * Prompt Formatter Utility
+ * Provides prompt-related formatting methods
  */
 
 import { logger } from './logger.js';
 
 class PromptFormatter {
-    // 定义特殊分隔符
+    // Define special separators
     static SEPARATORS = {
-        START: '【T:', // 标签开始标记
-        END: ':T】',   // 标签结束标记
-        NEWLINE: '\n'  // 换行符用于分隔多个标签
+        START: '【T:', // Tag start marker
+        END: ':T】',   // Tag end marker
+        NEWLINE: '\n'  // Newline for separating multiple tags
     };
 
-    // 定义标点符号映射表
+    // Define punctuation mapping table
     static PUNCTUATION_MAP = {
-        // 基础标点
+        // Basic punctuation
         '，': ',',
         '。': '.',
         '、': ',',
@@ -24,13 +24,13 @@ class PromptFormatter {
         '？': '?',
         '！': '!',
 
-        // 引号
-        '\u201C': '"', // 中文左双引号
-        '\u201D': '"', // 中文右双引号
-        '\u2018': "'", // 中文左单引号
-        '\u2019': "'", // 中文右单引号
+        // Quotation marks
+        '\u201C': '"', // Chinese left double quotation mark
+        '\u201D': '"', // Chinese right double quotation mark
+        '\u2018': "'", // Chinese left single quotation mark
+        '\u2019': "'", // Chinese right single quotation mark
 
-        // 括号
+        // Brackets
         '（': '(',
         '）': ')',
         '【': '[',
@@ -50,7 +50,7 @@ class PromptFormatter {
         '〈': '<',
         '〉': '>',
 
-        // 其他符号
+        // Other symbols
         '～': '~',
         '｜': '|',
         '·': '.',
@@ -73,46 +73,46 @@ class PromptFormatter {
         '＊': '*',
     };
 
-    // 定义需要检测的标点符号集合
+    // Define the set of punctuation marks to detect
     static PUNCTUATION_SET = new Set([',', '.', '，', '。']);
 
     /**
-     * 在文本中查找最近的标点符号
+     * Find the nearest punctuation mark in text
      */
     static findNearestPunctuation(text, searchForward = true) {
         if (!text) return false;
 
-        // 移除开头和结尾的空格
+        // Remove leading and trailing spaces
         const cleanText = searchForward ? text.trimStart() : text.trimEnd();
         if (!cleanText) return false;
 
-        // 搜索第一个非空格字符
+        // Search for the first non-space character
         const char = searchForward ? cleanText[0] : cleanText[cleanText.length - 1];
         return this.PUNCTUATION_SET.has(char);
     }
 
     /**
-     * 格式化标签，生成四种格式
+     * Format tag, generating four formats
      */
     static formatTag(tagValue) {
         try {
-            // 生成四种格式
-            const format1 = ` ${tagValue}`;           // 空格+标签
-            const format2 = ` ${tagValue},`;          // 空格+标签+逗号
-            const format3 = `, ${tagValue}`;          // 逗号+空格+标签
-            const format4 = `, ${tagValue},`;         // 逗号+空格+标签+逗号
+            // Generate four formats
+            const format1 = ` ${tagValue}`;           // space + tag
+            const format2 = ` ${tagValue},`;          // space + tag + comma
+            const format3 = `, ${tagValue}`;          // comma + space + tag
+            const format4 = `, ${tagValue},`;         // comma + space + tag + comma
 
-            logger.debug(`标签格式化 | 结果:成功 | 原始值:${tagValue} | 格式1:"${format1}" | 格式2:"${format2}" | 格式3:"${format3}" | 格式4:"${format4}"`);
+            logger.debug(`Tag formatting | Result: success | Original: ${tagValue} | Format1: "${format1}" | Format2: "${format2}" | Format3: "${format3}" | Format4: "${format4}"`);
 
             return {
                 format1,
                 format2,
                 format3,
                 format4,
-                insertedFormat: null // 实际插入的格式，初始为null
+                insertedFormat: null // Actual inserted format, initially null
             };
         } catch (error) {
-            logger.error(`标签格式化 | 结果:异常 | 错误:${error.message}`);
+            logger.error(`Tag formatting | Result: exception | Error: ${error.message}`);
             return {
                 format1: ` ${tagValue}`,
                 format2: ` ${tagValue},`,
@@ -124,55 +124,55 @@ class PromptFormatter {
     }
 
     /**
-     * 确定应该使用哪种格式
+     * Determine which format to use
      */
     static determineFormatType(beforeText, afterText) {
         try {
-            // 判断是否为空输入框
+            // Check if input field is empty
             if (!beforeText && !afterText) {
-                // logger.debug('格式判断 | 结果:空输入框 | 使用格式:2');
-                return 2; // 空输入框使用格式2（空格+标签+逗号）
+                // logger.debug('Format detection | Result: empty input | Using format: 2');
+                return 2; // Empty input uses format 2 (space + tag + comma)
             }
 
-            // 检查前方文本是否只包含空格
+            // Check if text before cursor only contains spaces
             const hasTextBefore = beforeText.trim().length > 0;
 
-            // 跨空格查找前后的标点符号
+            // Search for punctuation before and after, skipping whitespace
             const hasCommaBefore = this.findNearestPunctuation(beforeText, false);
             const hasCommaAfter = this.findNearestPunctuation(afterText, true);
 
-            // 如果前方没有实际文本（只有空格），使用格式2
+            // If no actual text before (only spaces), use format 2
             if (!hasTextBefore) {
-                // logger.debug('格式判断 | 结果:前方无文本 | 使用格式:2');
-                return 2; // 使用格式2（空格+标签+逗号）
+                // logger.debug('Format detection | Result: no text before | Using format: 2');
+                return 2; // Use format 2 (space + tag + comma)
             }
 
-            // 根据前后标点符号情况决定使用哪种格式
+            // Decide which format to use based on surrounding punctuation
             let formatType;
             if (hasCommaBefore && hasCommaAfter) {
-                formatType = 1; // 前后都有标点，使用格式1（空格+标签）
+                formatType = 1; // Punctuation on both sides, use format 1 (space + tag)
             } else if (hasCommaBefore && !hasCommaAfter) {
-                formatType = 2; // 前有标点后无标点，使用格式2（空格+标签+逗号）
+                formatType = 2; // Punctuation before but not after, use format 2 (space + tag + comma)
             } else if (!hasCommaBefore && hasCommaAfter) {
-                formatType = 3; // 前无标点后有标点，使用格式3（逗号+空格+标签）
+                formatType = 3; // No punctuation before but after, use format 3 (comma + space + tag)
             } else {
-                formatType = 4; // 前后都无标点，使用格式4（逗号+空格+标签+逗号）
+                formatType = 4; // No punctuation on either side, use format 4 (comma + space + tag + comma)
             }
 
-            // logger.debug(`格式判断 | 前标点:${hasCommaBefore} | 后标点:${hasCommaAfter} | 前方文本:${hasTextBefore} | 使用格式:${formatType}`);
+            // logger.debug(`Format detection | Punct before: ${hasCommaBefore} | Punct after: ${hasCommaAfter} | Text before: ${hasTextBefore} | Using format: ${formatType}`);
             return formatType;
 
         } catch (error) {
-            logger.error(`格式判断 | 结果:异常 | 错误:${error.message}`);
-            return 2; // 发生错误时默认使用格式2
+            logger.error(`Format detection | Result: exception | Error: ${error.message}`);
+            return 2; // Default to format 2 on error
         }
     }
 
     /**
-     * 格式化提示词用于API调用
+     * Format prompt for API call
      */
     static formatPromptForAPI(prompt) {
-        // 暂时直接返回原始文本，不做格式化处理
+        // Temporarily return original text directly without formatting
         return {
             formattedText: prompt,
             extractedParts: [],
@@ -181,35 +181,35 @@ class PromptFormatter {
     }
 
     /**
-     * 获取用于API调用的纯文本
+     * Get plain text for API call
      */
     static getAPIText(formatInfo) {
-        // 直接返回原始文本
+        // Return original text directly
         return formatInfo?.formattedText || '';
     }
 
     /**
-     * 将API返回的结果恢复为原始格式
+     * Restore API result to original format
      */
     static restorePromptFormat(apiResult, formatInfo) {
-        // 直接返回API结果
+        // Return API result directly
         return apiResult;
     }
 
     /**
-     * 格式化翻译后的文本
-     * 根据用户设置的格式化选项进行处理
-     * 注意：此方法负责处理所有翻译结果的格式（包括百度翻译和LLM翻译），
-     * 后端不再进行任何格式预处理或后处理。
+     * Format translated text
+     * Processes based on user-configured formatting options
+     * Note: This method handles formatting for all translation results (including Baidu translation and LLM translation),
+     * the backend no longer performs any format pre-processing or post-processing.
      */
     static formatTranslatedText(text) {
         try {
             if (!text) return '';
 
-            // 记录原始文本用于日志
+            // Record original text for logging
             const originalText = text;
 
-            // 获取格式化选项（从全局 FEATURES 对象）
+            // Get formatting options (from global FEATURES object)
             const options = {
                 punctuation: window.FEATURES?.translateFormatPunctuation ?? true,
                 space: window.FEATURES?.translateFormatSpace ?? true,
@@ -219,72 +219,72 @@ class PromptFormatter {
 
             let formattedText = text;
 
-            // 根据是否保留换行符选择不同的处理方式
+            // Choose different processing based on whether to preserve newlines
             if (options.newline) {
-                // 保留换行符：按行处理
+                // Preserve newlines: process line by line
                 const lines = text.split('\n');
                 const formattedLines = lines.map(line => {
                     return this._formatLine(line, options);
                 });
                 formattedText = formattedLines.join('\n');
             } else {
-                // 不保留换行符：整体处理（换行符会被空格替换逻辑处理）
+                // Don't preserve newlines: process as a whole (newlines handled by space replacement logic)
                 formattedText = this._formatLine(text, options);
             }
 
-            // 记录日志
+            // Log results
             if (originalText !== formattedText) {
                 const enabledOptions = [];
-                if (options.punctuation) enabledOptions.push('标点转换');
-                if (options.space) enabledOptions.push('空格处理');
-                if (options.dots) enabledOptions.push('点号处理');
-                if (options.newline) enabledOptions.push('保留换行');
+                if (options.punctuation) enabledOptions.push('Punctuation conversion');
+                if (options.space) enabledOptions.push('Space handling');
+                if (options.dots) enabledOptions.push('Dots handling');
+                if (options.newline) enabledOptions.push('Preserve newlines');
 
                 const logFormatted = formattedText.length > 100 ?
                     formattedText.substring(0, 100) + '...' : formattedText;
-                logger.debug(`文本格式化 | 选项:[${enabledOptions.join(', ')}] | 结果:"${logFormatted}"`);
+                logger.debug(`Text formatting | Options: [${enabledOptions.join(', ')}] | Result: "${logFormatted}"`);
             }
 
             return formattedText;
 
         } catch (error) {
-            logger.error(`文本格式化 | 结果:异常 | 错误:${error.message}`);
-            return text; // 发生错误时返回原始文本
+            logger.error(`Text formatting | Result: exception | Error: ${error.message}`);
+            return text; // Return original text on error
         }
     }
 
     /**
-     * 格式化单行文本
-     * 根据选项执行对应的格式化操作
+     * Format a single line of text
+     * Executes formatting operations based on options
      */
     static _formatLine(line, options) {
         let formattedLine = line;
 
-        // 1. 标点符号转换
+        // 1. Punctuation conversion
         if (options.punctuation) {
             for (const [cnPunct, enPunct] of Object.entries(this.PUNCTUATION_MAP)) {
                 formattedLine = formattedLine.split(cnPunct).join(enPunct);
             }
         }
 
-        // 2. 处理连续点号
+        // 2. Handle consecutive dots
         if (options.dots) {
             formattedLine = formattedLine.replace(/\.{3,}/g, '...');
         }
 
-        // 3. 处理多余空格
+        // 3. Handle extra spaces
         if (options.space) {
             formattedLine = formattedLine
-                .replace(/\s+/g, ' ')           // 多个空格转换为单个空格
-                .replace(/\s*,\s*/g, ', ')      // 统一逗号后的空格
-                .trim();                        // 去除首尾空格
+                .replace(/\s+/g, ' ')           // Convert multiple spaces to single space
+                .replace(/\s*,\s*/g, ', ')      // Normalize space after commas
+                .trim();                        // Remove leading and trailing spaces
         }
 
         return formattedLine;
     }
 
     /**
-     * 判断文本的语言类型
+     * Detect the language type of text
      */
     static detectLanguage(text) {
         try {
@@ -295,89 +295,89 @@ class PromptFormatter {
                 };
             }
 
-            // 检查是否包含中文字符
+            // Check if text contains Chinese characters
             const hasChineseChars = /[\u4e00-\u9fff]/.test(text);
-            // 检查是否包含英文字符
+            // Check if text contains English characters
             const hasEnglishChars = /[a-zA-Z]/.test(text);
 
             let from, to, type;
 
             if (hasChineseChars && !hasEnglishChars) {
-                // 纯中文
+                // Pure Chinese
                 from = 'zh';
                 to = 'en';
-                type = '纯中文';
+                type = 'Pure Chinese';
             } else if (!hasChineseChars && hasEnglishChars) {
-                // 纯英文
+                // Pure English
                 from = 'en';
                 to = 'zh';
-                type = '纯英文';
+                type = 'Pure English';
             } else {
-                // 混合语言：按中文汉字数量 vs 英文单词数量比较以决定方向
+                // Mixed language: compare Chinese character count vs English word count to determine direction
                 const cnChars = text.match(/[\u4e00-\u9fff]/g) || [];
-                const enWords = text.match(/[A-Za-z]+(?:['’\-][A-Za-z]+)*/g) || [];
+                const enWords = text.match(/[A-Za-z]+(?:[''\-][A-Za-z]+)*/g) || [];
                 const cnUnits = cnChars.length;
                 const enUnits = enWords.length;
 
-                // 获取混合语言翻译规则
+                // Get mixed language translation rule
                 const rule = window.FEATURES?.mixedLangTranslateRule || 'auto_minor';
 
                 switch (rule) {
                     case 'to_zh':
-                        // 固定翻译成中文
+                        // Always translate to Chinese
                         from = 'en';
                         to = 'zh';
-                        type = '混合语言→中文';
+                        type = 'Mixed language -> Chinese';
                         break;
                     case 'to_en':
-                        // 固定翻译成英文
+                        // Always translate to English
                         from = 'zh';
                         to = 'en';
-                        type = '混合语言→英文';
+                        type = 'Mixed language -> English';
                         break;
                     case 'auto_major':
-                        // 翻译大比例语言
+                        // Translate the majority language
                         if (cnUnits > enUnits) {
                             from = 'zh';
                             to = 'en';
-                            type = '混合语言-翻译中文';
+                            type = 'Mixed language - translate Chinese';
                         } else if (enUnits > cnUnits) {
                             from = 'en';
                             to = 'zh';
-                            type = '混合语言-翻译英文';
+                            type = 'Mixed language - translate English';
                         } else {
                             from = 'zh';
                             to = 'en';
-                            type = '混合语言';
+                            type = 'Mixed language';
                         }
                         break;
                     case 'auto_minor':
                     default:
-                        // 翻译小比例语言（原逻辑）
+                        // Translate the minority language (original logic)
                         if (cnUnits > enUnits) {
                             from = 'en';
                             to = 'zh';
-                            type = '混合语言-翻译英文';
+                            type = 'Mixed language - translate English';
                         } else if (enUnits > cnUnits) {
                             from = 'zh';
                             to = 'en';
-                            type = '混合语言-翻译中文';
+                            type = 'Mixed language - translate Chinese';
                         } else {
                             from = 'zh';
                             to = 'en';
-                            type = '混合语言';
+                            type = 'Mixed language';
                         }
                         break;
                 }
             }
 
-            // 记录日志
-            logger.debug(`语言检测 | 结果:${type} | 翻译方向:${from}→${to}`);
+            // Log result
+            logger.debug(`Language detection | Result: ${type} | Direction: ${from} -> ${to}`);
 
             return { from, to };
 
         } catch (error) {
-            logger.error(`语言检测 | 结果:异常 | 错误:${error.message}`);
+            logger.error(`Language detection | Result: exception | Error: ${error.message}`);
             return {
                 from: 'en',
                 to: 'zh'
@@ -386,7 +386,7 @@ class PromptFormatter {
     }
 
     /**
-     * 判断是否为中英文混合文本
+     * Check if text is a mix of Chinese and English
      */
     static isMixedChineseEnglish(text) {
         if (!text) return false;

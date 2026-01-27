@@ -1,84 +1,84 @@
 /**
- * 日志管理模块
- * 提供统一的日志记录和管理功能
+ * Logger Module
+ * Provides unified logging and management functionality
  */
 
-// ====================== 日志级别常量 ======================
+// ====================== Log Level Constants ======================
 
 /**
- * 日志级别常量
- * 用于控制日志输出的详细程度
+ * Log level constants
+ * Used to control the verbosity of log output
  */
 export const LOG_LEVELS = {
-    ERROR: 0,   // 仅错误(生产环境)
-    BASIC: 1,   // 基础日志(监控环境)
-    DEBUG: 2    // 详细日志(开发环境)
+    ERROR: 0,   // Errors only (production)
+    BASIC: 1,   // Basic logs (monitoring)
+    DEBUG: 2    // Detailed logs (development)
 };
 
-// ====================== 日志管理器 ======================
+// ====================== Logger Manager ======================
 
 /**
- * 统一日志管理器
- * 集中管理不同级别的日志记录
+ * Unified Logger Manager
+ * Centralized management of different log levels
  */
 class Logger {
     constructor() {
-        this.level = LOG_LEVELS.DEBUG; // 默认使用详细日志级别
+        this.level = LOG_LEVELS.DEBUG; // Default to detailed log level
     }
 
     log(message) {
         if (this.level >= LOG_LEVELS.BASIC) {
             const msg = typeof message === 'function' ? message() : message;
-            console.log(`[PromptAssistant-系统] ${msg}`);
+            console.log(`[PromptAssistant-System] ${msg}`);
         }
     }
 
     debug(message) {
         if (this.level >= LOG_LEVELS.DEBUG) {
-            // 支持传入函数以实现惰性求值，避免在非调试模式下的性能开销
+            // Supports passing a function for lazy evaluation, avoiding performance overhead in non-debug mode
             const msg = typeof message === 'function' ? message() : message;
-            console.debug(`[PromptAssistant-调试] ${msg}`);
+            console.debug(`[PromptAssistant-Debug] ${msg}`);
         }
     }
 
     /**
-     * 轻量调试（采样）
-     * 仅当随机命中概率时才输出，用于高频路径
+     * Lightweight debug (sampled)
+     * Only outputs when randomly hitting the probability, used for high-frequency paths
      * @param {string|Function} message
-     * @param {number} rate 0~1，默认0.1表示10%采样
+     * @param {number} rate 0~1, default 0.1 means 10% sampling
      */
     debugSample(message, rate = 0.1) {
         if (this.level >= LOG_LEVELS.DEBUG && Math.random() < rate) {
             const msg = typeof message === 'function' ? message() : message;
-            console.debug(`[PromptAssistant-调试] ${msg}`);
+            console.debug(`[PromptAssistant-Debug] ${msg}`);
         }
     }
 
     error(message) {
         const msg = typeof message === 'function' ? message() : message;
-        console.error(`[PromptAssistant-错误] ${msg}`);
+        console.error(`[PromptAssistant-Error] ${msg}`);
     }
 
     warn(message) {
         const msg = typeof message === 'function' ? message() : message;
-        console.warn(`[PromptAssistant-警告] ${msg}`);
+        console.warn(`[PromptAssistant-Warn] ${msg}`);
     }
 
     /**
-     * 设置日志级别
-     * @param {number} level - 日志级别 (0: ERROR, 1: BASIC, 2: DEBUG)
+     * Set log level
+     * @param {number} level - Log level (0: ERROR, 1: BASIC, 2: DEBUG)
      */
     setLevel(level) {
         if (typeof level !== 'number' || level < 0 || level > 2) {
-            console.error("[PromptAssistant-错误] 无效的日志级别:", level);
+            console.error("[PromptAssistant-Error] Invalid log level:", level);
             return;
         }
         this.level = level;
     }
 }
 
-// 创建单例实例
+// Create singleton instance
 const logger = new Logger();
 
-// 导出日志管理器实例和日志级别常量
+// Export logger instance and log level constants
 export { logger }; 

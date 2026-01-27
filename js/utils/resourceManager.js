@@ -1,33 +1,33 @@
 /**
- * 资源管理器
- * 统一管理所有资源的加载、缓存和访问
+ * Resource Manager
+ * Unified management of all resource loading, caching, and access
  */
 
 import { logger } from './logger.js';
 import { APIService } from '../services/api.js';
 
 class ResourceManager {
-    // 资源缓存
+    // Resource caches
     static #iconCache = new Map();
     static #styleCache = new Map();
     static #scriptCache = new Map();
-    static #tagCache = null;  // 修改为单一变量存储
-    static #userTagCache = null;  // 用户自定义标签缓存
+    static #tagCache = null;  // Changed to single variable storage
+    static #userTagCache = null;  // User custom tag cache
 
-    // 初始化状态
+    // Initialization state
     static #initialized = false;
     static #initializing = false;
 
     /**
-     * 初始化资源管理器
+     * Initialize resource manager
      */
     static init() {
-        // 已经初始化过，直接返回
+        // Already initialized, return directly
         if (this.#initialized) {
             return true;
         }
 
-        // 正在初始化中，避免重复
+        // Currently initializing, avoid duplication
         if (this.#initializing) {
             return false;
         }
@@ -35,7 +35,7 @@ class ResourceManager {
         this.#initializing = true;
 
         try {
-            // 加载所有资源
+            // Load all resources
             this.#loadIcons();
             this.#loadStyles();
             this.#loadTagData();
@@ -44,51 +44,51 @@ class ResourceManager {
             this.#initialized = true;
             this.#initializing = false;
 
-            logger.log("资源管理器 | 初始化完成");
+            logger.log("Resource Manager | Initialization complete");
             return true;
         } catch (error) {
-            logger.error(`资源管理器 | 初始化失败 | ${error.message}`);
+            logger.error(`Resource Manager | Initialization failed | ${error.message}`);
             this.#initializing = false;
             return false;
         }
     }
 
     /**
-     * 获取资源的绝对URL
+     * Get the absolute URL for a resource
      */
     static getResourceUrl(relativePath) {
         return new URL(relativePath, import.meta.url).href;
     }
 
     /**
-     * 获取CSS文件的URL
+     * Get the URL for a CSS file
      */
     static getCssUrl(cssFileName) {
         return this.getResourceUrl(`../css/${cssFileName}`);
     }
 
     /**
-     * 获取资源目录中的资源URL
+     * Get the resource URL from the assets directory
      */
     static getAssetUrl(assetFileName) {
         return this.getResourceUrl(`../assets/${assetFileName}`);
     }
 
     /**
-     * 获取库文件的URL
+     * Get the URL for a library file
      */
     static getLibUrl(libFileName) {
         return this.getResourceUrl(`../lib/${libFileName}`);
     }
 
-    // ====================== 图标管理 ======================
+    // ====================== Icon Management ======================
 
     /**
-     * 加载所有图标
+     * Load all icons
      * @private
      */
     static #loadIcons() {
-        // 所有需要加载的图标列表
+        // List of all icons to load
         const iconsToLoad = [
             'icon-main.svg',
             'icon-history.svg',
@@ -106,11 +106,11 @@ class ResourceManager {
         let loaded = 0;
         let failed = 0;
 
-        // 逐个加载图标
+        // Load icons one by one
         iconsToLoad.forEach(iconName => {
             const iconUrl = this.getAssetUrl(iconName);
 
-            // 使用fetch加载SVG内容
+            // Use fetch to load SVG content
             fetch(iconUrl)
                 .then(response => {
                     if (!response.ok) {
@@ -119,29 +119,29 @@ class ResourceManager {
                     return response.text();
                 })
                 .then(svgContent => {
-                    // 缓存SVG内容
+                    // Cache SVG content
                     this.#iconCache.set(iconName, svgContent);
                     loaded++;
 
-                    // 所有图标加载完成后输出日志
+                    // Log after all icons finish loading
                     if (loaded + failed === iconsToLoad.length) {
-                        logger.debug(`图标加载完成 | 成功:${loaded}个 | 失败:${failed}个`);
+                        logger.debug(`Icon loading complete | Success: ${loaded} | Failed: ${failed}`);
                     }
                 })
                 .catch(error => {
                     failed++;
-                    logger.warn(`图标加载失败 | ${iconName} | ${error.message}`);
+                    logger.warn(`Icon loading failed | ${iconName} | ${error.message}`);
 
-                    // 所有图标加载完成后输出日志
+                    // Log after all icons finish loading
                     if (loaded + failed === iconsToLoad.length) {
-                        logger.debug(`图标加载完成 | 成功:${loaded}个 | 失败:${failed}个`);
+                        logger.debug(`Icon loading complete | Success: ${loaded} | Failed: ${failed}`);
                     }
                 });
         });
     }
 
     /**
-     * 获取缓存的图标
+     * Get cached icon
      */
     static getIcon(iconName) {
         const svgContent = this.#iconCache.get(iconName);
@@ -149,20 +149,20 @@ class ResourceManager {
             return null;
         }
 
-        // 创建一个包含SVG的span元素
+        // Create a span element containing the SVG
         const iconContainer = document.createElement('span');
         iconContainer.className = 'svg-icon';
         iconContainer.innerHTML = svgContent;
 
-        // 获取SVG元素并添加样式
+        // Get SVG element and add styles
         const svgElement = iconContainer.querySelector('svg');
         if (svgElement) {
-            // 添加样式以确保SVG可以通过color属性控制颜色
+            // Add styles to ensure SVG color can be controlled via the color property
             svgElement.style.width = '100%';
             svgElement.style.height = '100%';
             svgElement.style.fill = 'currentColor';
 
-            // 移除可能存在的固定颜色属性
+            // Remove potentially existing fixed color attributes
             svgElement.querySelectorAll('*').forEach(el => {
                 if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
                     el.setAttribute('fill', 'currentColor');
@@ -176,10 +176,10 @@ class ResourceManager {
         return iconContainer;
     }
 
-    // ====================== 样式管理 ======================
+    // ====================== Style Management ======================
 
     /**
-     * 加载所有样式表
+     * Load all stylesheets
      * @private
      */
     static #loadStyles() {
@@ -196,10 +196,10 @@ class ResourceManager {
     }
 
     /**
-     * 加载单个样式表
+     * Load a single stylesheet
      */
     static #loadStyle(id, file) {
-        // 检查是否已存在
+        // Check if already exists
         if (document.getElementById(id)) {
             return;
         }
@@ -215,52 +215,52 @@ class ResourceManager {
         };
 
         link.onerror = () => {
-            logger.error(`样式表加载失败 | ${id}`);
+            logger.error(`Stylesheet loading failed | ${id}`);
         };
 
         document.head.appendChild(link);
     }
 
-    // ====================== 标签数据管理 ======================
+    // ====================== Tag Data Management ======================
 
     /**
-     * 获取标签数据文件的URL
+     * Get the URL for the tag data file
      */
     static getTagUrl() {
-        // 使用API路由获取标签数据
+        // Use API route to get tag data
         return APIService.getApiUrl('/config/tags');
     }
 
     /**
-     * 获取用户自定义标签数据文件的URL
+     * Get the URL for the user custom tag data file
      */
     static getUserTagUrl() {
-        // 使用API路由获取用户自定义标签数据
+        // Use API route to get user custom tag data
         return APIService.getApiUrl('/config/tags_user');
     }
 
     /**
-     * 统计标签数据
+     * Calculate tag data statistics
      */
     static #getTagStats(data) {
         const stats = {
-            categories: 0,  // 所有分类数量（包括所有层级）
-            tags: 0        // 叶子节点数量（实际标签数）
+            categories: 0,  // Total number of categories (including all levels)
+            tags: 0        // Number of leaf nodes (actual tags)
         };
 
         /**
-         * 递归统计标签数据
+         * Recursively count tag data
          */
         const countRecursively = (obj) => {
-            // 遍历当前层级的所有键
+            // Iterate through all keys at the current level
             for (const key in obj) {
                 const value = obj[key];
 
-                // 如果值是字符串，说明这是一个标签（叶子节点）
+                // If value is a string, it's a tag (leaf node)
                 if (typeof value === 'string') {
                     stats.tags++;
                 }
-                // 如果值是对象，说明这是一个分类，需要继续递归
+                // If value is an object, it's a category, continue recursion
                 else if (typeof value === 'object' && value !== null) {
                     stats.categories++;
                     countRecursively(value);
@@ -268,21 +268,21 @@ class ResourceManager {
             }
         };
 
-        // 开始递归统计
+        // Start recursive counting
         countRecursively(data);
 
         return stats;
     }
 
     /**
-     * 刷新标签数据
+     * Refresh tag data
      */
     static refreshTagData() {
         return new Promise((resolve, reject) => {
             const tagUrl = this.getTagUrl();
-            logger.debug("开始重新加载标签数据...");
+            logger.debug("Starting to reload tag data...");
 
-            fetch(tagUrl + '?t=' + new Date().getTime())  // 添加时间戳防止缓存
+            fetch(tagUrl + '?t=' + new Date().getTime())  // Add timestamp to prevent caching
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -290,32 +290,32 @@ class ResourceManager {
                     return response.json();
                 })
                 .then(data => {
-                    // 检查是否有错误信息
+                    // Check for error messages
                     if (data.error) {
-                        throw new Error(`API返回错误: ${data.error}`);
+                        throw new Error(`API returned error: ${data.error}`);
                     }
 
                     this.#tagCache = data;
                     const stats = this.#getTagStats(data);
-                    logger.log(`标签数据刷新完成 | 分类数量: ${stats.categories} | 标签数量: ${stats.tags}`);
+                    logger.log(`Tag data refresh complete | Categories: ${stats.categories} | Tags: ${stats.tags}`);
                     resolve(data);
                 })
                 .catch(error => {
-                    logger.error(`标签数据刷新失败 | ${error.message}`);
+                    logger.error(`Tag data refresh failed | ${error.message}`);
                     reject(error);
                 });
         });
     }
 
     /**
-     * 刷新用户自定义标签数据
+     * Refresh user custom tag data
      */
     static refreshUserTagData() {
         return new Promise((resolve, reject) => {
             const userTagUrl = this.getUserTagUrl();
-            logger.debug("开始重新加载用户自定义标签数据...");
+            logger.debug("Starting to reload user custom tag data...");
 
-            fetch(userTagUrl + '?t=' + new Date().getTime())  // 添加时间戳防止缓存
+            fetch(userTagUrl + '?t=' + new Date().getTime())  // Add timestamp to prevent caching
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -323,46 +323,46 @@ class ResourceManager {
                     return response.json();
                 })
                 .then(data => {
-                    // 检查是否有错误信息
+                    // Check for error messages
                     if (data.error) {
-                        throw new Error(`API返回错误: ${data.error}`);
+                        throw new Error(`API returned error: ${data.error}`);
                     }
 
                     this.#userTagCache = data;
                     const stats = this.#getTagStats(data);
-                    logger.log(`用户标签数据刷新完成 | 分类数量: ${stats.categories} | 标签数量: ${stats.tags}`);
+                    logger.log(`User tag data refresh complete | Categories: ${stats.categories} | Tags: ${stats.tags}`);
                     resolve(data);
                 })
                 .catch(error => {
-                    logger.error(`用户标签数据刷新失败 | ${error.message}`);
+                    logger.error(`User tag data refresh failed | ${error.message}`);
                     reject(error);
                 });
         });
     }
 
     /**
-     * 加载标签数据
+     * Load tag data
      */
     static #loadTagData() {
         return this.refreshTagData();
     }
 
     /**
-     * 加载用户自定义标签数据
+     * Load user custom tag data
      */
     static #loadUserTagData() {
         return this.refreshUserTagData();
     }
 
     /**
-     * 获取标签数据
+     * Get tag data
      */
     static async getTagData(refresh = false) {
         if (refresh || !this.#tagCache) {
             try {
                 await this.refreshTagData();
             } catch (error) {
-                logger.error(`获取标签数据失败 | ${error.message}`);
+                logger.error(`Failed to get tag data | ${error.message}`);
                 return {};
             }
         }
@@ -370,14 +370,14 @@ class ResourceManager {
     }
 
     /**
-     * 获取用户自定义标签数据
+     * Get user custom tag data
      */
     static async getUserTagData(refresh = false) {
         if (refresh || !this.#userTagCache) {
             try {
                 await this.refreshUserTagData();
             } catch (error) {
-                logger.error(`获取用户标签数据失败 | ${error.message}`);
+                logger.error(`Failed to get user tag data | ${error.message}`);
                 return {};
             }
         }
@@ -385,7 +385,7 @@ class ResourceManager {
     }
 
     /**
-     * 获取标签统计数据
+     * Get tag statistics
      */
     static async getTagStats() {
         const tagData = await this.getTagData();
@@ -393,10 +393,10 @@ class ResourceManager {
         return stats.tags;
     }
 
-    // ---CSV标签系统---
+    // --- CSV Tag System ---
 
     /**
-     * 获取CSV文件列表
+     * Get CSV file list
      */
     static async getTagFileList() {
         try {
@@ -405,16 +405,16 @@ class ResourceManager {
             if (result.success) {
                 return result.files || [];
             }
-            logger.error(`获取标签文件列表失败 | ${result.error}`);
+            logger.error(`Failed to get tag file list | ${result.error}`);
             return [];
         } catch (error) {
-            logger.error(`获取标签文件列表失败 | ${error.message}`);
+            logger.error(`Failed to get tag file list | ${error.message}`);
             return [];
         }
     }
 
     /**
-     * 获取用户选择的标签文件
+     * Get user-selected tag file
      */
     static async getSelectedTagFile() {
         try {
@@ -425,13 +425,13 @@ class ResourceManager {
             }
             return '用户标签.csv';
         } catch (error) {
-            logger.error(`获取标签选择失败 | ${error.message}`);
+            logger.error(`Failed to get tag selection | ${error.message}`);
             return '用户标签.csv';
         }
     }
 
     /**
-     * 保存用户选择的标签文件
+     * Save user-selected tag file
      */
     static async setSelectedTagFile(filename) {
         try {
@@ -443,15 +443,15 @@ class ResourceManager {
             const result = await response.json();
             return result.success;
         } catch (error) {
-            logger.error(`保存标签选择失败 | ${error.message}`);
+            logger.error(`Failed to save tag selection | ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 加载CSV标签数据
-     * @param {string} filename - CSV文件名
-     * @param {boolean} forceReload - 是否强制重新加载(当前总是重新加载)
+     * Load CSV tag data
+     * @param {string} filename - CSV file name
+     * @param {boolean} forceReload - Whether to force reload (currently always reloads)
      */
     static async loadTagsCsv(filename, forceReload = false) {
         try {
@@ -460,19 +460,19 @@ class ResourceManager {
             if (result.success) {
                 this.#tagCache = result.data;
                 const stats = this.#getTagStats(result.data);
-                logger.log(`CSV标签加载完成 | 文件:${filename} | 分类:${stats.categories} | 标签:${stats.tags}`);
+                logger.log(`CSV tag loading complete | File: ${filename} | Categories: ${stats.categories} | Tags: ${stats.tags}`);
                 return result.data;
             }
-            logger.error(`加载CSV标签失败 | ${result.error}`);
+            logger.error(`Failed to load CSV tags | ${result.error}`);
             return {};
         } catch (error) {
-            logger.error(`加载CSV标签失败 | ${error.message}`);
+            logger.error(`Failed to load CSV tags | ${error.message}`);
             return {};
         }
     }
 
     /**
-     * 保存CSV标签数据
+     * Save CSV tag data
      */
     static async saveTagsCsv(filename, data) {
         try {
@@ -483,19 +483,19 @@ class ResourceManager {
             });
             const result = await response.json();
             if (result.success) {
-                logger.log(`CSV标签保存成功 | 文件:${filename}`);
+                logger.log(`CSV tag save successful | File: ${filename}`);
                 return true;
             }
-            logger.error(`保存CSV标签失败 | ${result.error}`);
+            logger.error(`Failed to save CSV tags | ${result.error}`);
             return false;
         } catch (error) {
-            logger.error(`保存CSV标签失败 | ${error.message}`);
+            logger.error(`Failed to save CSV tags | ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 获取收藏列表
+     * Get favorites list
      */
     static async getFavorites() {
         try {
@@ -506,13 +506,13 @@ class ResourceManager {
             }
             return [];
         } catch (error) {
-            logger.error(`获取收藏列表失败 | ${error.message}`);
+            logger.error(`Failed to get favorites list | ${error.message}`);
             return [];
         }
     }
 
     /**
-     * 添加收藏
+     * Add favorite
      */
     static async addFavorite(tagValue, tagName = null, category = null) {
         try {
@@ -531,13 +531,13 @@ class ResourceManager {
             const result = await response.json();
             return result.success;
         } catch (error) {
-            logger.error(`添加收藏失败 | ${error.message}`);
+            logger.error(`Failed to add favorite | ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 移除收藏
+     * Remove favorite
      */
     static async removeFavorite(tagValue, category = null) {
         try {
@@ -553,29 +553,29 @@ class ResourceManager {
             const result = await response.json();
             return result.success;
         } catch (error) {
-            logger.error(`移除收藏失败 | ${error.message}`);
+            logger.error(`Failed to remove favorite | ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 检查是否已初始化
+     * Check if initialized
      */
     static isInitialized() {
         return this.#initialized;
     }
 
 
-    // ====================== 资源清理 ======================
+    // ====================== Resource Cleanup ======================
 
     /**
-     * 清理所有资源
+     * Clean up all resources
      */
     static async cleanup() {
-        // 清理图标缓存
+        // Clear icon cache
         this.#iconCache.clear();
 
-        // 移除样式表
+        // Remove stylesheets
         this.#styleCache.forEach((style) => {
             if (style && style.parentNode) {
                 style.parentNode.removeChild(style);
@@ -583,25 +583,25 @@ class ResourceManager {
         });
         this.#styleCache.clear();
 
-        // 清理脚本缓存
+        // Clear script cache
         this.#scriptCache.clear();
 
-        // 清理标签数据
+        // Clear tag data
         this.#tagCache = null;
         this.#userTagCache = null;
 
-        // 重置状态
+        // Reset state
         this.#initialized = false;
         this.#initializing = false;
 
-        // 重新初始化资源
+        // Re-initialize resources
         await this.init();
 
-        logger.log("资源管理器 | 资源已清理并重新初始化");
+        logger.log("Resource Manager | Resources cleaned up and re-initialized");
     }
 
     /**
-     * 保存用户自定义标签数据
+     * Save user custom tag data
      */
     static async saveUserTags(data) {
         try {
@@ -612,20 +612,20 @@ class ResourceManager {
             });
             const result = await response.json();
             if (result.success) {
-                logger.log("用户标签数据保存成功");
-                this.#userTagCache = data; // 更新缓存
+                logger.log("User tag data saved successfully");
+                this.#userTagCache = data; // Update cache
                 return true;
             }
-            logger.error(`保存用户标签数据失败 | ${result.error}`);
+            logger.error(`Failed to save user tag data | ${result.error}`);
             return false;
         } catch (error) {
-            logger.error(`保存用户标签数据失败 | ${error.message}`);
+            logger.error(`Failed to save user tag data | ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 加载外部脚本
+     * Load external script
      */
     static async loadScript(url) {
         try {
@@ -644,16 +644,16 @@ class ResourceManager {
 
             this.#scriptCache.set(url, promise);
             await promise;
-            logger.debug(`脚本加载成功 | URL:${url}`);
+            logger.debug(`Script loaded successfully | URL: ${url}`);
             return promise;
         } catch (error) {
-            logger.error(`脚本加载失败 | URL:${url} | 错误:${error.message}`);
+            logger.error(`Script loading failed | URL: ${url} | Error: ${error.message}`);
             throw error;
         }
     }
 
     /**
-     * 获取 SortableJS 实例
+     * Get SortableJS instance
      */
     static async getSortable() {
         try {
@@ -665,34 +665,34 @@ class ResourceManager {
             await this.loadScript(sortableUrl);
 
             if (!window.Sortable) {
-                throw new Error('Sortable.js 加载后，window.Sortable 未定义');
+                throw new Error('After loading Sortable.js, window.Sortable is undefined');
             }
 
-            logger.debug('Sortable.js 加载成功');
+            logger.debug('Sortable.js loaded successfully');
             return window.Sortable;
         } catch (error) {
-            logger.error(`Sortable.js 获取失败 | 错误:${error.message}`);
+            logger.error(`Failed to get Sortable.js | Error: ${error.message}`);
             throw error;
         }
     }
 
     /**
-     * 获取系统提示词配置文件的URL
+     * Get the URL for the system prompts configuration file
      */
     static getSystemPromptsUrl() {
         return this.getResourceUrl('../config/system_prompts.json');
     }
 
     /**
-     * 加载系统提示词配置
+     * Load system prompts configuration
      */
     static async loadSystemPrompts(forceRefresh = true) {
         try {
             const url = this.getSystemPromptsUrl();
-            // 添加时间戳或随机参数以防止缓存
+            // Add timestamp or random parameter to prevent caching
             const finalUrl = forceRefresh ? `${url}?t=${Date.now()}` : url;
 
-            logger.debug(`加载系统提示词配置 | URL: ${finalUrl}`);
+            logger.debug(`Loading system prompts configuration | URL: ${finalUrl}`);
 
             const response = await fetch(finalUrl);
             if (!response.ok) {
@@ -700,18 +700,18 @@ class ResourceManager {
             }
 
             const data = await response.json();
-            logger.debug(`系统提示词配置加载成功`);
+            logger.debug(`System prompts configuration loaded successfully`);
 
-            // 验证数据结构
+            // Validate data structure
             if (!data.vision_prompts) {
-                logger.warn(`系统提示词配置中缺少vision_prompts字段`);
+                logger.warn(`Missing vision_prompts field in system prompts configuration`);
             } else {
-                logger.debug(`视觉提示词配置: ${Object.keys(data.vision_prompts).join(', ')}`);
+                logger.debug(`Vision prompts configuration: ${Object.keys(data.vision_prompts).join(', ')}`);
             }
 
             return data;
         } catch (error) {
-            logger.error(`系统提示词配置加载失败 | ${error.message}`);
+            logger.error(`System prompts configuration loading failed | ${error.message}`);
             return null;
         }
     }

@@ -1,6 +1,6 @@
 """
-OpenAI兼容服务基类
-为LLM和VLM服务提供统一的OpenAI兼容API处理逻辑
+OpenAI-compatible service base class
+Provides unified OpenAI-compatible API handling logic for LLM and VLM services
 """
 
 import json
@@ -17,29 +17,29 @@ from .thinking_control import build_thinking_suppression
 import re
 
 
-# ==================== 思维链输出过滤 ====================
+# ==================== Thinking chain output filtering ====================
 
 def filter_thinking_content(text: str) -> str:
     """
-    过滤模型输出中的思维链内容
-    支持多种标签格式：<think>, <reasoning>, <thoughts>
-    
-    参数:
-        text: 原始模型输出文本
-    
-    返回:
-        str: 过滤后的文本
+    Filter thinking chain content from model output.
+    Supports multiple tag formats: <think>, <reasoning>, <thoughts>
+
+    Args:
+        text: Original model output text
+
+    Returns:
+        str: Filtered text
     """
     if not text:
         return text
     
-    # 1. 优先匹配成对的思维链标签
-    # 匹配 <think>...</think> 等成对结构
+    # 1. Prioritize matching paired thinking chain tags
+    # Match <think>...</think> and similar paired structures
     pattern_pair = r'<(think|thinking|reasoning|thoughts?)>[\s\S]*?</\1>'
     text = re.sub(pattern_pair, '', text, flags=re.IGNORECASE)
     
-    # 2. 兜底处理：如果还有残留的结束标签（可能缺少开始标签），则移除该标签及其之前的所有内容
-    # 假设：思考过程总是出现在回答的最前面
+    # 2. Fallback handling: if orphan closing tags remain (possibly missing opening tag), remove the tag and all content before it
+    # Assumption: thinking process always appears at the beginning of the response
     pattern_orphan_end = r'^[\s\S]*?</(think|thinking|reasoning|thoughts?)>'
     text = re.sub(pattern_orphan_end, '', text, flags=re.IGNORECASE)
     
@@ -48,64 +48,64 @@ def filter_thinking_content(text: str) -> str:
 
 class OpenAICompatibleService(BaseAPIService):
     """
-    OpenAI兼容API服务基类
-    处理所有OpenAI格式的API请求（智谱、硅基流动、302.ai、Ollama等）
+    OpenAI-compatible API service base class
+    Handles all OpenAI-format API requests (Zhipu, SiliconFlow, 302.ai, Ollama, etc.)
     """
     
-    # ---已知的API端点路径（用于智能检测）---
+    # ---Known API endpoint paths (for smart detection)---
     _known_endpoints = ['/chat/completions', '/v1/messages', '/completions']
     
     @staticmethod
     def parse_api_url(raw_url: str) -> str:
         """
-        智能解析 base_url，生成最终请求地址
-        
-        规则：
-        1. '#' 结尾 → 强制使用完整地址（移除#）
-        2. 已包含已知端点路径 → 直接使用，不再拼接
-        3. 其他 → 正常拼接 /chat/completions
-        
-        参数:
-            raw_url: 用户输入的原始URL
-            
-        返回:
-            str: 最终请求地址
+        Smart parse base_url to generate final request URL.
+
+        Rules:
+        1. Ends with '#' -> Force use full address (remove #)
+        2. Already contains known endpoint path -> Use directly, no appending
+        3. Otherwise -> Normally append /chat/completions
+
+        Args:
+            raw_url: User-provided raw URL
+
+        Returns:
+            str: Final request URL
         """
         if not raw_url:
             return ''
         
         url = raw_url.strip()
         
-        # 规则1：井号强制模式 - 用户明确要求使用完整地址
+        # Rule 1: Hash force mode - User explicitly requests using the full address
         if url.endswith('#'):
             return url[:-1].rstrip('/')
         
-        # 规则2：智能检测 - 检查URL中是否已包含已知的API端点
+        # Rule 2: Smart detection - Check if URL already contains known API endpoints
         for endpoint in OpenAICompatibleService._known_endpoints:
             if endpoint in url:
-                # 已包含完整端点，直接返回（移除末尾斜杠）
+                # Already contains full endpoint, return directly (remove trailing slash)
                 return url.rstrip('/')
         
-        # 规则3：常规模式 - 需要拼接 /chat/completions
+        # Rule 3: Normal mode - Need to append /chat/completions
         return url.rstrip('/') + '/chat/completions'
     
-    # _provider_base_urls 和 _provider_display_names 已移除，相关逻辑改由 config_manager 统一管理
+    # _provider_base_urls and _provider_display_names have been removed, related logic is now managed by config_manager
     
     @staticmethod
     def _filter_payload(payload: Dict[str, Any], level: int) -> Dict[str, Any]:
         """
-        根据重试级别清洗请求体 (简化的三级降级策略)
-        
-        Level 0: 完整请求 (按用户设置发送)
-        Level 1: 移除思维链参数 (thinking, enable_thinking, reasoning_effort, 等)
-        Level 2: 最小可用集 (仅 model, messages, stream)
+        Clean request body based on retry level (simplified three-level degradation strategy)
+
+        Level 0: Full request (sent with user settings)
+        Level 1: Remove thinking chain parameters (thinking, enable_thinking, reasoning_effort, etc.)
+        Level 2: Minimum viable set (only model, messages, stream)
         """
         if level <= 0:
             return payload.copy()
             
         filtered = payload.copy()
         
-        # Level 1: 移除思维链参数
+        # Level 1: Remove thinking chain parameters
         thinking_keys = [
             "thinking", "enable_thinking", "reasoning_effort", 
             "reasoning", "thinking_level", "think"
@@ -114,7 +114,7 @@ class OpenAICompatibleService(BaseAPIService):
             filtered.pop(k, None)
             
         if level >= 2:
-            # Level 2: 最小可用集 - 仅保留必选参数
+            # Level 2: Minimum viable set - keep only required parameters
             core_keys = ["model", "messages", "stream"]
             filtered = {k: filtered[k] for k in core_keys if k in filtered}
             
@@ -123,9 +123,9 @@ class OpenAICompatibleService(BaseAPIService):
     @staticmethod
     def _merge_system_prompts(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        合并多条System Message为单一条目
-        并将System Message置于列表首位
-        解决部分服务商不支持多条System Message的问题
+        Merge multiple System Messages into a single entry
+        and place the System Message at the beginning of the list.
+        Solves the issue where some providers don't support multiple System Messages.
         """
         system_contents = []
         other_messages = []
@@ -141,10 +141,10 @@ class OpenAICompatibleService(BaseAPIService):
         if not system_contents:
             return messages
             
-        # 合并内容
+        # Merge content
         merged_system = "\n\n".join(system_contents)
         
-        # 构建新列表：System在首位 + 其他消息
+        # Build new list: System first + other messages
         return [{"role": "system", "content": merged_system}] + other_messages
 
     @classmethod
@@ -167,56 +167,56 @@ class OpenAICompatibleService(BaseAPIService):
         source: str = None
     ) -> Dict[str, Any]:
         """
-        使用HTTP直连调用/chat/completions接口
-        统一处理所有OpenAI兼容的服务商 (支持三级降级重试)
-        
-        参数:
-            enable_advanced_params: 是否发送高级参数(temperature/top_p/max_tokens)
+        Call /chat/completions endpoint using direct HTTP connection.
+        Unified handling for all OpenAI-compatible providers (supports three-level degradation retry)
+
+        Args:
+            enable_advanced_params: Whether to send advanced parameters (temperature/top_p/max_tokens)
         """
         from ..server import is_streaming_progress_enabled
         
         try:
-            # 构建请求URL
+            # Build request URL
             url = cls.parse_api_url(base_url)
             
-            # 预处理：合并System Prompts (Level 0 默认应用)
+            # Preprocessing: merge System Prompts (applied by default at Level 0)
             merged_messages = cls._merge_system_prompts(messages)
             
-            # 构建基础请求体 (仅必选参数)
+            # Build base request body (required parameters only)
             initial_payload = {
                 "model": model,
                 "messages": merged_messages,
                 "stream": True
             }
             
-            # 仅在用户开启"启用高级参数"时才发送 temperature、top_p、max_tokens
+            # Only send temperature, top_p, max_tokens when user enables "advanced parameters"
             if enable_advanced_params:
                 initial_payload["temperature"] = temperature
                 initial_payload["top_p"] = top_p
                 initial_payload["max_tokens"] = max_tokens
             
-            # 添加思维链控制参数
+            # Add thinking chain control parameters
             if thinking_extra:
                 initial_payload.update(thinking_extra)
             
-            # 构建请求头
+            # Build request headers
             headers = {"Content-Type": "application/json"}
             if api_key and api_key.strip():
                 headers["Authorization"] = f"Bearer {api_key}"
             
-            # 获取HTTP客户端
+            # Get HTTP client
             client = HTTPClientPool.get_client(
                 provider=provider_display_name,
                 base_url=base_url,
                 timeout=60.0
             )
 
-            # 前置中断检查：如果 ComfyUI 已经中断了，不启动请求
+            # Pre-check for interruption: if ComfyUI has already interrupted, don't start the request
             from server import PromptServer
             if hasattr(PromptServer.instance, 'execution_interrupted') and PromptServer.instance.execution_interrupted:
-                return {"success": False, "error": "任务被中断", "interrupted": True}
-            
-            # 创建统一进度条（自动处理等待→生成→完成的完整生命周期）
+                return {"success": False, "error": "Task interrupted", "interrupted": True}
+
+            # Create unified progress bar (automatically handles waiting -> generating -> done lifecycle)
             pbar = ProgressBar(
                 request_id=request_id,
                 service_name=provider_display_name,
@@ -228,17 +228,17 @@ class OpenAICompatibleService(BaseAPIService):
             start_time = time.perf_counter()
             last_error_msg = ""
             
-            # 三级降级重试循环 (Level 0 -> Level 2)
+            # Three-level degradation retry loop (Level 0 -> Level 2)
             for retry_level in range(3):
                 current_payload = cls._filter_payload(initial_payload, retry_level)
                 
-                # 如果不是Level 0，打印降级重试警告（换行输出）
+                # If not Level 0, print degradation retry warning (with newline)
                 if retry_level > 0:
                     removed_keys = set(initial_payload.keys()) - set(current_payload.keys())
-                    removed_str = ", ".join(removed_keys) if removed_keys else "无参数变动"
-                    print(f"\n{WARN_PREFIX} ⚠️ HTTP 400错误, 触发Level-{retry_level}降级重试 | 服务:{provider_display_name} | 移除参数:[{removed_str}]", flush=True)
+                    removed_str = ", ".join(removed_keys) if removed_keys else "No parameter changes"
+                    print(f"\n{WARN_PREFIX} ⚠️ HTTP 400 error, triggering Level-{retry_level} degradation retry | Service:{provider_display_name} | Removed params:[{removed_str}]", flush=True)
                     
-                    # 关键修复：停止旧的进度条后再创建新的，防止线程泄漏
+                    # Critical fix: stop old progress bar before creating new one to prevent thread leaks
                     if pbar:
                         try:
                             pbar.error(f"Retry Level {retry_level}...") # 标记前一个进度条为错误/重试状态
@@ -246,7 +246,7 @@ class OpenAICompatibleService(BaseAPIService):
                             pbar._stop_timer()
 
                     
-                    # 重新创建进度条用于新一轮重试
+                    # Recreate progress bar for new retry round
                     pbar = ProgressBar(
                         request_id=request_id,
                         service_name=provider_display_name,
@@ -259,7 +259,7 @@ class OpenAICompatibleService(BaseAPIService):
                 async def _do_stream_request():
                     nonlocal pbar
                     
-                    # 定义请求核心逻辑
+                    # Define request core logic
                     async def _request_core():
                         async with client.stream('POST', url, headers=headers, json=current_payload, follow_redirects=True) as response:
                             if response.status_code != 200:
@@ -270,10 +270,10 @@ class OpenAICompatibleService(BaseAPIService):
                                 except:
                                     msg = f'HTTP {response.status_code}: {error_text.decode("utf-8", errors="ignore")[:200]}'
                                 
-                                # 智能识别认证错误
+                                # Smart recognition of authentication errors
                                 from ..utils.common import _is_auth_error
                                 if response.status_code == 401 or _is_auth_error(msg.lower()):
-                                    msg = "API Key无效或缺失"
+                                    msg = "API Key invalid or missing"
                                 
                                 return {
                                     "success": False, 

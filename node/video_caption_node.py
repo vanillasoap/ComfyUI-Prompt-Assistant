@@ -24,49 +24,49 @@ from .base import VLMNodeBase
 
 class VideoCaptionNode(VLMNodeBase):
     """
-    视频反推提示词节点
-    分析输入视频或图像序列并生成描述性提示词
+    Video captioning node
+    Analyzes input video or image sequences and generates descriptive prompts
     """
-    
+
     @classmethod
     def INPUT_TYPES(cls):
-        # 从config_manager获取系统提示词配置
+        # Get system prompt configuration from config_manager
         from ..config_manager import config_manager
         system_prompts = config_manager.get_system_prompts()
 
-        # ---获取所有 video_prompts 作为选项---
+        # ---Get all video_prompts as options---
         video_prompts = {}
         if system_prompts and 'video_prompts' in system_prompts:
             video_prompts = system_prompts['video_prompts']
 
-        # 构建提示词模板选项（支持分类格式：类别/规则名称）
+        # Build prompt template options (supports category format: Category/RuleName)
         prompt_template_options = []
         for key, value in video_prompts.items():
-            # 过滤掉不在后端显示的规则
+            # Filter out rules not shown in backend
             show_in = value.get('showIn', ["frontend", "node"])
             if 'node' not in show_in:
                 continue
 
             name = value.get('name', key)
             category = value.get('category', '')
-            # 如果有分类，显示为 "类别/规则名称"，否则直接显示规则名称
+            # If categorized, display as "Category/RuleName", otherwise just the rule name
             display_name = f"{category}/{name}" if category else name
             prompt_template_options.append(display_name)
 
-        # 如果没有选项,添加一个默认选项
+        # If no options available, add a default option
         if not prompt_template_options:
-            prompt_template_options = ["默认视频反推提示词"]
-        
-        # ---动态获取VLM服务/模型列表---
+            prompt_template_options = ["Default Video Caption Prompt"]
+
+        # ---Dynamically get VLM service/model list---
         service_options = cls.get_vlm_service_options()
-        default_service = service_options[0] if service_options else "智谱"
+        default_service = service_options[0] if service_options else "Default"
 
         return {
             "required": {
-                "rule": (prompt_template_options, {"default": prompt_template_options[0] if prompt_template_options else "默认视频反推提示词", "tooltip": "💡Template Config: Settings -> ✨Prompt Assistant -> Rule Editor"}),
+                "rule": (prompt_template_options, {"default": prompt_template_options[0] if prompt_template_options else "Default Video Caption Prompt", "tooltip": "💡Template Config: Settings -> ✨Prompt Assistant -> Rule Editor"}),
                 "custom_rule": ("BOOLEAN", {"default": False, "label_on": "Enable", "label_off": "Disable", "tooltip": "⚠️ Enable to use custom rule content below instead of preset"}),
-                "custom_rule_content": ("STRING", {"multiline": True, "default": "", "placeholder": "请输入临时规则内容,仅在启用'临时规则'时生效", "tooltip": "在此输入您的自定义规则内容; 💡输入触发词[R],可以让节点每次都被执行"}),
-                "user_prompt": ("STRING", {"multiline": True, "default": "", "placeholder": "输入额外的具体要求，将与规则一起发送给模型", "tooltip": "输入额外的具体要求，将与规则一起发送给模型; 💡输入触发词[R],可以让节点每次都被执行"}),
+                "custom_rule_content": ("STRING", {"multiline": True, "default": "", "placeholder": "Enter custom rule content, only effective when 'Custom Rule' is enabled", "tooltip": "Enter your custom rule content here; type trigger [R] to force re-execution every time"}),
+                "user_prompt": ("STRING", {"multiline": True, "default": "", "placeholder": "Enter additional specific requirements to send along with the rule to the model", "tooltip": "Enter additional specific requirements to send along with the rule to the model; type trigger [R] to force re-execution every time"}),
                 "vlm_service": (service_options, {"default": default_service, "tooltip": "Select VLM service and model"}),
                 "sampling_mode": (["Auto (Uniform)", "Manual (Indices)"], {"default": "Auto (Uniform)"}),
                 "frame_count": ("INT", {"default": 5, "min": 1, "max": 32, "step": 1, "tooltip": "💡Only for 'Auto' mode. Frame limits: GLM-4V≤5, GLM-4.6V≤100, Qwen-VL≤100, Gemini≤3000, Grok≤10"}),
@@ -92,13 +92,13 @@ class VideoCaptionNode(VLMNodeBase):
     @classmethod
     def IS_CHANGED(cls, video=None, image_sequence=None, rule=None, custom_rule=None, custom_rule_content=None, user_prompt=None, vlm_service=None, sampling_mode=None, frame_count=None, manual_indices=None, ollama_auto_unload=None, unique_id=None):
         """
-        只在输入内容真正变化时才触发重新执行
+        Only trigger re-execution when input content actually changes.
         """
-        # 检查是否包含强制刷新符号 [R]
+        # Check if forced refresh symbol [R] is present
         if cls._check_is_changed_bypass(rule, custom_rule_content, user_prompt):
             return float("nan")
 
-        # 提取实际的tensor数据
+        # Extract actual tensor data
         target_input = None
         if video is not None:
             if isinstance(video, dict):
@@ -112,14 +112,14 @@ class VideoCaptionNode(VLMNodeBase):
         elif image_sequence is not None:
             target_input = image_sequence
         
-        # 计算哈希值
+        # Compute hash
         input_data_hash = ""
         if target_input is not None and isinstance(target_input, torch.Tensor):
             try:
-                # 取部分帧和中心区域计算哈希,避免全量计算
+                # Sample partial frames and center region for hash, avoid full computation
                 if len(target_input.shape) == 4:
                     frames = target_input.shape[0]
-                    # 取首尾和中间帧
+                    # Take first, middle, and last frames
                     indices = [0, frames // 2, frames - 1] if frames > 2 else range(frames)
                     
                     hash_data = b""
@@ -139,7 +139,7 @@ class VideoCaptionNode(VLMNodeBase):
             except Exception:
                 input_data_hash = "hash_error"
 
-        # 组合所有输入的哈希值
+        # Combine all input hashes
         input_hash = hash((
             input_data_hash,
             rule,
@@ -157,27 +157,27 @@ class VideoCaptionNode(VLMNodeBase):
     
     def analyze_video_content(self, rule, custom_rule, custom_rule_content, user_prompt, vlm_service, sampling_mode, frame_count, manual_indices, ollama_auto_unload, video=None, image_sequence=None, unique_id=None):
         """
-        分析视频或图像序列并生成提示词(使用抽帧模式)
+        Analyze video or image sequence and generate prompts (using frame extraction mode)
         """
         temp_video_path = None
         try:
-            # 1. 验证输入
+            # 1. Validate input
             if video is None and image_sequence is None:
                 raise ValueError("Video Input or Image Sequence Input is required")
             
-            # 2. 提取tensor数据
+            # 2. Extract tensor data
             input_tensor = None
             is_pre_sampled = False
             
             if video is not None:
-                # 处理VideoFromFile对象(需要先保存再加载)
+                # Handle VideoFromFile object (save first then load)
                 if hasattr(video, 'save_to') and callable(getattr(video, 'save_to')):
                     try:
                         fd, temp_video_path = tempfile.mkstemp(suffix='.mp4')
                         os.close(fd)
                         video.save_to(temp_video_path)
                         print(f"{self.PROCESS_PREFIX} VideoFromFile saved to temp")
-                        #从文件加载为tensor,传入抽帧参数进行预采样优化
+                        # Load from file as tensor, pass frame extraction parameters for pre-sampling optimization
                         input_tensor = self._load_video_as_tensor(
                             temp_video_path, 
                             target_count=frame_count if sampling_mode == "Auto (Uniform)" else None,
@@ -189,7 +189,7 @@ class VideoCaptionNode(VLMNodeBase):
                             os.unlink(temp_video_path)
                         raise RuntimeError(f"VideoFromFile processing failed: {str(e)}")
                 
-                # 处理字典格式
+                # Handle dictionary format
                 elif isinstance(video, dict):
                     input_tensor = video.get('frames') or video.get('video')
                     if input_tensor is None:
@@ -198,11 +198,11 @@ class VideoCaptionNode(VLMNodeBase):
                                 input_tensor = v
                                 break
                 
-                # 处理tensor
+                # Handle tensor
                 elif isinstance(video, torch.Tensor):
                     input_tensor = video
                 
-                # 尝试索引访问
+                # Try index access
                 elif hasattr(video, '__getitem__'):
                     try:
                         first_item = video[0]
@@ -218,7 +218,7 @@ class VideoCaptionNode(VLMNodeBase):
             else:
                 input_tensor = image_sequence
             
-            # 3. 准备提示词
+            # 3. Prepare prompt
             prompt_template = None
             rule_name = "Custom Rule" if (custom_rule and custom_rule_content) else rule
             
@@ -231,18 +231,18 @@ class VideoCaptionNode(VLMNodeBase):
                 if system_prompts and 'video_prompts' in system_prompts:
                     video_prompts = system_prompts['video_prompts']
 
-                # 查找模板（按显示名称匹配）
-                # 显示名称格式：有分类时为 "类别/规则名称"，无分类时为 "规则名称"
+                # Find template (match by display name)
+                # Display name format: "Category/RuleName" when categorized, "RuleName" otherwise
                 for key, value in video_prompts.items():
                     name = value.get('name', key)
                     category = value.get('category', '')
-                    # 构建与下拉列表一致的显示名称
+                    # Build display name consistent with dropdown list
                     display_name = f"{category}/{name}" if category else name
                     if display_name == rule:
                         prompt_template = value.get('content')
                         break
                 
-                # 允许用规则名称或键名直接匹配（兼容旧格式）
+                # Allow matching by rule name or key name directly (backward compatible)
                 if not prompt_template:
                     for key, value in video_prompts.items():
                         if value.get('name') == rule or key == rule:
@@ -250,42 +250,42 @@ class VideoCaptionNode(VLMNodeBase):
                             break
                 
                 if not prompt_template:
-                    prompt_template = "请详细描述这段视频的内容,包括主要事件、场景变化、人物动作和视觉风格。"
+                    prompt_template = "Please describe this video in detail, including main events, scene changes, character actions, and visual style."
                     rule_name = "Default Rule"
 
-            # 拼接用户提示词
+            # Append user prompt
             if user_prompt and user_prompt.strip():
-                prompt_template = f"{prompt_template}\n\n用户补充要求：\n{user_prompt}"
+                prompt_template = f"{prompt_template}\n\nUser supplementary requirements:\n{user_prompt}"
 
-            # ---解析服务/模型字符串---
+            # ---Parse service/model string---
             service_id, model_name = self.parse_service_model(vlm_service)
             if not service_id:
                 raise ValueError(f"Invalid service selection: {vlm_service}")
             
-            # ---获取服务配置---
+            # ---Get service configuration---
             from ..config_manager import config_manager
             service = config_manager.get_service(service_id)
             if not service:
                 raise ValueError(f"Service config not found: {vlm_service}")
-            
-            # ---构建provider_config---
-            # 查找指定的模型或默认模型
+
+            # ---Build provider_config---
+            # Find the specified model or default model
             vlm_models = service.get('vlm_models', [])
             target_model = None
-            
+
             if model_name:
-                # 查找指定的模型
+                # Find the specified model
                 target_model = next((m for m in vlm_models if m.get('name') == model_name), None)
-            
+
             if not target_model:
-                # 使用默认模型或第一个模型
+                # Use default model or first model
                 target_model = next((m for m in vlm_models if m.get('is_default')), 
                                     vlm_models[0] if vlm_models else None)
             
             if not target_model:
                 raise ValueError(f"Service {vlm_service} has no available models")
             
-            # 构建配置对象
+            # Build configuration object
             provider_config = {
                 'provider': service_id,
                 'model': target_model.get('name', ''),
@@ -295,53 +295,53 @@ class VideoCaptionNode(VLMNodeBase):
                 'max_tokens': target_model.get('max_tokens', 500),
                 'top_p': target_model.get('top_p', 0.9),
             }
-            
-            # Ollama特殊处理:添加auto_unload配置
+
+            # Ollama special handling: add auto_unload configuration
             if service.get('type') == 'ollama':
                 provider_config['auto_unload'] = ollama_auto_unload
             
             model = provider_config.get('model', '')
             
-            # 5. 抽帧处理
+            # 5. Frame extraction processing
             request_id = generate_request_id("vcap", None, unique_id)
-            # 检查是否关闭思维链
+            # Check whether to disable chain-of-thought
             disable_thinking_enabled = service.get('disable_thinking', True)
             thinking_extra = build_thinking_suppression(service_id, model) if disable_thinking_enabled else None
             model_display = format_model_with_thinking(model, bool(thinking_extra))
             
-            # 获取服务显示名称
+            # Get service display name
             service_display_name = service.get('name', service_id)
+
+            # Preparation phase log
+            log_prepare(TASK_VIDEO_CAPTION, request_id, SOURCE_NODE, service_display_name, model_display, rule_name, {"mode": sampling_mode})
             
-            # 准备阶段日志
-            log_prepare(TASK_VIDEO_CAPTION, request_id, SOURCE_NODE, service_display_name, model_display, rule_name, {"模式": sampling_mode})
-            
-            # [Debug] 输出抽帧参数详情
-            # print(f"{self.PROCESS_PREFIX} [video-caption-debug] 输入tensor形状:{input_tensor.shape} | is_pre_sampled:{is_pre_sampled}")
+            # [Debug] Output frame extraction parameter details
+            # print(f"{self.PROCESS_PREFIX} [video-caption-debug] Input tensor shape:{input_tensor.shape} | is_pre_sampled:{is_pre_sampled}")
             # print(f"{self.PROCESS_PREFIX} [video-caption-debug] sampling_mode:{sampling_mode} | frame_count:{frame_count} | manual_indices:{manual_indices}")
-            
-            # 准备抽帧参数
+
+            # Prepare frame extraction parameters
             sampling_kwargs = {}    
             if not is_pre_sampled:
                 if sampling_mode == "Auto (Uniform)":
                     sampling_kwargs['target_count'] = frame_count
                 elif sampling_mode == "Manual (Indices)":
                     sampling_kwargs['target_indices_str'] = manual_indices
-            # 从tensor中提取帧并转为base64,同时获取预览tensor
+            # Extract frames from tensor and convert to base64, also get preview tensor
             frames_data, preview_tensor = self._extract_frames_and_tensor(
                 input_tensor, 
                 **sampling_kwargs
             )
             
-            # [Debug] 输出抽帧结果
-            # print(f"{self.PROCESS_PREFIX} [video-caption] 抽帧完成 | 帧数量:{len(frames_data)} | 预览tensor:{preview_tensor.shape}")
-            
-            # ---注入帧数元信息到提示词---
-            # 解决模型识别帧数与实际帧数不一致的问题
+            # [Debug] Output frame extraction result
+            # print(f"{self.PROCESS_PREFIX} [video-caption] Frame extraction complete | Frame count:{len(frames_data)} | Preview tensor:{preview_tensor.shape}")
+
+            # ---Inject frame count metadata into prompt---
+            # Resolve inconsistency between model-identified frame count and actual frame count
             actual_frame_count = len(frames_data)
-            frame_info_prefix = f"[重要提示：本次共提供了 {actual_frame_count} 帧图像，请务必逐帧分析，确保输出的描述数量与帧数一致。]\n\n"
+            frame_info_prefix = f"[Important: A total of {actual_frame_count} frames are provided. Please analyze each frame individually and ensure the number of descriptions matches the frame count.]\n\n"
             prompt_template = frame_info_prefix + prompt_template
             
-            # 调用多图像分析 - 使用基类方法
+            # Call multi-image analysis - using base class method
             result = self._run_vision_task(
                 VisionService.analyze_images,
                 service_id,
@@ -354,7 +354,7 @@ class VideoCaptionNode(VLMNodeBase):
                 source=SOURCE_NODE
             )
 
-            # 6. 处理结果
+            # 6. Process result
             if result and result.get('success'):
                 description = result.get('data', {}).get('description', '').strip()
                 if not description:
@@ -362,20 +362,20 @@ class VideoCaptionNode(VLMNodeBase):
                 return (description, preview_tensor)
             else:
                 error_msg = result.get('error', 'Unknown error') if result else 'No result returned'
-                # 如果是中断错误,直接抛出InterruptProcessingException,不打印日志(由基类打印)
-                if error_msg == "任务被中断":
+                # If interrupted, throw InterruptProcessingException directly without logging (handled by base class)
+                if error_msg == "Task interrupted":
                     raise InterruptProcessingException()
                 raise RuntimeError(f"Analysis failed: {error_msg}")
 
         except InterruptProcessingException:
-            # 不打印日志,由基类统一打印
+            # Do not print log; handled uniformly by base class
             raise
         except Exception as e:
             error_msg = format_api_error(e, vlm_service)
             log_error(TASK_VIDEO_CAPTION, request_id, error_msg, source=SOURCE_NODE)
             raise RuntimeError(f"Analysis error: {error_msg}")
         finally:
-            # 清理临时视频文件
+            # Clean up temporary video file
             if temp_video_path and os.path.exists(temp_video_path):
                 try:
                     os.unlink(temp_video_path)
@@ -384,19 +384,19 @@ class VideoCaptionNode(VLMNodeBase):
 
     def _uniform_sample(self, l, n):
         """
-        从列表中均匀采样 n 个元素 (参考 video_sampling_guide.md)
-        算法: 将列表分成 n 个等长区间,从每个区间的中心位置取样
+        Uniformly sample n elements from a list (see video_sampling_guide.md)
+        Algorithm: Divide the list into n equal intervals and sample from the center of each interval
         """
         if n >= len(l):
             return l
         gap = len(l) / n
         idxs = [int(i * gap + gap / 2) for i in range(n)]
-        # 确保索引不越界
+        # Ensure indices don't exceed bounds
         idxs = [min(i, len(l) - 1) for i in idxs]
         return [l[i] for i in idxs]
 
     def _parse_frame_indices(self, indices_str, total_frames):
-        """解析手动输入的帧索引字符串"""
+        """Parse manually entered frame index string"""
         indices = set()
         if not indices_str:
             return []
@@ -428,43 +428,43 @@ class VideoCaptionNode(VLMNodeBase):
                     idx = max(0, min(idx, total_frames - 1))
                     indices.add(idx)
             except ValueError:
-                print(f"{self.LOG_PREFIX} 忽略无效的帧索引格式: {part}")
+                print(f"{self.LOG_PREFIX} Ignoring invalid frame index format: {part}")
                 
         return sorted(list(indices))
 
     def _extract_frames_and_tensor(self, tensor, target_count=None, target_indices_str=None):
-        """从tensor中提取指定数量或指定索引的帧,返回(base64列表, 预览tensor)"""
+        """Extract specified number or specified indices of frames from tensor, return (base64 list, preview tensor)"""
         total_frames = tensor.shape[0]
         
-        # 生成所有帧的索引列表
+        # Generate index list for all frames
         all_indices = list(range(total_frames))
         
         selected_indices = []
         if target_indices_str is not None:
-            # 手动模式
+            # Manual mode
             selected_indices = self._parse_frame_indices(target_indices_str, total_frames)
             if not selected_indices:
-                print(f"{self.PROCESS_PREFIX} ⚠️ 手动帧索引无效或为空,回退到自动采样")
+                print(f"{self.PROCESS_PREFIX} Manual frame indices invalid or empty, falling back to auto sampling")
                 selected_indices = self._uniform_sample(all_indices, 8) # Default fallback
         elif target_count is not None:
-            # 自动模式
+            # Auto mode
             selected_indices = self._uniform_sample(all_indices, target_count)
         else:
-            # 默认全量
+            # Default: all frames
             selected_indices = all_indices
         
-        # 提取选中的帧 [N, H, W, C]
+        # Extract selected frames [N, H, W, C]
         selected_tensor = tensor[selected_indices]
         
         frames_base64 = []
-        # 遍历选中的tensor进行转换
+        # Iterate through selected tensor for conversion
         for i in range(selected_tensor.shape[0]):
             frame_tensor = selected_tensor[i]
-            # 转为numpy [H, W, C] (0-255)
+            # Convert to numpy [H, W, C] (0-255)
             frame_np = (frame_tensor.cpu().numpy() * 255).astype(np.uint8)
-            # 转PIL
+            # Convert to PIL
             image = Image.fromarray(frame_np)
-            # 转Base64
+            # Convert to Base64
             buffer = BytesIO()
             image.save(buffer, format="JPEG", quality=85)
             encoded = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -474,49 +474,49 @@ class VideoCaptionNode(VLMNodeBase):
 
     def _load_video_as_tensor(self, video_path, target_count=None, target_indices_str=None):
         """
-        从视频文件加载为tensor
-        优化: 如果指定了target_count或target_indices_str,则只读取需要的帧 (Sample before Load)
+        Load video file as tensor
+        Optimization: If target_count or target_indices_str is specified, only read the needed frames (Sample before Load)
         """
         try:
             import imageio
-            # 读取视频
+            # Read video
             reader = imageio.get_reader(video_path, 'ffmpeg')
             
-            # 获取总帧数
-            # 尝试从元数据获取,如果失败则使用count_frames (较慢)
+            # Get total frame count
+            # Try to get from metadata, fall back to count_frames if failed (slower)
             try:
                 total_frames = reader.count_frames()
             except Exception:
-                # 如果无法获取帧数,回退到读取所有帧
-                print(f"{self.PROCESS_PREFIX} 无法获取视频总帧数,将读取所有帧")
+                # If unable to get frame count, fall back to reading all frames
+                print(f"{self.PROCESS_PREFIX} Unable to get total frame count, will read all frames")
                 frames = []
                 for frame in reader:
                     frame_float = frame.astype(np.float32) / 255.0
                     frames.append(frame_float)
                 reader.close()
                 if not frames:
-                    raise RuntimeError("视频文件中没有帧")
+                    raise RuntimeError("No frames found in video file")
                 frames_array = np.stack(frames, axis=0)
                 tensor = torch.from_numpy(frames_array)
                 
-                # 如果有采样要求,进行后处理采样
+                # If sampling is required, perform post-processing sampling
                 if target_count is not None or target_indices_str is not None:
-                    print(f"{self.PROCESS_PREFIX} 视频加载回退: 读取全量帧后进行采样")
+                    print(f"{self.PROCESS_PREFIX} Video loading fallback: sampling after reading all frames")
                     _, tensor = self._extract_frames_and_tensor(tensor, target_count, target_indices_str)
                     
                 return tensor
 
-            # 计算需要读取的帧索引
+            # Calculate frame indices to read
             indices_to_read = list(range(total_frames))
             
             if target_indices_str is not None:
                 indices_to_read = self._parse_frame_indices(target_indices_str, total_frames)
-                print(f"{self.PROCESS_PREFIX} 视频加载优化(手动): 从 {total_frames} 帧中提取 {len(indices_to_read)} 帧")
+                print(f"{self.PROCESS_PREFIX} Video loading optimized (manual): extracting {len(indices_to_read)} frames from {total_frames} frames")
             elif target_count and total_frames > target_count:
                 indices_to_read = self._uniform_sample(indices_to_read, target_count)
-                print(f"{self.PROCESS_PREFIX} 视频加载优化(自动): 从 {total_frames} 帧中采样 {len(indices_to_read)} 帧")
+                print(f"{self.PROCESS_PREFIX} Video loading optimized (auto): sampling {len(indices_to_read)} frames from {total_frames} frames")
             
-            # 优化读取: 只读取需要的帧
+            # Optimized reading: only read needed frames
             frames = []
            
             # imageio的get_data(index)支持随机访问
@@ -531,17 +531,17 @@ class VideoCaptionNode(VLMNodeBase):
             reader.close()
             
             if not frames:
-                raise RuntimeError("未能读取到有效帧")
-            
-            # 转换为torch tensor [N, H, W, C]
+                raise RuntimeError("Failed to read valid frames")
+
+            # Convert to torch tensor [N, H, W, C]
             frames_array = np.stack(frames, axis=0)
             tensor = torch.from_numpy(frames_array)
             
             return tensor
         except Exception as e:
-            raise RuntimeError(f"视频文件加载失败: {str(e)}")
+            raise RuntimeError(f"Video file loading failed: {str(e)}")
 
-# 节点映射，用于ComfyUI注册节点
+# Node class mappings for registering nodes with ComfyUI
 NODE_CLASS_MAPPINGS = {
     "VideoCaptionNode": VideoCaptionNode,
 }

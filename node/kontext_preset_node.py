@@ -20,20 +20,20 @@ from .base import VLMNodeBase
 
 class KontextPresetNode(VLMNodeBase):
     """
-    Kontext预设助手节点
-    使用Kontext预设分析图像并生成创意转换指令
+    Kontext preset assistant node
+    Uses Kontext presets to analyze images and generate creative transformation instructions
     """
-    
-    # 缓存配置数据，避免重复从文件系统读取
+
+    # Cache configuration data to avoid repeated reads from file system
     _kontext_config = None
-    
+
     @classmethod
     def _load_kontext_config(cls):
-        """加载Kontext配置，使用缓存避免重复读取文件"""
+        """Load Kontext configuration, using cache to avoid repeated file reads"""
         if cls._kontext_config is None:
             try:
                 from ..config_manager import config_manager
-                # 使用 config_manager 的 kontext_presets_path (指向 rules 目录)
+                # Use config_manager's kontext_presets_path (points to rules directory)
                 kontext_presets_path = config_manager.kontext_presets_path
                 
                 if os.path.exists(kontext_presets_path):
@@ -42,32 +42,32 @@ class KontextPresetNode(VLMNodeBase):
                 else:
                     cls._kontext_config = {}
             except Exception as e:
-                print(f"{cls.LOG_PREFIX} 加载Kontext配置失败: {str(e)}")
+                print(f"{cls.LOG_PREFIX} Failed to load Kontext configuration: {str(e)}")
                 cls._kontext_config = {}
         return cls._kontext_config
 
     
     @classmethod
     def INPUT_TYPES(cls):
-        # 获取kontext_presets
+        # Get kontext_presets
         kontext_presets = {}
         config_data = cls._load_kontext_config()
         if 'kontext_presets' in config_data:
             kontext_presets = config_data['kontext_presets']
 
-        # 构建提示词模板选项
+        # Build prompt template options
         prompt_template_options = []
         for key, value in kontext_presets.items():
             name = value.get('name', key)
             prompt_template_options.append(name)
 
-        # 如果没有选项，添加一个默认选项
+        # If no options available, add a default option
         if not prompt_template_options:
-            prompt_template_options = ["情境深度融合"]
-        
-        # ---动态获取VLM服务/模型列表---
+            prompt_template_options = ["Deep Context Fusion"]
+
+        # ---Dynamically get VLM service/model list---
         service_options = cls.get_vlm_service_options()
-        default_service = service_options[0] if service_options else "智谱"
+        default_service = service_options[0] if service_options else "Default"
 
         return {
             "required": {

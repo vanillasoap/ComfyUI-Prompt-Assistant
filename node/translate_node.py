@@ -17,19 +17,19 @@ from .base import LLMNodeBase
 
 class PromptTranslate(LLMNodeBase):
     """
-    提示词翻译节点
-    自动识别输入语言并翻译成目标语言，支持多种翻译服务
+    Prompt translation node
+    Automatically detects input language and translates to the target language, supporting multiple translation services
     """
 
     @classmethod
     def INPUT_TYPES(cls):
-        # ---动态获取翻译服务/模型列表(包含硬编码的百度翻译)---
+        # ---Dynamically get translation service/model list (including hardcoded Baidu Translate)---
         service_options = cls.get_translate_service_options()
-        default_service = service_options[0] if service_options else "百度翻译"
+        default_service = service_options[0] if service_options else "Baidu Translate"
         
         return {
             "required": {
-                "source_text": ("STRING", {"forceInput": True, "default": "", "multiline": True, "placeholder": "Input text to translate...", "tooltip": "需要翻译的文本; 💡输入触发词[R],可以让节点每次都被执行"}),
+                "source_text": ("STRING", {"forceInput": True, "default": "", "multiline": True, "placeholder": "Input text to translate...", "tooltip": "Text to translate; type trigger [R] to force re-execution every time"}),
                 "target_language": (["English", "Chinese"], {"default": "English"}),
                 "translate_service": (service_options, {"default": default_service, "tooltip": "Select translation service and model"}),
                 # Ollama Automatic VRAM Unload
@@ -49,20 +49,20 @@ class PromptTranslate(LLMNodeBase):
     @classmethod
     def IS_CHANGED(cls, source_text=None, target_language=None, translate_service=None, ollama_auto_unload=None, unique_id=None):
         """
-        只在输入内容真正变化时才触发重新执行
-        使用输入参数的哈希值作为判断依据
+        Only trigger re-execution when input content actually changes.
+        Uses hash of input parameters as the basis for comparison.
         """
-        # 检查是否包含强制刷新符号 [R]
+        # Check if forced refresh symbol [R] is present
         if cls._check_is_changed_bypass(source_text):
             return float("nan")
 
-        # 计算文本的哈希值
+        # Compute text hash
         text_hash = ""
         if source_text:
-            # 使用hashlib计算文本的哈希值，更安全和一致
+            # Use hashlib to compute text hash for better security and consistency
             text_hash = hashlib.md5(source_text.encode('utf-8')).hexdigest()
 
-        # 组合所有输入的哈希值
+        # Combine all input hashes
         input_hash = hash((
             text_hash,
             target_language,
@@ -73,19 +73,19 @@ class PromptTranslate(LLMNodeBase):
         return input_hash
 
     def _contains_chinese(self, text: str) -> bool:
-        """检查文本是否包含中文字符"""
+        """Check if text contains Chinese characters"""
         if not text:
             return False
         return bool(re.search('[\u4e00-\u9fa5]', text))
 
     def _detect_language(self, text: str) -> str:
-        """自动检测文本语言"""
+        """Automatically detect text language"""
         if not text:
             return "auto"
 
-        # 检查是否为纯英文 (只包含ASCII可打印字符)
+        # Check if pure English (only ASCII printable characters)
         is_pure_english = bool(re.fullmatch(r'[ -~]+', text))
-        # 检查是否包含中文字符
+        # Check if contains Chinese characters
         contains_chinese = self._contains_chinese(text)
 
         if contains_chinese:
@@ -97,47 +97,47 @@ class PromptTranslate(LLMNodeBase):
     
     def translate(self, source_text, target_language, translate_service, ollama_auto_unload, unique_id=None):
         """
-        翻译文本函数
+        Translate text function
         """
-        request_id = None  # 提升到方法级别作用域
+        request_id = None  # Elevate to method-level scope
         try:
-            # 检查输入
+            # Check input
             if not source_text or not source_text.strip():
                 return ("",)
 
-            # 自动检测源语言
+            # Automatically detect source language
             detected_lang = self._detect_language(source_text)
             to_lang = "en" if target_language == "English" else "zh"
 
-            # 智能跳过翻译逻辑
+            # Smart skip translation logic
             skip_translation = False
             if to_lang == 'en' and detected_lang == 'en':
                 from ..utils.common import _ANSI_CLEAR_EOL
-                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} 检测到英文输入，目标为英文，无需翻译", flush=True)
+                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} English input detected, target is English, no translation needed", flush=True)
                 skip_translation = True
             elif to_lang == 'zh' and detected_lang == 'zh':
                 from ..utils.common import _ANSI_CLEAR_EOL
-                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} 检测到中文输入，目标为中文，无需翻译", flush=True)
+                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} Chinese input detected, target is Chinese, no translation needed", flush=True)
                 skip_translation = True
 
             if skip_translation:
                 return (source_text,)
 
-            # 映射语言名称
-            lang_map = {'zh': '中文', 'en': '英文', 'auto': '原文'}
+            # Map language names
+            lang_map = {'zh': 'Chinese', 'en': 'English', 'auto': 'Original'}
             from_lang_name = lang_map.get(detected_lang, detected_lang)
             to_lang_name = lang_map.get(to_lang, to_lang)
             
-            # ---解析服务/模型字符串---
+            # ---Parse service/model string---
             service_id, model_name = self.parse_service_model(translate_service)
             if not service_id:
                 raise ValueError(f"Invalid service selection: {translate_service}")
             
-            # ---百度翻译特殊处理---
+            # ---Baidu Translate special handling---
             if service_id == 'baidu':
                 request_id, result = self._translate_with_baidu(source_text, detected_lang, to_lang, translate_service, from_lang_name, to_lang_name, unique_id)
             else:
-                # ---LLM翻译:获取服务配置---
+                # ---LLM translation: get service configuration---
                 from ..config_manager import config_manager
                 service = config_manager.get_service(service_id)
                 if not service:
@@ -151,18 +151,18 @@ class PromptTranslate(LLMNodeBase):
                     error_msg = 'API returned empty result'
                     raise RuntimeError(f"❌Translation failed: {error_msg}")
 
-                # 结果阶段日志由服务层统一输出，节点层不再重复打印
+                # Result phase log is handled by the service layer; node layer does not print again
                 return (translated_text,)
             else:
                 error_msg = result.get('error', 'Unknown error') if result else 'No result returned'
-                # 如果是中断错误,直接抛出InterruptProcessingException,不打印日志(由基类打印)
-                if error_msg == "任务被中断":
+                # If interrupted, throw InterruptProcessingException directly without logging (handled by base class)
+                if error_msg == "Task interrupted":
                     raise InterruptProcessingException()
                 log_error(TASK_TRANSLATE, request_id, error_msg)
                 raise RuntimeError(f"Translation failed: {error_msg}")
 
         except InterruptProcessingException:
-            # 不打印日志,由基类统一打印
+            # Do not print log; handled uniformly by base class
             raise
         except Exception as e:
             error_msg = format_api_error(e, translate_service)
@@ -170,14 +170,14 @@ class PromptTranslate(LLMNodeBase):
             raise RuntimeError(f"Translation error: {error_msg}")
 
     def _translate_with_baidu(self, text, from_lang, to_lang, service_name, from_lang_name, to_lang_name, unique_id):
-        """使用百度翻译服务"""
-        # 创建请求ID
+        """Use Baidu Translate service"""
+        # Create request ID
         request_id = generate_request_id("trans", "baidu", unique_id)
-        
-        # 准备阶段日志
-        log_prepare(TASK_TRANSLATE, request_id, SOURCE_NODE, "百度翻译", None, None, {"方向": f"{from_lang_name}→{to_lang_name}", "长度": len(text)})
-        
-        # 执行翻译（异步线程 + 可中断）
+
+        # Preparation phase log
+        log_prepare(TASK_TRANSLATE, request_id, SOURCE_NODE, "Baidu Translate", None, None, {"direction": f"{from_lang_name}→{to_lang_name}", "length": len(text)})
+
+        # Execute translation (async thread + interruptible)
         result = self._run_llm_task(
             BaiduTranslateService.translate,
             service_name,
@@ -192,25 +192,25 @@ class PromptTranslate(LLMNodeBase):
         return request_id, result
 
     def _translate_with_llm(self, text, from_lang, to_lang, service_id, model_name, service, service_display_name, from_lang_name, to_lang_name, auto_unload, unique_id):
-        """使用LLM翻译服务"""
-        # ---构建provider_config---
-        # 查找指定的模型或默认模型
+        """Use LLM translation service"""
+        # ---Build provider_config---
+        # Find the specified model or default model
         llm_models = service.get('llm_models', [])
         target_model = None
         
         if model_name:
-            # 查找指定的模型
+            # Find the specified model
             target_model = next((m for m in llm_models if m.get('name') == model_name), None)
-        
+
         if not target_model:
-            # 使用默认模型或第一个模型
+            # Use default model or first model
             target_model = next((m for m in llm_models if m.get('is_default')), 
                                 llm_models[0] if llm_models else None)
         
         if not target_model:
             return {"success": False, "error": f"Service {service_display_name} has no available models"}
         
-        # 构建配置对象
+        # Build configuration object
         provider_config = {
             'provider': service_id,
             'model': target_model.get('name', ''),
@@ -221,33 +221,33 @@ class PromptTranslate(LLMNodeBase):
             'top_p': target_model.get('top_p', 0.9),
         }
         
-        # Ollama特殊处理:添加auto_unload配置
+        # Ollama special handling: add auto_unload configuration
         if service.get('type') == 'ollama':
             provider_config['auto_unload'] = auto_unload
 
-        # 创建请求ID
+        # Create request ID
         request_id = generate_request_id("trans", "llm", unique_id)
-        
-        # 检查是否关闭思维链
+
+        # Check whether to disable chain-of-thought
         model_full_name = provider_config.get('model')
         disable_thinking_enabled = service.get('disable_thinking', True)
         thinking_extra = build_thinking_suppression(service_id, model_full_name) if disable_thinking_enabled else None
         model_display = format_model_with_thinking(model_full_name, bool(thinking_extra))
         
-        # 获取服务显示名称
+        # Get service display name
         service_display_name = service.get('name', service_id)
-        
-        # 准备阶段日志
-        log_prepare(TASK_TRANSLATE, request_id, SOURCE_NODE, service_display_name, model_display, None, {"方向": f"{from_lang_name}→{to_lang_name}", "长度": len(text)})
-        
-        # 检查API密钥和模型
+
+        # Preparation phase log
+        log_prepare(TASK_TRANSLATE, request_id, SOURCE_NODE, service_display_name, model_display, None, {"direction": f"{from_lang_name}→{to_lang_name}", "length": len(text)})
+
+        # Check API key and model
         api_key = provider_config.get('api_key', '')
         model = provider_config.get('model', '')
         
         if not api_key or not model:
             return {"success": False, "error": f"Please configure API key and model for {service_display_name}"}
 
-        # 执行翻译（异步线程 + 可中断）
+        # Execute translation (async thread + interruptible)
         result = self._run_llm_task(
             LLMService.translate,
             service_id,
@@ -265,12 +265,12 @@ class PromptTranslate(LLMNodeBase):
         return request_id, result
 
 
-# 节点映射，用于向ComfyUI注册节点
+# Node class mappings for registering nodes with ComfyUI
 NODE_CLASS_MAPPINGS = {
     "PromptTranslate": PromptTranslate,
 }
 
-# 节点显示名称映射
+# Node display name mappings
 NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptTranslate": "✨Prompt Translate",
 }

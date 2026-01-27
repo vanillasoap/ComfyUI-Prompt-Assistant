@@ -1,6 +1,6 @@
 /**
- * 弹窗工具类
- * 提供通用的弹窗管理功能
+ * Popup Utility Class
+ * Provides general popup management functionality
  */
 
 import { logger } from './logger.js';
@@ -9,7 +9,7 @@ import { promptAssistant } from "../modules/PromptAssistant.js";
 import { ResourceManager } from './resourceManager.js';
 
 class PopupManager {
-    // 保存当前活动弹窗及其信息
+    // Store the currently active popup and its info
     static activePopup = null;
     static activePopupInfo = null;
     static eventHandlers = {
@@ -25,7 +25,7 @@ class PopupManager {
 
 
     /**
-     * 显示弹窗，确保同时只有一个弹窗显示
+     * Show popup, ensuring only one popup is displayed at a time
      */
     static async showPopup(options) {
         const { popup, anchorButton, buttonInfo, onClose, preventCloseOnElementTypes = [], enableResize = false } = options;
@@ -34,62 +34,62 @@ class PopupManager {
         const { buttonMenu } = await import('../services/btnMenu.js');
         buttonMenu.hideMenu();
 
-        // 如果已有其他弹窗，先关闭它
+        // If another popup is already open, close it first
         if (this.activePopup && this.activePopup !== popup) {
-            // 【关键】标记正在切换弹窗
+            // [KEY] Mark that we are transitioning between popups
             this._isTransitioning = true;
 
-            // 清除当前活动弹窗引用，避免hidePopup中的状态冲突
+            // Clear current active popup reference to avoid state conflicts in hidePopup
             this.activePopup = null;
             this.activePopupInfo = null;
 
-            // 清理所有事件监听器
+            // Clean up all event listeners
             this.cleanupAllEventListeners();
 
-            // 关闭旧弹窗
+            // Close the old popup
             if (oldPopupInfo && oldPopupInfo.onClose) {
                 try {
                     oldPopupInfo.onClose();
                 } catch (error) {
-                    logger.error(`执行关闭回调失败: ${error.message}`);
+                    logger.error(`Failed to execute close callback: ${error.message}`);
                 }
             }
 
-            // 添加关闭动画
+            // Add closing animation
             const isPopupUp = oldPopup.classList.contains('popup-up');
             oldPopup.classList.add(isPopupUp ? 'popup-closing-up' : 'popup-closing-down');
 
-            // 等待动画完成后再显示新弹窗
+            // Wait for animation to complete before showing the new popup
             return new Promise(resolve => {
                 setTimeout(() => {
                     if (oldPopup.parentNode) {
                         oldPopup.parentNode.removeChild(oldPopup);
                     }
-                    // 显示新弹窗
+                    // Show the new popup
                     this._showNewPopup(options);
-                    // 清除切换标记
+                    // Clear transition flag
                     this._isTransitioning = false;
                     resolve();
                 }, 200);
             });
         } else {
-            // 没有活动弹窗，直接显示新弹窗
+            // No active popup, show the new popup directly
             return Promise.resolve(this._showNewPopup(options));
         }
     }
 
     /**
-     * 显示新弹窗的内部方法
+     * Internal method to show a new popup
      */
     static _showNewPopup(options) {
         const { popup, anchorButton, buttonInfo, onClose, preventCloseOnElementTypes = [], enableResize = false } = options;
 
-        // 在所有其他窗口关闭后，设置活动按钮状态
+        // After all other windows are closed, set the active button state
         if (buttonInfo) {
             UIToolkit.setActiveButton(buttonInfo);
         }
 
-        // 保存当前弹窗信息
+        // Save current popup info
         this.activePopup = popup;
         this.activePopupInfo = {
             anchorButton,
@@ -98,37 +98,37 @@ class PopupManager {
             preventCloseOnElementTypes
         };
 
-        // 计算弹窗位置
+        // Calculate popup position
         this.positionPopup(popup, anchorButton);
 
-        // 添加到文档
+        // Append to document
         document.body.appendChild(popup);
 
-        // 设置关闭事件
+        // Set up close events
         this.setupCloseEvents(popup, () => {
             this.hidePopup(popup, onClose);
         });
 
-        // 设置拖动事件
+        // Set up drag events
         this.setupDragEvents(popup);
 
-        // 如果启用窗口大小调节，在弹窗完全初始化后设置
+        // If resize is enabled, set it up after the popup is fully initialized
         if (enableResize) {
-            // 使用 setTimeout 确保在 DOM 完全渲染后再添加调节功能
+            // Use setTimeout to ensure resize functionality is added after DOM is fully rendered
             setTimeout(() => {
                 this.setupResizeEvents(popup);
             }, 0);
         }
 
-        // 返回弹窗元素
+        // Return popup element
         return popup;
     }
 
     /**
-     * 清理所有事件监听器
+     * Clean up all event listeners
      */
     static cleanupAllEventListeners() {
-        // 清理全局事件监听器
+        // Clean up global event listeners
         Object.entries(this.eventHandlers).forEach(([event, handler]) => {
             if (handler) {
                 try {
@@ -138,28 +138,28 @@ class PopupManager {
                         document.removeEventListener(event, handler);
                     }
                 } catch (error) {
-                    logger.error(`移除事件监听器失败: ${event}, ${error.message}`);
+                    logger.error(`Failed to remove event listener: ${event}, ${error.message}`);
                 }
                 this.eventHandlers[event] = null;
             }
         });
 
-        // 恢复原始的选择变化事件处理函数
+        // Restore original selection change event handler
         if (window.app?.canvas && this.activePopup?._originalOnSelectionChange) {
             window.app.canvas.onSelectionChange = this.activePopup._originalOnSelectionChange;
             this.activePopup._originalOnSelectionChange = null;
         }
 
-        // 执行弹窗自身的清理函数
+        // Execute the popup's own cleanup function
         if (this.activePopup && typeof this.activePopup._cleanup === 'function') {
             try {
                 this.activePopup._cleanup();
             } catch (error) {
-                logger.error(`执行弹窗清理函数失败: ${error.message}`);
+                logger.error(`Failed to execute popup cleanup function: ${error.message}`);
             }
         }
 
-        // 确保所有事件处理函数引用都被重置
+        // Ensure all event handler references are reset
         this.eventHandlers = {
             mousedown: null,
             keydown: null,
@@ -168,25 +168,25 @@ class PopupManager {
             mouseup: null
         };
 
-        // logger.debug('弹窗管理 | 动作:清理所有事件监听器');
+        // logger.debug('Popup Manager | Action: Clean up all event listeners');
     }
 
     /**
-     * 设置拖动事件
+     * Set up drag events
      */
     static setupDragEvents(popup) {
         const titleBar = popup.querySelector('.popup_title_bar');
         if (!titleBar) return;
 
-        // 设置鼠标样式，表示可拖动
+        // Set cursor style to indicate draggable
         titleBar.style.cursor = 'move';
 
-        // 拖动相关变量
+        // Drag-related variables
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
 
         const handleMouseDown = (e) => {
-            // 如果点击的是按钮、输入框或调节手柄，不启动拖动
+            // If clicking on a button, input, or resize handle, do not start dragging
             if (e.target.closest('.popup_btn') ||
                 e.target.closest('.popup_action_btn') ||
                 e.target.closest('.popup_resize_handle') ||
@@ -195,29 +195,29 @@ class PopupManager {
                 return;
             }
 
-            // 如果点击的是标题栏或标题文本，允许拖动
+            // If clicking on the title bar or title text, allow dragging
             if (e.target.closest('.popup_title') || e.target === titleBar || e.target.closest('.popup_search_container')) {
                 e.preventDefault();
                 isDragging = true;
 
-                // 添加拖动状态类
+                // Add dragging state class
                 popup.classList.add('dragging');
                 titleBar.classList.add('dragging');
 
-                // 计算鼠标点击位置与弹窗左上角的偏移
-                // 使用强制回流确保获取准确的位置信息
-                void popup.offsetWidth; // 强制回流
+                // Calculate offset between mouse click position and popup top-left corner
+                // Force reflow to ensure accurate position information
+                void popup.offsetWidth; // Force reflow
                 const rect = popup.getBoundingClientRect();
                 dragOffset = {
                     x: e.clientX - rect.left,
                     y: e.clientY - rect.top
                 };
 
-                // 添加拖动时的样式
+                // Add styles during dragging
                 popup.style.transition = 'none';
                 titleBar.style.cursor = 'grabbing';
 
-                // 添加临时的全局事件监听器
+                // Add temporary global event listeners
                 document.addEventListener('mousemove', handleMouseMove, { passive: false });
                 document.addEventListener('mouseup', handleMouseUp, { once: true });
             }
@@ -228,7 +228,7 @@ class PopupManager {
 
             e.preventDefault();
 
-            // 计算新位置，确保不超出视窗边界
+            // Calculate new position, ensuring it stays within viewport bounds
             const newLeft = Math.max(0, Math.min(
                 e.clientX - dragOffset.x,
                 window.innerWidth - popup.offsetWidth
@@ -238,7 +238,7 @@ class PopupManager {
                 window.innerHeight - popup.offsetHeight
             ));
 
-            // 更新弹窗位置
+            // Update popup position
             popup.style.left = `${newLeft}px`;
             popup.style.top = `${newTop}px`;
         };
@@ -248,34 +248,34 @@ class PopupManager {
 
             isDragging = false;
 
-            // 移除拖动状态类
+            // Remove dragging state class
             popup.classList.remove('dragging');
             titleBar.classList.remove('dragging');
 
             titleBar.style.cursor = 'move';
-            popup.style.transition = ''; // 恢复过渡效果
+            popup.style.transition = ''; // Restore transition effects
 
-            // 移除临时的事件监听器
+            // Remove temporary event listeners
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
 
-        // 只添加初始的mousedown事件监听
+        // Only add initial mousedown event listener
         titleBar.addEventListener('mousedown', handleMouseDown);
 
-        // 改进清理函数的保存方式，避免覆盖
+        // Improved cleanup function storage to avoid overwriting
         if (!popup._cleanupFunctions) {
             popup._cleanupFunctions = [];
         }
 
         popup._cleanupFunctions.push(() => {
             titleBar.removeEventListener('mousedown', handleMouseDown);
-            // 确保清理可能残留的事件监听器
+            // Ensure cleanup of potentially lingering event listeners
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         });
 
-        // 如果还没有总的清理函数，创建一个
+        // If there's no master cleanup function yet, create one
         if (!popup._cleanup) {
             popup._cleanup = () => {
                 if (popup._cleanupFunctions) {
@@ -287,20 +287,20 @@ class PopupManager {
     }
 
     /**
-     * 设置窗口大小调节事件
+     * Set up window resize events
      */
     static setupResizeEvents(popup) {
-        // ---窗口大小调节功能---
-        // 检查是否已经有调节手柄，避免重复创建
+        // --- Window resize functionality ---
+        // Check if resize handle already exists to avoid duplicate creation
         if (popup.querySelector('.popup_resize_handle')) {
             return;
         }
 
-        // 创建右下角拖拽手柄
+        // Create bottom-right drag handle
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'popup_resize_handle';
 
-        // 添加调节手柄图标
+        // Add resize handle icon
         const handleIcon = ResourceManager.getIcon('icon-resize-handle.svg');
         if (handleIcon) {
             resizeHandle.appendChild(handleIcon);
@@ -308,17 +308,17 @@ class PopupManager {
 
         popup.appendChild(resizeHandle);
 
-        // 强制回流确保手柄正确渲染
+        // Force reflow to ensure handle renders correctly
         void resizeHandle.offsetWidth;
 
-        // 窗口大小调节相关变量
+        // Window resize related variables
         let isResizing = false;
         let startX, startY, startWidth, startHeight;
-        const minWidth = 300; // 最小宽度
-        const minHeight = 200; // 最小高度
+        const minWidth = 300; // Minimum width
+        const minHeight = 200; // Minimum height
 
         const handleResizeStart = (e) => {
-            // 阻止事件冒泡到拖动处理器
+            // Prevent event bubbling to drag handler
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -327,27 +327,27 @@ class PopupManager {
             startX = e.clientX;
             startY = e.clientY;
 
-            // 强制回流确保获取准确尺寸
+            // Force reflow to ensure accurate dimensions
             void popup.offsetWidth;
             const rect = popup.getBoundingClientRect();
             startWidth = rect.width;
             startHeight = rect.height;
 
-            // 添加调节状态类
+            // Add resizing state class
             popup.classList.add('resizing');
 
-            // 禁用过渡效果
+            // Disable transition effects
             popup.style.transition = 'none';
 
-            // 阻止文本选择
+            // Prevent text selection
             document.body.style.userSelect = 'none';
             document.body.style.cursor = 'nw-resize';
 
-            // 添加临时的全局事件监听器
+            // Add temporary global event listeners
             document.addEventListener('mousemove', handleResizeMove, { passive: false, capture: true });
             document.addEventListener('mouseup', handleResizeEnd, { once: true, capture: true });
 
-            logger.debug('开始调节窗口大小');
+            logger.debug('Started resizing window');
         };
 
         const handleResizeMove = (e) => {
@@ -356,14 +356,14 @@ class PopupManager {
             e.preventDefault();
             e.stopPropagation();
 
-            // 计算新的尺寸
+            // Calculate new dimensions
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
 
             let newWidth = Math.max(minWidth, startWidth + deltaX);
             let newHeight = Math.max(minHeight, startHeight + deltaY);
 
-            // 确保不超出视窗边界
+            // Ensure it does not exceed viewport bounds
             const rect = popup.getBoundingClientRect();
             const maxWidth = window.innerWidth - rect.left - 8;
             const maxHeight = window.innerHeight - rect.top - 8;
@@ -371,7 +371,7 @@ class PopupManager {
             newWidth = Math.min(newWidth, maxWidth);
             newHeight = Math.min(newHeight, maxHeight);
 
-            // 应用新尺寸
+            // Apply new dimensions
             popup.style.width = `${newWidth}px`;
             popup.style.height = `${newHeight}px`;
         };
@@ -381,38 +381,38 @@ class PopupManager {
 
             isResizing = false;
 
-            // 移除调节状态类
+            // Remove resizing state class
             popup.classList.remove('resizing');
 
-            // 恢复过渡效果
+            // Restore transition effects
             popup.style.transition = '';
 
-            // 恢复默认样式
+            // Restore default styles
             document.body.style.userSelect = '';
             document.body.style.cursor = '';
 
-            // 移除临时的事件监听器
+            // Remove temporary event listeners
             document.removeEventListener('mousemove', handleResizeMove, { capture: true });
             document.removeEventListener('mouseup', handleResizeEnd, { capture: true });
 
-            // 保存标签弹窗的尺寸
+            // Save tag popup dimensions
             if (popup.classList.contains('tag_popup')) {
                 const rect = popup.getBoundingClientRect();
-                // 动态导入 TagManager 并保存尺寸
+                // Dynamically import TagManager and save dimensions
                 import('../modules/tag.js').then(({ TagManager }) => {
                     TagManager.setPopupSize(rect.width, rect.height);
                 }).catch(err => {
-                    logger.error(`保存窗口大小失败: ${err.message}`);
+                    logger.error(`Failed to save window size: ${err.message}`);
                 });
             }
 
-            logger.debug('完成调节窗口大小');
+            logger.debug('Finished resizing window');
         };
 
-        // 添加初始的mousedown事件监听，使用 capture 模式确保优先处理
+        // Add initial mousedown event listener, using capture mode to ensure priority handling
         resizeHandle.addEventListener('mousedown', handleResizeStart, { capture: true });
 
-        // 添加鼠标悬停效果来提高可见性
+        // Add hover effect to improve visibility
         resizeHandle.addEventListener('mouseenter', () => {
             resizeHandle.style.opacity = '1';
         });
@@ -423,7 +423,7 @@ class PopupManager {
             }
         });
 
-        // 改进清理函数的保存方式，避免覆盖
+        // Improved cleanup function storage to avoid overwriting
         if (!popup._cleanupFunctions) {
             popup._cleanupFunctions = [];
         }
@@ -432,16 +432,16 @@ class PopupManager {
             resizeHandle.removeEventListener('mousedown', handleResizeStart, { capture: true });
             resizeHandle.removeEventListener('mouseenter', () => { });
             resizeHandle.removeEventListener('mouseleave', () => { });
-            // 确保清理可能残留的事件监听器
+            // Ensure cleanup of potentially lingering event listeners
             document.removeEventListener('mousemove', handleResizeMove, { capture: true });
             document.removeEventListener('mouseup', handleResizeEnd, { capture: true });
 
-            // 恢复默认样式
+            // Restore default styles
             document.body.style.userSelect = '';
             document.body.style.cursor = '';
         });
 
-        // 如果还没有总的清理函数，创建一个
+        // If there's no master cleanup function yet, create one
         if (!popup._cleanup) {
             popup._cleanup = () => {
                 if (popup._cleanupFunctions) {
@@ -451,11 +451,11 @@ class PopupManager {
             };
         }
 
-        // logger.debug('窗口大小调节功能已启用');
+        // logger.debug('Window resize functionality enabled');
     }
 
     /**
-     * 定位弹窗
+     * Position popup
      */
     static positionPopup(popup, anchorButton) {
         try {
@@ -463,24 +463,24 @@ class PopupManager {
             const viewportHeight = window.innerHeight;
             const viewportWidth = window.innerWidth;
 
-            // 设置初始显示以获取尺寸
+            // Set initial display to get dimensions
             popup.style.visibility = 'hidden';
-            popup.style.display = 'flex'; // 使用flex布局
+            popup.style.display = 'flex'; // Use flex layout
             popup.style.flexDirection = 'column';
             document.body.appendChild(popup);
 
-            // 强制回流以确保获取准确的尺寸
+            // Force reflow to ensure accurate dimensions
             void popup.offsetWidth;
             const popupRect = popup.getBoundingClientRect();
             document.body.removeChild(popup);
             popup.style.visibility = 'visible';
 
-            // 计算垂直位置
+            // Calculate vertical position
             const spaceAbove = buttonRect.top;
             const spaceBelow = viewportHeight - buttonRect.bottom;
             const showBelow = spaceBelow >= popupRect.height || spaceBelow > spaceAbove;
 
-            // 设置垂直位置
+            // Set vertical position
             if (showBelow) {
                 popup.style.top = `${buttonRect.bottom}px`;
                 popup.classList.remove('popup-up');
@@ -491,14 +491,14 @@ class PopupManager {
                 popup.classList.add('popup-up');
             }
 
-            // 计算水平位置
+            // Calculate horizontal position
             const buttonCenterX = buttonRect.left + buttonRect.width / 2;
             const centeredLeftEdge = buttonCenterX - popupRect.width / 2;
             const centeredRightEdge = buttonCenterX + popupRect.width / 2;
             const canCenterHorizontally = centeredLeftEdge >= 0 && centeredRightEdge <= viewportWidth;
 
             if (showBelow) {
-                // 下方显示时，依然居中
+                // When showing below, still center horizontally
                 if (canCenterHorizontally) {
                     popup.style.left = `${centeredLeftEdge}px`;
                 } else if (centeredLeftEdge < 0) {
@@ -507,7 +507,7 @@ class PopupManager {
                     popup.style.left = `${viewportWidth - popupRect.width - 8}px`;
                 }
             } else {
-                // 上方显示时，左对齐（弹窗左侧与按钮左侧对齐），但保证不超出右侧和左侧
+                // When showing above, left-align (popup left edge aligns with button left edge), but ensure it doesn't exceed right or left bounds
                 let left = buttonRect.left;
                 if (left + popupRect.width > viewportWidth - 8) {
                     left = viewportWidth - popupRect.width - 8;
@@ -518,24 +518,24 @@ class PopupManager {
                 popup.style.left = `${left}px`;
             }
         } catch (error) {
-            logger.error(`弹窗 | 位置计算失败 | 错误:${error.message}`);
+            logger.error(`Popup | Position calculation failed | Error: ${error.message}`);
         }
     }
 
     /**
-     * 设置关闭事件
+     * Set up close events
      */
     static setupCloseEvents(popup, onClose) {
-        // 清理之前的事件监听器
+        // Clean up previous event listeners
         this.cleanupAllEventListeners();
 
-        // 保存原始的选择变化事件处理函数
+        // Save original selection change event handler
         if (window.app?.canvas) {
             popup._originalOnSelectionChange = window.app.canvas.onSelectionChange;
 
-            // 重写选择变化事件处理函数
+            // Override selection change event handler
             window.app.canvas.onSelectionChange = (...args) => {
-                // 如果弹窗已经不存在，恢复原始处理函数
+                // If popup no longer exists, restore original handler
                 if (!popup.isConnected) {
                     if (popup._originalOnSelectionChange) {
                         window.app.canvas.onSelectionChange = popup._originalOnSelectionChange;
@@ -543,15 +543,15 @@ class PopupManager {
                     return;
                 }
 
-                // 调用原始处理函数
+                // Call original handler
                 if (popup._originalOnSelectionChange) {
                     popup._originalOnSelectionChange.apply(window.app.canvas, args);
                 }
 
-                // 获取当前聚焦的元素
+                // Get currently focused element
                 const activeElement = document.activeElement;
 
-                // 检查是否为标签相关的输入框获得焦点
+                // Check if a tag-related input has focus
                 const preventCloseTypes = this.activePopupInfo?.preventCloseOnElementTypes || [];
                 const isSpecialInput = activeElement &&
                     preventCloseTypes.some(type => {
@@ -559,7 +559,7 @@ class PopupManager {
                             activeElement.closest(`.${type}`) !== null;
                     });
 
-                // 检查是否为目标输入框
+                // Check if it is a target input
                 const isTargetInput = activeElement && (
                     activeElement.classList.contains('comfy-multiline-input') ||
                     activeElement.closest('.comfy-multiline-input') !== null ||
@@ -569,63 +569,63 @@ class PopupManager {
                     activeElement.closest('.ProseMirror') !== null
                 );
 
-                // 检查是否是当前节点的输入框
+                // Check if it is the current node's input
                 const isCurrentNodeInput = this.activePopupInfo?.buttonInfo?.widget &&
                     Object.values(window.PromptAssistantInputWidgetMap || {}).some(mapping => {
                         return (mapping.inputEl === activeElement || mapping.inputEl?.contains(activeElement)) &&
                             mapping.widget === this.activePopupInfo.buttonInfo.widget;
                     });
 
-                // 只有当是特殊输入框或当前节点的输入框时才阻止关闭
+                // Only prevent closing when it's a special input or current node's input
                 if (isSpecialInput || isCurrentNodeInput || isTargetInput) {
-                    logger.debug('弹窗 | 保持打开 | 原因:' + (isSpecialInput ? '特殊输入框聚焦' : (isCurrentNodeInput ? '当前节点输入框聚焦' : '目标输入框聚焦')));
+                    logger.debug('Popup | Keeping open | Reason: ' + (isSpecialInput ? 'Special input focused' : (isCurrentNodeInput ? 'Current node input focused' : 'Target input focused')));
                     return;
                 }
 
-                // 其他情况关闭弹窗
+                // Otherwise close the popup
                 if (typeof onClose === 'function') {
                     onClose();
                 }
             };
         }
 
-        // 记录鼠标点击时间，用于避免双击问题
+        // Record mouse click time to avoid double-click issues
         popup._lastClickTime = 0;
 
-        // 点击外部关闭
+        // Click outside to close
         const handleOutsideClick = (e) => {
-            // 如果弹窗已经不存在，移除事件监听
+            // If popup no longer exists, remove event listener
             if (!popup.isConnected) {
                 document.removeEventListener('mousedown', handleOutsideClick);
                 return;
             }
 
-            // 防止快速连续点击导致的问题
+            // Prevent issues caused by rapid consecutive clicks
             const now = Date.now();
             if (now - popup._lastClickTime < 200) {
                 return;
             }
             popup._lastClickTime = now;
 
-            // 检查点击目标是否在弹窗内或是触发按钮
+            // Check if click target is inside popup or is the trigger button
             const isInPopup = popup.contains(e.target);
             const isInButton = e.target.closest('.prompt-assistant-button');
             const isInActiveButton = this.activePopupInfo?.anchorButton === e.target ||
                 this.activePopupInfo?.anchorButton?.contains(e.target);
 
-            // 检查是否点击的是需要阻止关闭的元素类型
+            // Check if the clicked element type should prevent closing
             const preventCloseTypes = this.activePopupInfo?.preventCloseOnElementTypes || [];
             const isPreventCloseElement = preventCloseTypes.some(className => {
                 return e.target.classList.contains(className) ||
                     e.target.closest(`.${className}`) !== null;
             });
 
-            // 检查是否点击的是上下文菜单、确认弹窗或设置对话框
+            // Check if clicking on a context menu, confirm popup, or settings dialog
             const isContextMenu = e.target.closest('.pa-context-menu') || e.target.closest('.pa-confirm-popup');
             const isSettingsModal = e.target.closest('.settings-modal') || e.target.closest('.settings-modal-overlay');
             if (isContextMenu || isSettingsModal) return;
 
-            // 检查是否点击的是目标输入框
+            // Check if clicking on a target input
             const isTargetInput = e.target.classList.contains('comfy-multiline-input') ||
                 e.target.closest('.comfy-multiline-input') !== null ||
                 e.target.closest('.comfy-markdown') !== null ||
@@ -633,14 +633,14 @@ class PopupManager {
                 e.target.closest('.tiptap') !== null ||
                 e.target.closest('.ProseMirror') !== null;
 
-            // 检查是否是当前节点的输入框
+            // Check if it is the current node's input
             const isCurrentNodeInput = this.activePopupInfo?.buttonInfo?.widget &&
                 Object.values(window.PromptAssistantInputWidgetMap || {}).some(mapping => {
                     return (mapping.inputEl === e.target || mapping.inputEl?.contains(e.target)) &&
                         mapping.widget === this.activePopupInfo.buttonInfo.widget;
                 });
 
-            // 如果点击在弹窗外且不是点击激活按钮，且不是阻止关闭的元素，且不是当前节点的输入框/目标输入框，则关闭弹窗
+            // If click is outside popup, not on active button, not on prevent-close element, and not on current node's input/target input, close the popup
             if (!isInPopup && !(isInButton && isInActiveButton) &&
                 !isPreventCloseElement && !isCurrentNodeInput && !isTargetInput) {
                 if (typeof onClose === 'function') {
@@ -649,9 +649,9 @@ class PopupManager {
             }
         };
 
-        // 添加聚焦事件监听，防止标签相关的输入框聚焦导致弹窗关闭
+        // Add focus event listener to prevent tag-related input focus from closing the popup
         const handleFocus = (e) => {
-            // 如果弹窗已经不存在，移除事件监听
+            // If popup no longer exists, remove event listener
             if (!popup.isConnected) {
                 document.removeEventListener('focus', handleFocus, true);
                 return;
@@ -663,30 +663,30 @@ class PopupManager {
                     e.target.closest(`.${type}`) !== null;
             });
 
-            // 检查是否是当前节点的输入框
+            // Check if it is the current node's input
             const isCurrentNodeInput = this.activePopupInfo?.buttonInfo?.widget &&
                 Object.values(window.PromptAssistantInputWidgetMap || {}).some(mapping => {
                     return (mapping.inputEl === e.target || mapping.inputEl?.contains(e.target)) &&
                         mapping.widget === this.activePopupInfo.buttonInfo.widget;
                 });
 
-            // 只有当是特殊输入框或当前节点的输入框获得焦点时，才阻止关闭
+            // Only prevent closing when a special input or current node's input gains focus
             if (isSpecialInput || isCurrentNodeInput) {
                 e.stopPropagation();
-                logger.debug('弹窗 | 阻止关闭 | 原因:' + (isSpecialInput ? '特殊输入框聚焦' : '当前节点输入框聚焦'));
+                logger.debug('Popup | Preventing close | Reason: ' + (isSpecialInput ? 'Special input focused' : 'Current node input focused'));
             }
         };
 
-        // ESC键关闭
+        // ESC key to close
         const handleEscKey = (e) => {
-            // 如果弹窗已经不存在，移除事件监听
+            // If popup no longer exists, remove event listener
             if (!popup.isConnected) {
                 document.removeEventListener('keydown', handleEscKey);
                 return;
             }
 
             if (e.key === 'Escape') {
-                // 如果存在设置对话框，不关闭标签弹窗（让设置对话框处理 ESC）
+                // If settings dialog exists, don't close the tag popup (let settings dialog handle ESC)
                 const settingsModal = document.querySelector('.settings-modal');
                 if (settingsModal) return;
 
@@ -696,103 +696,103 @@ class PopupManager {
             }
         };
 
-        // 保存事件处理函数引用
+        // Save event handler references
         this.eventHandlers.mousedown = handleOutsideClick;
         this.eventHandlers.keydown = handleEscKey;
         this.eventHandlers.focus = handleFocus;
 
-        // 确保移除可能存在的旧事件监听器
+        // Ensure removal of potentially existing old event listeners
         try {
             document.removeEventListener('mousedown', this.eventHandlers.mousedown);
             document.removeEventListener('keydown', this.eventHandlers.keydown);
             document.removeEventListener('focus', this.eventHandlers.focus, true);
         } catch (error) {
-            // 忽略可能的错误
+            // Ignore possible errors
         }
 
-        // 添加事件监听
+        // Add event listeners
         document.addEventListener('mousedown', handleOutsideClick);
         document.addEventListener('keydown', handleEscKey);
-        document.addEventListener('focus', handleFocus, true); // 使用捕获模式
+        document.addEventListener('focus', handleFocus, true); // Use capture mode
 
-        // 保存清理函数到弹窗实例
+        // Save cleanup function to popup instance
         popup._cleanup = () => {
             document.removeEventListener('mousedown', handleOutsideClick);
             document.removeEventListener('keydown', handleEscKey);
             document.removeEventListener('focus', handleFocus, true);
 
-            // 恢复原始的选择变化事件处理函数
+            // Restore original selection change event handler
             if (window.app?.canvas && popup._originalOnSelectionChange) {
                 window.app.canvas.onSelectionChange = popup._originalOnSelectionChange;
                 popup._originalOnSelectionChange = null;
             }
         };
 
-        // logger.debug('弹窗管理 | 动作:设置关闭事件');
+        // logger.debug('Popup Manager | Action: Set up close events');
     }
 
     /**
-     * 隐藏弹窗
+     * Hide popup
      */
     static hidePopup(popup, onClose) {
         if (!popup) return;
 
-        // 如果是当前活动弹窗，则清除引用
+        // If this is the currently active popup, clear references
         if (this.activePopup === popup) {
-            // 保存信息用于下面的回调
+            // Save info for callback below
             const popupInfo = this.activePopupInfo;
 
-            // 执行弹窗自身的清理函数
+            // Execute the popup's own cleanup function
             if (popup._cleanup && typeof popup._cleanup === 'function') {
                 try {
                     popup._cleanup();
-                    popup._cleanup = null; // 防止重复调用
+                    popup._cleanup = null; // Prevent duplicate calls
                 } catch (error) {
-                    logger.error(`执行弹窗清理函数失败: ${error.message}`);
+                    logger.error(`Failed to execute popup cleanup function: ${error.message}`);
                 }
             }
 
-            // 清除活跃弹窗引用
+            // Clear active popup reference
             this.activePopup = null;
             this.activePopupInfo = null;
 
-            // 清理所有事件监听器
+            // Clean up all event listeners
             this.cleanupAllEventListeners();
 
-            // 重置中央按钮状态
+            // Reset central button state
             if (popupInfo && popupInfo.buttonInfo) {
                 const { widget, buttonId } = popupInfo.buttonInfo;
-                // 无论按钮状态如何，都强制重置
+                // Force reset regardless of button state
                 UIToolkit.setActiveButton(null);
-                // 强制更新所有实例的可见性
+                // Force update visibility for all instances
                 promptAssistant.updateAllInstancesVisibility();
-                // 强制更新当前widget的状态
+                // Force update current widget's state
                 if (widget) {
                     promptAssistant.updateAssistantVisibility(widget);
                 }
             }
 
-            // 即使没有buttonInfo，也尝试更新所有实例状态
+            // Even without buttonInfo, try to update all instance states
             if (!popupInfo || !popupInfo.buttonInfo) {
                 UIToolkit.setActiveButton(null);
                 promptAssistant.updateAllInstancesVisibility();
             }
 
-            // 执行关闭回调
+            // Execute close callback
             if (typeof onClose === 'function') {
                 try {
                     onClose();
                 } catch (error) {
-                    logger.error(`执行关闭回调失败: ${error.message}`);
+                    logger.error(`Failed to execute close callback: ${error.message}`);
                 }
             }
         }
 
-        // 添加关闭动画
+        // Add closing animation
         const isPopupUp = popup.classList.contains('popup-up');
         popup.classList.add(isPopupUp ? 'popup-closing-up' : 'popup-closing-down');
 
-        // 动画结束后移除元素
+        // Remove element after animation ends
         return new Promise(resolve => {
             setTimeout(() => {
                 if (popup.parentNode) {
@@ -804,80 +804,80 @@ class PopupManager {
     }
 
     /**
-     * 关闭所有打开的弹窗
+     * Close all open popups
      */
     static async closeAllPopups() {
         if (this.activePopup) {
-            // 保存当前活动弹窗信息
+            // Save current active popup info
             const popupInfo = this.activePopupInfo;
             const activePopup = this.activePopup;
 
-            // 执行弹窗自身的清理函数
+            // Execute the popup's own cleanup function
             if (activePopup._cleanup && typeof activePopup._cleanup === 'function') {
                 try {
                     activePopup._cleanup();
-                    activePopup._cleanup = null; // 防止重复调用
+                    activePopup._cleanup = null; // Prevent duplicate calls
                 } catch (error) {
-                    logger.error(`执行弹窗清理函数失败: ${error.message}`);
+                    logger.error(`Failed to execute popup cleanup function: ${error.message}`);
                 }
             }
 
-            // 清除活跃弹窗引用
+            // Clear active popup reference
             this.activePopup = null;
             this.activePopupInfo = null;
 
-            // 清理所有事件监听器
+            // Clean up all event listeners
             this.cleanupAllEventListeners();
 
-            // 重置中央按钮状态
+            // Reset central button state
             if (popupInfo && popupInfo.buttonInfo) {
                 const { widget, buttonId } = popupInfo.buttonInfo;
-                // 无论按钮状态如何，都强制重置
+                // Force reset regardless of button state
                 UIToolkit.setActiveButton(null);
-                // 强制更新所有实例的可见性
+                // Force update visibility for all instances
                 promptAssistant.updateAllInstancesVisibility();
-                // 强制更新当前widget的状态
+                // Force update current widget's state
                 if (widget) {
                     promptAssistant.updateAssistantVisibility(widget);
                 }
             }
 
-            // 即使没有buttonInfo，也尝试更新所有实例状态
+            // Even without buttonInfo, try to update all instance states
             if (!popupInfo || !popupInfo.buttonInfo) {
                 UIToolkit.setActiveButton(null);
                 promptAssistant.updateAllInstancesVisibility();
             }
 
-            // 执行关闭回调
+            // Execute close callback
             if (popupInfo && popupInfo.onClose) {
                 try {
                     popupInfo.onClose();
                 } catch (error) {
-                    logger.error(`执行关闭回调失败: ${error.message}`);
+                    logger.error(`Failed to execute close callback: ${error.message}`);
                 }
             }
         }
 
-        // 获取所有弹窗
+        // Get all popups
         const popups = document.querySelectorAll('.popup_container');
         const closePromises = [];
 
-        // 为所有弹窗添加关闭动画
+        // Add closing animation to all popups
         popups.forEach(popup => {
-            // 执行弹窗自身的清理函数
+            // Execute the popup's own cleanup function
             if (popup._cleanup && typeof popup._cleanup === 'function') {
                 try {
                     popup._cleanup();
-                    popup._cleanup = null; // 防止重复调用
+                    popup._cleanup = null; // Prevent duplicate calls
                 } catch (error) {
-                    logger.error(`执行弹窗清理函数失败: ${error.message}`);
+                    logger.error(`Failed to execute popup cleanup function: ${error.message}`);
                 }
             }
 
             const isPopupUp = popup.classList.contains('popup-up');
             popup.classList.add(isPopupUp ? 'popup-closing-up' : 'popup-closing-down');
 
-            // 添加到Promise数组
+            // Add to Promise array
             closePromises.push(new Promise(resolve => {
                 setTimeout(() => {
                     if (popup.parentNode) {
@@ -888,21 +888,21 @@ class PopupManager {
             }));
         });
 
-        // 等待所有弹窗关闭完成
+        // Wait for all popups to finish closing
         await Promise.all(closePromises);
 
-        logger.debug('弹窗管理 | 动作:关闭所有弹窗');
+        logger.debug('Popup Manager | Action: Close all popups');
     }
 
     /**
-     * 写入内容到输入框
+     * Write content to input field
      */
     static writeToInput(content, nodeId, inputId) {
         return UIToolkit.writeToInput(content, nodeId, inputId, { highlight: true, focus: false });
     }
 
     /**
-     * 在光标位置插入内容
+     * Insert content at cursor position
      */
     static insertAtCursor(content, nodeId, inputId) {
         return UIToolkit.insertAtCursor(content, nodeId, inputId, { highlight: true });

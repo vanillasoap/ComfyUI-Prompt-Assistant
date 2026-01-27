@@ -1,6 +1,6 @@
 /**
- * 节点帮助文档翻译模块 (Node Help Translator)
- * 独立模块，用于检测 ComfyUI 侧边栏的节点文档翻译功能
+ * Node Help Document Translation Module (Node Help Translator)
+ * Independent module for detecting and translating ComfyUI sidebar node documentation
  */
 
 import { APIService } from "../services/api.js";
@@ -21,23 +21,23 @@ class NodeHelpTranslator {
             bilingualSwitch: null
         };
 
-        // 服务列表缓存（用于菜单构建）
+        // Service list cache (for menu building)
         this._servicesCache = null;
         this._servicesCacheTime = 0;
-        // 当前翻译服务配置缓存（用于菜单选中状态显示）
+        // Current translate service config cache (for menu selected state display)
         this._currentTranslateConfig = null;
 
-        // 监听全局服务变更事件，确保实时同步
+        // Listen to global service change events for real-time sync
         window.addEventListener('pa-service-changed', () => {
-            logger.debug("[NodeHelpTranslator] 收到全局服务变更通知，正在同步配置...");
+            logger.debug("[NodeHelpTranslator] Received global service change notification, syncing config...");
             this._getTranslateConfig();
         });
     }
 
-    // ---翻译服务配置管理（使用全局配置）---
+    // ---Translate service config management (using global config)---
 
     /**
-     * 获取当前全局翻译服务配置
+     * Get current global translate service config
      * @returns {Promise<{ serviceId: string, modelName: string } | null>}
      */
     async _getTranslateConfig() {
@@ -52,13 +52,13 @@ class NodeHelpTranslator {
                 };
             }
         } catch (e) {
-            logger.warn(`[NodeHelpTranslator] 获取翻译配置失败: ${e.message}`);
+            logger.warn(`[NodeHelpTranslator] Failed to get translate config: ${e.message}`);
         }
         return null;
     }
 
     /**
-     * 设置全局翻译服务配置
+     * Set global translate service config
      * @param {string} serviceId
      * @param {string} modelName
      * @returns {Promise<boolean>}
@@ -77,22 +77,22 @@ class NodeHelpTranslator {
             if (response.ok) {
                 const result = await response.json();
                 if (result.success) {
-                    logger.log(`[NodeHelpTranslator] 已更新全局翻译服务: ${serviceId} - ${modelName}`);
+                    logger.log(`[NodeHelpTranslator] Updated global translate service: ${serviceId} - ${modelName}`);
                     return true;
                 }
             }
         } catch (e) {
-            logger.warn(`[NodeHelpTranslator] 更新翻译服务失败: ${e.message}`);
+            logger.warn(`[NodeHelpTranslator] Failed to update translate service: ${e.message}`);
         }
         return false;
     }
 
     /**
-     * 获取可用的服务列表（带缓存）
+     * Get available service list (with cache)
      */
     async _getAvailableServices() {
         const now = Date.now();
-        // 缓存5分钟
+        // Cache for 5 minutes
         if (this._servicesCache && (now - this._servicesCacheTime) < 300000) {
             return this._servicesCache;
         }
@@ -102,34 +102,34 @@ class NodeHelpTranslator {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.services) {
-                    // 保存所有服务列表（百度等翻译服务可能没有 llm_models）
+                    // Save all service list (translation services like Baidu may not have llm_models)
                     this._servicesCache = data.services;
                     this._servicesCacheTime = now;
                     return this._servicesCache;
                 }
             }
         } catch (e) {
-            logger.warn(`[NodeHelpTranslator] 获取服务列表失败: ${e.message}`);
+            logger.warn(`[NodeHelpTranslator] Failed to get service list: ${e.message}`);
         }
         return [];
     }
 
 
     initialize() {
-        // 检查功能开关
+        // Check feature toggle
         if (typeof window !== 'undefined' && window.FEATURES && !window.FEATURES.nodeHelpTranslator) {
-            logger.log("[NodeHelpTranslator] 功能已禁用,跳过初始化");
+            logger.log("[NodeHelpTranslator] Feature disabled, skipping initialization");
             return;
         }
 
         if (this.isObserving) return;
 
-        logger.log("[NodeHelpTranslator] 初始化监听器");
+        logger.log("[NodeHelpTranslator] Initializing observer");
 
         this.observer = new MutationObserver((mutations) => {
             let shouldCheck = false;
             for (const mutation of mutations) {
-                // 有节点增减 或 属性变更(aria-selected)
+                // Node added/removed or attribute changed (aria-selected)
                 if (mutation.type === 'childList' ||
                     (mutation.type === 'attributes' && mutation.attributeName === 'aria-selected')) {
                     shouldCheck = true;
@@ -182,7 +182,7 @@ class NodeHelpTranslator {
                 from { transform: rotate(0deg); }
                 to { transform: rotate(360deg); }
             }
-            /* ---流式输出容器样式--- */
+            /* ---Streaming output container styles--- */
             .pa-help-streaming-container {
                 position: absolute;
                 bottom: 0;
@@ -191,7 +191,7 @@ class NodeHelpTranslator {
                 max-height: 150px;
                 overflow-y: auto;
                 padding: 12px;
-                background: linear-gradient(to top, 
+                background: linear-gradient(to top,
                     color-mix(in srgb, var(--p-content-background), transparent 10%) 0%,
                     color-mix(in srgb, var(--p-content-background), transparent 40%) 100%);
                 border-top: 1px solid var(--p-panel-border-color);
@@ -250,12 +250,12 @@ class NodeHelpTranslator {
     }
 
     _handleDomChange() {
-        // 该方法已被 observer 直接调用 _checkAndInject 取代，保留空函数以防其他地方引用
+        // This method has been replaced by observer directly calling _checkAndInject, kept as empty function in case referenced elsewhere
         this._checkAndInject();
     }
 
     _checkAndInject() {
-        // 检查功能开关
+        // Check feature toggle
         if (typeof window !== 'undefined' && window.FEATURES && !window.FEATURES.nodeHelpTranslator) {
             return;
         }
@@ -265,20 +265,20 @@ class NodeHelpTranslator {
             const v3Panel = document.querySelector('[data-testid="properties-panel"]');
 
             if (!v3Panel) {
-                // 如果找不到 V3 面板，直接清理所有可能的按钮并返回 (不再支持左侧边栏)
+                // If V3 panel not found, clean up all possible buttons and return (sidebar no longer supported)
                 this._clearAllButtons();
                 return;
             }
 
-            // --- V3 逻辑 ---
+            // --- V3 logic ---
             const allTabs = Array.from(v3Panel.querySelectorAll('button[role="tab"]'));
             const activeTab = allTabs.find(t => t.getAttribute('aria-selected') === 'true');
             const activeTabText = activeTab ? activeTab.textContent.trim().toLowerCase() : '';
 
-            // 简化识别关键字：只要包含 info 或 信息 即可
+            // Simplified keyword recognition: just check if it contains 'info'
             const isInfoActive = activeTabText.includes('info') || activeTabText.includes('信息');
 
-            // 重要：必须在当前面板内寻找帮助内容
+            // Important: must find help content within the current panel
             const helpContent = v3Panel.querySelector('.node-help-content');
 
             if (!isInfoActive || !helpContent) {
@@ -286,19 +286,19 @@ class NodeHelpTranslator {
                 return;
             }
 
-            // 处理注入
+            // Process injection
             this._processInjection(v3Panel, helpContent);
         }, 250);
     }
 
     /**
-     * 统一的清理函数
+     * Unified cleanup function
      */
     _clearAllButtons() {
         const strayBtns = document.querySelectorAll('.pa-help-translate-btn-container:not(.pa-fade-out)');
         if (strayBtns.length > 0) {
             strayBtns.forEach(el => {
-                // 清理 tooltip（防止残留）
+                // Clean up tooltip (prevent residual)
                 const mainBtn = el.querySelector('.pa-translate-btn');
                 if (mainBtn && mainBtn._paTooltip) {
                     mainBtn._paTooltip.destroy();
@@ -307,7 +307,7 @@ class NodeHelpTranslator {
 
                 el.classList.add('pa-fade-out');
                 el.addEventListener('animationend', () => el.remove(), { once: true });
-                // 安全兜底：如果动画没触发也强制移除
+                // Safety fallback: force remove if animation didn't trigger
                 setTimeout(() => {
                     if (el.parentNode) el.remove();
                 }, 300);
@@ -316,15 +316,15 @@ class NodeHelpTranslator {
     }
 
     /**
-     * 核心处理逻辑：仅支持 V3 环境
+     * Core processing logic: V3 environment only
      */
     _processInjection(v3Panel, helpContent) {
         if (!v3Panel) return;
 
-        // 预加载服务列表（用于菜单显示）
+        // Preload service list (for menu display)
         this._getAvailableServices();
 
-        // 查找 header (注入按钮的位置)
+        // Find header (button injection location)
         let header = v3Panel.querySelector('section .flex.gap-2');
 
         if (header) {
@@ -334,12 +334,12 @@ class NodeHelpTranslator {
             const existingBtnContainer = header.querySelector('.pa-help-translate-btn-container');
 
             if (!existingBtnContainer) {
-                // 所有 Info 内容都显示翻译按钮
+                // Show translate button for all Info content
                 this._injectTranslateButton(header, currentNodeName, helpContent);
             } else {
                 const btn = existingBtnContainer.querySelector('button');
                 if (btn && btn.dataset.nodeName !== currentNodeName) {
-                    logger.log(`[NodeHelpTranslator] 检测到节点切换: ${btn.dataset.nodeName} -> ${currentNodeName}，重置按钮状态`);
+                    logger.log(`[NodeHelpTranslator] Node switch detected: ${btn.dataset.nodeName} -> ${currentNodeName}, resetting button state`);
                     this._resetButtonState(btn, currentNodeName);
                 }
             }
@@ -354,7 +354,7 @@ class NodeHelpTranslator {
         btnContainer.className = 'pa-help-translate-btn-container';
 
         const splitBtn = createSplitButton({
-            label: "翻译文档",
+            label: "Translate Doc",
             icon: "pi pi-language",
             className: "p-splitbutton-compact p-splitbutton-primary",
             align: "right",
@@ -362,15 +362,15 @@ class NodeHelpTranslator {
                 const btn = splitBtn.container.querySelector('.p-button:first-child');
                 this._handleTranslateClick(e, btn);
             },
-            // 使用函数式动态项，每次打开下拉框时实时获取最新状态
-            // 不再传递硬编码的 'bilingual'，由 _getMenuItems 内部动态决定
+            // Use dynamic function items, fetching latest state each time dropdown opens
+            // No longer passing hardcoded 'bilingual', _getMenuItems determines dynamically
             items: () => this._getMenuItems(nodeName)
         });
 
         const mainBtn = splitBtn.container.querySelector('.p-button:first-child');
         mainBtn.classList.add('pa-translate-btn');
         mainBtn.dataset.nodeName = nodeName;
-        mainBtn.dataset.targetLang = 'zh'; // 默认翻译为中文
+        mainBtn.dataset.targetLang = 'zh'; // Default translate to Chinese
         mainBtn._paSplitBtn = splitBtn;
         this.currentHelpPanel.splitBtn = splitBtn;
 
@@ -378,7 +378,7 @@ class NodeHelpTranslator {
 
         btnContainer.appendChild(splitBtn.container);
 
-        // 尝试将其插入到“关闭面板”按钮之前
+        // Try to insert before the "close panel" button
         const toggleBtn = header.querySelector('[aria-label*="panel"], [aria-label*="Panel"]');
         if (toggleBtn) {
             header.insertBefore(btnContainer, toggleBtn);
@@ -386,7 +386,7 @@ class NodeHelpTranslator {
             header.appendChild(btnContainer);
         }
 
-        logger.log(`[NodeHelpTranslator] 已注入翻译按钮(SplitBtn)到节点: ${nodeName}`);
+        logger.log(`[NodeHelpTranslator] Injected translate button (SplitBtn) for node: ${nodeName}`);
 
         if (helpContent) {
             this._restoreFromCache(mainBtn, helpContent, nodeName);
@@ -395,7 +395,7 @@ class NodeHelpTranslator {
 
     _resetButtonState(btn, newNodeName) {
         btn.dataset.nodeName = newNodeName;
-        btn.dataset.targetLang = 'zh'; // 默认重置为中文
+        btn.dataset.targetLang = 'zh'; // Default reset to Chinese
         this._setButtonContent(btn, 'translate');
         btn.disabled = false;
 
@@ -411,27 +411,27 @@ class NodeHelpTranslator {
     }
 
     _setButtonContent(btn, type) {
-        let label = '翻译';
+        let label = 'Translate';
         let iconClass = 'pi pi-language pa-translate-btn-icon';
         let spinning = false;
         let tooltip = '';
 
         switch (type) {
             case 'translate':
-                label = '翻译';
+                label = 'Translate';
                 iconClass = 'pi pi-language pa-translate-btn-icon';
-                tooltip = '使用✨提示词小助手翻译文档';
+                tooltip = 'Translate document using Prompt Assistant';
                 break;
             case 'translating':
-                label = '翻译中...';
+                label = 'Translating...';
                 iconClass = 'pi pi-spinner pa-translate-btn-icon';
                 spinning = true;
-                tooltip = '正在翻译文档...';
+                tooltip = 'Translating document...';
                 break;
             case 'translated':
-                label = '已翻译';
+                label = 'Translated';
                 iconClass = 'pi pi-check pa-translate-btn-icon';
-                tooltip = '点击重新翻译';
+                tooltip = 'Click to re-translate';
                 break;
         }
 
@@ -444,7 +444,7 @@ class NodeHelpTranslator {
             `;
         }
 
-        // 更新自定义 Tooltip
+        // Update custom Tooltip
         if (btn._paTooltip) {
             btn._paTooltip.destroy();
             btn._paTooltip = null;
@@ -467,16 +467,16 @@ class NodeHelpTranslator {
         const from = targetLang === 'zh' ? 'en' : 'zh';
         const to = targetLang;
 
-        // 寻找内容容器的增强逻辑 (与 _handleModeChange 保持一致)
+        // Enhanced logic for finding content container (consistent with _handleModeChange)
         let contentEl = null;
 
-        // 策略1: 如果按钮就在 properties-panel 中 (V3)
+        // Strategy 1: If button is in properties-panel (V3)
         const v3Panel = btn.closest('[data-testid="properties-panel"]');
         if (v3Panel) {
             contentEl = v3Panel.querySelector('.node-help-content');
         }
 
-        // 策略2: 回退到旧版层级查找
+        // Strategy 2: Fallback to legacy hierarchy lookup
         if (!contentEl) {
             const header = btn.closest('.border-b') || btn.closest('.pa-help-translate-btn-container').parentElement;
             if (header) {
@@ -486,11 +486,11 @@ class NodeHelpTranslator {
         }
 
         if (!contentEl) {
-            UIToolkit.showStatusTip(btn, 'warn', '未找到帮助内容');
+            UIToolkit.showStatusTip(btn, 'warn', 'Help content not found');
             return;
         }
 
-        // 允许重新翻译
+        // Allow re-translation
         await this._performTranslation(btn, contentEl, nodeName, from, to);
     }
 
@@ -498,12 +498,12 @@ class NodeHelpTranslator {
         this._setButtonContent(btn, 'translating');
         btn.disabled = true;
 
-        // 用于错误处理时清理流式状态
+        // For cleaning up streaming state on error
         let textBlocks = [];
 
         try {
-            // 重置之前的翻译状态（如果有）
-            // 如果已经翻译过，先还原DOM，以便重新提取文本
+            // Reset previous translation state (if any)
+            // If already translated, restore DOM first to re-extract text
             const existingTranslatable = contentEl.querySelectorAll('.pa-translatable');
             if (existingTranslatable.length > 0) {
                 existingTranslatable.forEach(el => {
@@ -512,8 +512,8 @@ class NodeHelpTranslator {
                     }
                     el.classList.remove('pa-translatable');
                     delete el.dataset.paTranslation;
-                    // dataset.paOriginal 保留或删除皆可，保留着也没事，extractTextBlocks 不会利用它，而是读 innerText
-                    // 但是为了干净，还是清理一下
+                    // Clean up dataset.paOriginal for cleanliness
+                    // extractTextBlocks won't use it, it reads innerText
                     delete el.dataset.paOriginal;
                 });
             }
@@ -522,8 +522,8 @@ class NodeHelpTranslator {
 
             textBlocks = this._extractTextBlocks(contentEl);
             if (textBlocks.length === 0) {
-                UIToolkit.showStatusTip(btn, 'warn', '没有找到可翻译的内容');
-                this._setButtonContent(btn, 'translate'); // 恢复为待翻译状态
+                UIToolkit.showStatusTip(btn, 'warn', 'No translatable content found');
+                this._setButtonContent(btn, 'translate'); // Restore to pending translation state
                 return;
             }
             // ... remainder is unchanged logic, but extractTextBlocks comes next
@@ -533,8 +533,8 @@ class NodeHelpTranslator {
             let translations = [];
             let isBaidu = false;
 
-            // 1. 获取全局翻译配置
-            // 直接使用后端全局配置（与 PromptAssistant 共享）
+            // 1. Get global translate config
+            // Directly use backend global config (shared with PromptAssistant)
             try {
                 const configResp = await fetch(APIService.getApiUrl('/config/translate'));
                 if (configResp.ok) {
@@ -544,17 +544,17 @@ class NodeHelpTranslator {
                     }
                 }
             } catch (e) {
-                logger.warn(`[NodeHelpTranslator] 获取翻译配置失败: ${e.message}，将默认使用LLM`);
+                logger.warn(`[NodeHelpTranslator] Failed to get translate config: ${e.message}, will default to LLM`);
             }
 
-            // 2. 根据服务类型执行翻译
+            // 2. Execute translation based on service type
             if (isBaidu) {
-                logger.log(`[NodeHelpTranslator] 使用百度翻译API进行翻译 (${from}->${to})`);
-                // 百度批量翻译是串行请求，返回结果数组
+                logger.log(`[NodeHelpTranslator] Using Baidu Translate API (${from}->${to})`);
+                // Baidu batch translation is serial requests, returns results array
                 const results = await APIService.batchBaiduTranslate(textsToTranslate, from, to);
 
-                // 提取翻译结果，BaiduTranslateService 返回格式需与 LLM 保持一致 (data.translated)
-                // 如果某个请求失败，result.success 为 false，这里暂时填 null 跳过
+                // Extract translation results, BaiduTranslateService return format must be consistent with LLM (data.translated)
+                // If a request fails, result.success is false, fill null to skip
                 translations = results.map(r => {
                     if (r && r.success && r.data && r.data.translated) {
                         return r.data.translated;
@@ -562,25 +562,25 @@ class NodeHelpTranslator {
                     return null;
                 });
 
-                // 检查是否所有翻译都失败了
+                // Check if all translations failed
                 const successCount = translations.filter(t => t !== null).length;
                 if (successCount === 0 && textsToTranslate.length > 0) {
-                    throw new Error('所有文本翻译失败 (Baidu)');
+                    throw new Error('All text translations failed (Baidu)');
                 }
 
             } else {
-                // ---使用LLM翻译---
+                // ---Use LLM translation---
                 const textCount = textsToTranslate.length;
                 const enableStreaming = typeof window !== 'undefined' &&
                     window.FEATURES && window.FEATURES.enableStreaming !== false;
 
                 if (enableStreaming) {
-                    // ---LLM单请求批量流式翻译---
-                    logger.log(`[NodeHelpTranslator] 使用LLM批量流式翻译 (${from}->${to}) | 文本数:${textCount}`);
+                    // ---LLM single-request batch streaming translation---
+                    logger.log(`[NodeHelpTranslator] Using LLM batch streaming translation (${from}->${to}) | Text count:${textCount}`);
 
                     const totalBlocks = textsToTranslate.length;
 
-                    // 1. 先为所有文本块创建流式显示区域
+                    // 1. Create streaming display area for all text blocks first
                     textBlocks.forEach((block, i) => {
                         const el = block.element;
                         if (!el.dataset.paOriginal) {
@@ -594,34 +594,34 @@ class NodeHelpTranslator {
                         el.innerHTML = `${wrappedOriginal}${separator}${streamingArea}`;
                     });
 
-                    // 2. 构建带编号的批量翻译请求文本
-                    // 格式：[1] 原文1\n[2] 原文2\n...
+                    // 2. Build numbered batch translation request text
+                    // Format: [1] original1\n[2] original2\n...
                     const numberedText = textsToTranslate
                         .map((text, i) => `[${i + 1}] ${text}`)
                         .join('\n\n');
 
-                    // 3. 流式解析状态
+                    // 3. Streaming parse state
                     let fullContent = '';
                     let currentBlockIndex = -1;
                     let blockTranslations = new Array(totalBlocks).fill('');
 
-                    // 4. 发起单次流式翻译请求（使用全局配置）
+                    // 4. Send single streaming translation request (using global config)
                     const result = await this._llmTranslateStreamWithConfig(
                         numberedText,
                         from,
                         to,
-                        null,  // 使用全局配置，不需要传递独立参数
+                        null,  // Using global config, no need to pass independent params
                         (chunk) => {
                             fullContent += chunk;
 
-                            // 解析流式内容，识别编号并更新对应DOM
+                            // Parse streaming content, identify numbers and update corresponding DOM
                             this._parseAndUpdateStreamingContent(
                                 fullContent,
                                 textBlocks,
                                 blockTranslations
                             );
 
-                            // 更新进度
+                            // Update progress
                             const completedCount = blockTranslations.filter(t => t.length > 0).length;
                             const percent = Math.round((completedCount / totalBlocks) * 100);
                             if (btn._paSplitBtn) {
@@ -630,10 +630,10 @@ class NodeHelpTranslator {
                         }
                     );
 
-                    // 5. 最终解析确保所有内容都被处理
+                    // 5. Final parse to ensure all content is processed
                     this._parseAndUpdateStreamingContent(fullContent, textBlocks, blockTranslations, true);
 
-                    // 6. 收集翻译结果并更新为最终样式
+                    // 6. Collect translation results and update to final style
                     textBlocks.forEach((block, i) => {
                         const el = block.element;
                         const translation = blockTranslations[i]?.trim();
@@ -641,38 +641,38 @@ class NodeHelpTranslator {
                         if (translation) {
                             translations.push(translation);
                             el.dataset.paTranslation = translation;
-                            // 切换为正式的翻译样式
+                            // Switch to official translation style
                             const wrappedOriginal = `<span class="pa-original-content">${el.dataset.paOriginal}</span>`;
                             const separator = `<span class="pa-trans-separator"></span>`;
                             const styledTranslation = `<span class="pa-trans-text">${translation.replace(/\n/g, '<br>')}</span>`;
                             el.innerHTML = `${wrappedOriginal}${separator}${styledTranslation}`;
                         } else {
                             translations.push(null);
-                            logger.warn(`[NodeHelpTranslator] 第${i + 1}个文本块翻译失败`);
+                            logger.warn(`[NodeHelpTranslator] Text block ${i + 1} translation failed`);
                             el.innerHTML = el.dataset.paOriginal;
                             el.classList.remove('pa-translatable');
                         }
                     });
 
-                    // 检查翻译成功率
+                    // Check translation success rate
                     const successCount = translations.filter(t => t !== null).length;
                     if (successCount === 0 && textsToTranslate.length > 0) {
-                        throw new Error('所有文本翻译失败 (LLM Stream)');
+                        throw new Error('All text translations failed (LLM Stream)');
                     }
 
                 } else if (textCount <= 5) {
-                    // 文本较少时，直接使用单次批量翻译
-                    logger.log(`[NodeHelpTranslator] 使用LLM单次批量翻译 (${from}->${to}) | 文本数:${textCount}`);
+                    // Few texts, use single batch translation directly
+                    logger.log(`[NodeHelpTranslator] Using LLM single batch translation (${from}->${to}) | Text count:${textCount}`);
                     const result = await APIService.llmBatchTranslate(textsToTranslate, from, to);
 
                     if (result.success && result.data && result.data.translations) {
                         translations = result.data.translations;
                     } else {
-                        throw new Error(result.error || '翻译接口返回错误');
+                        throw new Error(result.error || 'Translation API returned error');
                     }
                 } else {
-                    // 文本较多时，使用并行分块翻译
-                    logger.log(`[NodeHelpTranslator] 使用LLM并行分块翻译 (${from}->${to}) | 文本数:${textCount}`);
+                    // Many texts, use parallel chunked translation
+                    logger.log(`[NodeHelpTranslator] Using LLM parallel chunked translation (${from}->${to}) | Text count:${textCount}`);
                     const result = await APIService.llmParallelBatchTranslate(textsToTranslate, from, to, {
                         chunkSize: 5,
                         concurrency: 3,
@@ -687,30 +687,30 @@ class NodeHelpTranslator {
                     if (result.success && result.data && result.data.translations) {
                         translations = result.data.translations;
                     } else {
-                        throw new Error(result.error || '并行翻译失败');
+                        throw new Error(result.error || 'Parallel translation failed');
                     }
                 }
             }
 
-            // 3. 流式模式下不需要再渲染（已在循环中完成），非流式需要渲染
+            // 3. Streaming mode doesn't need to render again (already done in loop), non-streaming needs rendering
             const enableStreaming = typeof window !== 'undefined' &&
                 window.FEATURES && window.FEATURES.enableStreaming !== false;
 
             if (!enableStreaming || isBaidu) {
-                // 非流式模式或百度翻译：批量渲染结果
+                // Non-streaming mode or Baidu translation: batch render results
                 const cleanedTranslations = translations.map(t => t ? t.replace(/^\|\s*/, '') : t);
                 this._renderTranslations(textBlocks, cleanedTranslations, nodeName);
             } else {
-                // 流式模式：清理结果并保存缓存
+                // Streaming mode: clean results and save cache
                 const cleanedTranslations = translations.map(t => t ? t.replace(/^\|\s*/, '') : t);
-                // 更新 dataset 中的翻译结果（用于缓存和模式切换）
+                // Update translation results in dataset (for cache and mode switching)
                 textBlocks.forEach((block, index) => {
                     const translation = cleanedTranslations[index];
                     if (translation) {
                         block.element.dataset.paTranslation = translation;
                     }
                 });
-                // 保存缓存
+                // Save cache
                 const cacheData = cleanedTranslations.map((t, i) => ({ index: i, translation: t })).filter(item => item.translation);
                 this._saveToCache(nodeName, {
                     translations: cacheData,
@@ -728,12 +728,12 @@ class NodeHelpTranslator {
             this._setButtonContent(btn, 'translated');
 
         } catch (error) {
-            logger.error(`[NodeHelpTranslator] 翻译失败: ${error.message}`);
-            UIToolkit.showStatusTip(btn, 'error', '翻译失败: ' + error.message);
+            logger.error(`[NodeHelpTranslator] Translation failed: ${error.message}`);
+            UIToolkit.showStatusTip(btn, 'error', 'Translation failed: ' + error.message);
             this._setButtonContent(btn, 'translate');
             btn.disabled = false;
 
-            // 清理流式状态
+            // Clean up streaming state
             textBlocks?.forEach(block => {
                 const el = block.element;
                 if (el.dataset.paOriginal && !el.dataset.paTranslation) {
@@ -747,23 +747,23 @@ class NodeHelpTranslator {
     }
 
     /**
-     * 带可选服务/模型配置的流式翻译
-     * @param {string} text - 要翻译的文本
-     * @param {string} fromLang - 源语言
-     * @param {string} toLang - 目标语言
-     * @param {Object|null} config - 可选配置 { serviceId, modelName }
-     * @param {Function} onChunk - 接收每个 chunk 的回调函数
+     * Streaming translation with optional service/model config
+     * @param {string} text - Text to translate
+     * @param {string} fromLang - Source language
+     * @param {string} toLang - Target language
+     * @param {Object|null} config - Optional config { serviceId, modelName }
+     * @param {Function} onChunk - Callback function for each chunk
      */
     async _llmTranslateStreamWithConfig(text, fromLang, toLang, config, onChunk) {
         try {
             if (!text || text.trim() === '') {
-                throw new Error('请输入要翻译的内容');
+                throw new Error('Please enter content to translate');
             }
 
             const request_id = APIService.generateRequestId('trans');
             const apiUrl = APIService.getApiUrl('llm/translate/stream');
 
-            // 构建请求体，添加可选的服务/模型参数
+            // Build request body, add optional service/model parameters
             const body = {
                 text,
                 from: fromLang,
@@ -771,11 +771,11 @@ class NodeHelpTranslator {
                 request_id
             };
 
-            // 如果有独立配置，添加服务和模型参数
+            // If independent config provided, add service and model parameters
             if (config && config.serviceId && config.modelName) {
                 body.service_id = config.serviceId;
                 body.model_name = config.modelName;
-                logger.debug(`[NodeHelpTranslator] 流式翻译使用指定服务: ${config.serviceId} - ${config.modelName}`);
+                logger.debug(`[NodeHelpTranslator] Streaming translation using specified service: ${config.serviceId} - ${config.modelName}`);
             }
 
             const response = await fetch(apiUrl, {
@@ -816,7 +816,7 @@ class NodeHelpTranslator {
                             }
                         } catch (parseError) {
                             if (parseError.message !== 'Unexpected end of JSON input') {
-                                logger.warn(`解析 SSE 数据失败: ${parseError.message}`);
+                                logger.warn(`Failed to parse SSE data: ${parseError.message}`);
                             }
                         }
                     }
@@ -826,30 +826,30 @@ class NodeHelpTranslator {
             return finalResult;
 
         } catch (error) {
-            logger.error(`[NodeHelpTranslator] 流式翻译失败: ${error.message}`);
+            logger.error(`[NodeHelpTranslator] Streaming translation failed: ${error.message}`);
             return { success: false, error: error.message };
         }
     }
 
     /**
-     * 解析流式翻译内容并更新对应的DOM元素
-     * @param {string} content - 累积的流式内容
-     * @param {Array} textBlocks - 文本块数组
-     * @param {Array} blockTranslations - 各块翻译结果数组
-     * @param {boolean} isFinal - 是否为最终解析
+     * Parse streaming translation content and update corresponding DOM elements
+     * @param {string} content - Accumulated streaming content
+     * @param {Array} textBlocks - Text blocks array
+     * @param {Array} blockTranslations - Block translation results array
+     * @param {boolean} isFinal - Whether this is the final parse
      */
     _parseAndUpdateStreamingContent(content, textBlocks, blockTranslations, isFinal = false) {
         if (!content) return;
 
-        // 使用正则解析带编号的翻译内容
-        // 格式：[1] 翻译内容1\n[2] 翻译内容2\n...
-        // 或者：[1]翻译内容1[2]翻译内容2...（无换行）
+        // Use regex to parse numbered translation content
+        // Format: [1] translation1\n[2] translation2\n...
+        // Or: [1]translation1[2]translation2... (no newlines)
         const blockPattern = /\[(\d+)\]\s*/g;
         const matches = [...content.matchAll(blockPattern)];
 
         if (matches.length === 0) {
-            // 没有找到编号，可能还在输出第一个块的内容
-            // 尝试更新第一个块
+            // No numbers found, may still be outputting first block content
+            // Try to update the first block
             if (textBlocks.length > 0) {
                 const streamingEl = textBlocks[0].element.querySelector('.pa-streaming-trans-text');
                 if (streamingEl) {
@@ -860,25 +860,25 @@ class NodeHelpTranslator {
             return;
         }
 
-        // 解析每个块的内容
+        // Parse each block's content
         for (let i = 0; i < matches.length; i++) {
             const match = matches[i];
             const blockNum = parseInt(match[1], 10);
-            const blockIndex = blockNum - 1; // 转为0-indexed
+            const blockIndex = blockNum - 1; // Convert to 0-indexed
 
             if (blockIndex < 0 || blockIndex >= textBlocks.length) continue;
 
-            // 计算该块内容的起止位置
+            // Calculate start and end positions for this block's content
             const startPos = match.index + match[0].length;
             const endPos = (i + 1 < matches.length) ? matches[i + 1].index : content.length;
 
-            // 提取该块的翻译内容
+            // Extract this block's translation content
             const blockContent = content.substring(startPos, endPos).trim();
 
-            // 更新翻译数组
+            // Update translation array
             blockTranslations[blockIndex] = blockContent;
 
-            // 更新DOM显示
+            // Update DOM display
             const streamingEl = textBlocks[blockIndex].element.querySelector('.pa-streaming-trans-text');
             if (streamingEl) {
                 streamingEl.textContent = blockContent;
@@ -887,24 +887,24 @@ class NodeHelpTranslator {
     }
 
     /**
-     * 提取文本块
+     * Extract text blocks
      */
     _extractTextBlocks(rootEl) {
         const blocks = [];
-        // 优化1：不提取 th (表头)，因为无需翻译
+        // Optimization 1: Don't extract th (table headers), no need to translate
         const candidates = rootEl.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, td');
 
         for (const el of candidates) {
             const text = el.innerText.trim();
             if (!text) continue;
 
-            // 过滤纯数字和标点
+            // Filter pure numbers and punctuation
             if (/^[0-9\s\p{P}]+$/u.test(text)) continue;
 
-            // 优化2：过滤看似“类型”定义的纯大写单词 (如 IMAGE, FLOAT, BOOLEAN, COMBO等)
-            // 允许特定符号如下划线，但不包含空格（通常类型是一个单词）
-            // 限制长度<30，防止误伤全大写的长句子
-            // 注意：参数名通常是 snake_case (小写)，所以不会被过滤
+            // Optimization 2: Filter seemingly "type" definitions in pure uppercase (e.g., IMAGE, FLOAT, BOOLEAN, COMBO)
+            // Allow specific symbols like underscore, but not spaces (types are usually single words)
+            // Limit length < 30 to prevent false positives on long all-caps sentences
+            // Note: Parameter names are usually snake_case (lowercase), so they won't be filtered
             if (/^[A-Z0-9_]+$/.test(text) && text.length < 30) continue;
 
             if (el.closest('pre') || el.closest('code')) continue;
@@ -923,7 +923,7 @@ class NodeHelpTranslator {
     }
 
     _renderTranslations(blocks, translations, nodeName) {
-        // 保存用于缓存的数据
+        // Save data for caching
         const cacheData = [];
 
         blocks.forEach((block, index) => {
@@ -940,16 +940,16 @@ class NodeHelpTranslator {
 
             this._updateBlockContent(el, 'bilingual');
 
-            // 收集缓存数据（存储原始HTML的哈希或简单选择器作为标识可能不可靠，因为DOM结构变化）
-            // 这里我们使用一种简单策略：按顺序存储。
-            // 只要帮助文档内容没变，顺序提取的文本块也应该没变。
+            // Collect cache data (using hash or selector of original HTML as identifier may not be reliable due to DOM structure changes)
+            // Here we use a simple strategy: store in order.
+            // As long as help document content hasn't changed, text blocks extracted in order should also be unchanged.
             cacheData.push({
-                index: index, // 保存索引，以便恢复时匹配
+                index: index, // Save index for matching during restoration
                 translation: translation
             });
         });
 
-        // 保存到缓存
+        // Save to cache
         if (nodeName) {
             this._saveToCache(nodeName, {
                 translations: cacheData,
@@ -971,7 +971,7 @@ class NodeHelpTranslator {
         el.innerHTML = `${wrappedOriginal}${separator}${styledTranslation}`;
     }
 
-    // --- 缓存管理 ---
+    // --- Cache management ---
 
     _getCacheKey() {
         return 'pa_node_help_translations';
@@ -984,7 +984,7 @@ class NodeHelpTranslator {
             const cache = JSON.parse(raw);
             return cache[nodeName] || null;
         } catch (e) {
-            console.error('[NodeHelpTranslator] 读取缓存失败', e);
+            console.error('[NodeHelpTranslator] Failed to read cache', e);
             return null;
         }
     }
@@ -997,12 +997,12 @@ class NodeHelpTranslator {
 
             cache[nodeName] = data;
 
-            // 简单的清理策略：如果太大了，清空旧的（虽然sessionStorage限制是按域名，但也要防止无限增长）
-            // 这里暂不实现复杂LRU，假设用户单次会话查看的节点有限
+            // Simple cleanup strategy: if too large, clear old entries (sessionStorage is limited by domain, but prevent infinite growth)
+            // Not implementing complex LRU here, assuming limited nodes viewed per session
 
             sessionStorage.setItem(key, JSON.stringify(cache));
         } catch (e) {
-            console.error('[NodeHelpTranslator] 写入缓存失败', e);
+            console.error('[NodeHelpTranslator] Failed to write cache', e);
         }
     }
 
@@ -1010,30 +1010,30 @@ class NodeHelpTranslator {
         const cached = this._loadFromCache(nodeName);
         if (!cached) return false;
 
-        // 检查是否过期（例如超过24小时？其实sessionStorage已经限制了会话生命周期，这里可以不检查时间）
-        // 但检查是否匹配当前内容结构很重要。
-        // 我们尝试按索引恢复。
+        // Check if expired (e.g., over 24 hours? Actually sessionStorage already limits session lifetime, so we can skip time check)
+        // But checking if it matches current content structure is important.
+        // We try to restore by index.
 
         const textBlocks = this._extractTextBlocks(contentEl);
         if (textBlocks.length === 0) return false;
 
-        // 简单的完整性检查：如果缓存的索引超出了当前文本块数量，可能内容变了
+        // Simple integrity check: if cached index exceeds current text block count, content may have changed
         const maxIndex = Math.max(...cached.translations.map(t => t.index));
         if (maxIndex >= textBlocks.length) {
-            logger.warn(`[NodeHelpTranslator] 缓存与当前内容不匹配(索引溢出)，跳过恢复: ${nodeName}`);
+            logger.warn(`[NodeHelpTranslator] Cache doesn't match current content (index overflow), skipping restore: ${nodeName}`);
             return false;
         }
 
-        // 恢复翻译
-        // 构建全量的 translations 数组
-        // cached.translations 是稀疏的，只包含有翻译的块
+        // Restore translations
+        // Build full translations array
+        // cached.translations is sparse, only contains blocks with translations
         const appliedTranslations = new Array(textBlocks.length).fill(null);
         let matchCount = 0;
 
         cached.translations.forEach(item => {
             if (item.index < textBlocks.length) {
-                // 可选：对比一下原文内容是否大致匹配？（防止内容微调导致错位）
-                // 这里为了性能暂不对比原文，严格依赖提取顺序
+                // Optional: Compare original text to check rough match? (prevent misalignment from content tweaks)
+                // Skipping original text comparison for performance, strictly relying on extraction order
                 appliedTranslations[item.index] = item.translation;
                 matchCount++;
             }
@@ -1041,71 +1041,71 @@ class NodeHelpTranslator {
 
         if (matchCount === 0) return false;
 
-        // 渲染
+        // Render
         this._renderTranslations(textBlocks, appliedTranslations, null); // passing null as nodeName to avoid recursive save
 
-        // 恢复状态
+        // Restore state
         const viewMode = cached.viewMode || (cached.bilingual !== false ? 'bilingual' : 'translation-only');
         this.stateCache.set(nodeName, { translated: true, viewMode: viewMode });
 
-        // 更新按钮状态
+        // Update button state
         this._setButtonContent(btn, 'translated');
 
-        // 更新 SplitButton 菜单
+        // Update SplitButton menu
         if (btn._paSplitBtn) {
             btn._paSplitBtn.updateMenu(this._getMenuItems(nodeName, viewMode));
         }
 
-        // 应用显示模式
+        // Apply display mode
         this._applyViewMode(contentEl, viewMode);
 
-        logger.log(`[NodeHelpTranslator] 已从缓存恢复翻译: ${nodeName}`);
+        logger.log(`[NodeHelpTranslator] Restored translation from cache: ${nodeName}`);
         return true;
     }
 
     cleanup() {
-        // 清理定时器
+        // Clean up timer
         if (this._injectTimer) {
             clearTimeout(this._injectTimer);
             this._injectTimer = null;
         }
 
-        // 停止并清理 MutationObserver
+        // Stop and clean up MutationObserver
         if (this.observer) {
             this.observer.disconnect();
             this.observer = null;
         }
         this.isObserving = false;
 
-        // 移除所有已注入的翻译按钮
+        // Remove all injected translate buttons
         const translationButtons = document.querySelectorAll('.pa-help-translate-btn-container');
         translationButtons.forEach(btn => {
-            // 清理 tooltip
+            // Clean up tooltip
             const mainBtn = btn.querySelector('.pa-translate-btn');
             if (mainBtn && mainBtn._paTooltip) {
                 mainBtn._paTooltip.destroy();
                 mainBtn._paTooltip = null;
             }
-            // 移除按钮容器
+            // Remove button container
             btn.remove();
         });
 
-        // 清理状态缓存
+        // Clean up state cache
         this.stateCache.clear();
 
-        // 重置当前帮助面板引用
+        // Reset current help panel reference
         this.currentHelpPanel = {
             nodeName: null,
             element: null,
             bilingualSwitch: null
         };
 
-        logger.log("[NodeHelpTranslator] 已清理所有资源");
+        logger.log("[NodeHelpTranslator] All resources cleaned up");
     }
 
     /**
-     * 应用视图模式
-     * @param {HTMLElement} contentEl 内容元素
+     * Apply view mode
+     * @param {HTMLElement} contentEl Content element
      * @param {string} mode 'bilingual' | 'translation-only' | 'original-only'
      */
     _applyViewMode(contentEl, mode) {
@@ -1126,13 +1126,13 @@ class NodeHelpTranslator {
     }
 
     /**
-     * 获取下拉菜单配置
+     * Get dropdown menu configuration
      * @param {string} nodeName
      * @param {string} currentMode
      * @returns {Array}
      */
     _getMenuItems(nodeName, currentMode) {
-        // 如果未显式传递模式，则从状态缓存中实时获取（解决动态菜单打开时的状态同步问题）
+        // If mode not explicitly passed, get from state cache in real-time (resolves state sync issue when dynamic menu opens)
         if (!currentMode) {
             currentMode = this.stateCache.get(nodeName)?.viewMode || 'bilingual';
         }
@@ -1140,20 +1140,20 @@ class NodeHelpTranslator {
         const btn = document.querySelector(`.pa-translate-btn[data-node-name="${nodeName}"]`);
         const targetLang = btn ? (btn.dataset.targetLang || 'zh') : 'zh';
 
-        // 异步获取最新配置（确保下次打开或后台更新时数据正确）
+        // Async fetch latest config (ensures correct data on next open or background update)
         this._getTranslateConfig();
 
-        // 立即使用的配置
+        // Config to use immediately
         const cachedConfig = this._currentTranslateConfig;
         const currentServiceId = cachedConfig?.provider || null;
         const currentModelName = cachedConfig?.model || null;
 
-        // 构建服务选择子菜单
+        // Build service selection submenu
         const serviceMenuItems = this._buildServiceMenuItems(nodeName, currentMode, currentServiceId, currentModelName);
 
         return [
             {
-                label: '翻译成中文',
+                label: 'Translate to Chinese',
                 icon: targetLang === 'zh' ? 'pi pi-check' : '',
                 className: targetLang === 'zh' ? 'pa-menu-item-active' : '',
                 command: () => {
@@ -1167,7 +1167,7 @@ class NodeHelpTranslator {
                 }
             },
             {
-                label: '翻译成英文',
+                label: 'Translate to English',
                 icon: targetLang === 'en' ? 'pi pi-check' : '',
                 className: targetLang === 'en' ? 'pa-menu-item-active' : '',
                 command: () => {
@@ -1182,29 +1182,29 @@ class NodeHelpTranslator {
             },
             { separator: true },
             {
-                label: '中英对照',
+                label: 'Bilingual',
                 checked: currentMode === 'bilingual',
                 command: () => this._handleModeChange(nodeName, 'bilingual')
             },
             {
-                label: '显示译文',
+                label: 'Translation Only',
                 checked: currentMode === 'translation-only',
                 command: () => this._handleModeChange(nodeName, 'translation-only')
             },
             {
-                label: '显示原文',
+                label: 'Original Only',
                 checked: currentMode === 'original-only',
                 command: () => this._handleModeChange(nodeName, 'original-only')
             },
             { separator: true },
             {
-                label: '选择服务',
+                label: 'Select Service',
                 icon: 'pi pi-server',
                 items: serviceMenuItems
             },
             { separator: true },
             {
-                label: '重新翻译',
+                label: 'Re-translate',
                 icon: 'pi pi-refresh',
                 command: () => {
                     const b = document.querySelector(`.pa-translate-btn[data-node-name="${nodeName}"]`);
@@ -1215,44 +1215,44 @@ class NodeHelpTranslator {
     }
 
     /**
-     * 构建服务选择子菜单
+     * Build service selection submenu
      */
     _buildServiceMenuItems(nodeName, currentMode, currentServiceId, currentModelName) {
         const services = this._servicesCache || [];
 
         if (services.length === 0 && !this._servicesCache) {
-            // 异步加载服务列表，加载完成后刷新菜单
+            // Async load service list, refresh menu after loading
             this._getAvailableServices().then(() => {
                 if (this.currentHelpPanel.splitBtn) {
                     this.currentHelpPanel.splitBtn.updateMenu(this._getMenuItems(nodeName, currentMode));
                 }
             });
-            return [{ label: '加载中...', disabled: true }];
+            return [{ label: 'Loading...', disabled: true }];
         }
 
         const menuItems = [];
 
-        // 1. 添加百度翻译选项（始终显示）
+        // 1. Add Baidu Translate option (always shown)
         const isBaidu = currentServiceId === 'baidu';
         menuItems.push({
-            label: '百度翻译',
+            label: 'Baidu Translate',
             icon: isBaidu ? 'pi pi-check' : '',
             command: async () => {
                 const success = await this._setTranslateConfig('baidu', '');
                 if (success) {
-                    // 立即更新本地缓存，实现实时同步
+                    // Immediately update local cache for real-time sync
                     this._currentTranslateConfig = { provider: 'baidu', model: '' };
 
                     UIToolkit.showStatusTip(
                         document.querySelector(`.pa-translate-btn[data-node-name="${nodeName}"]`),
                         'success',
-                        '已选择: 百度翻译'
+                        'Selected: Baidu Translate'
                     );
                     if (this.currentHelpPanel.splitBtn) {
                         this.currentHelpPanel.splitBtn.updateMenu(this._getMenuItems(nodeName, currentMode));
                     }
 
-                    // 广播全局服务变更事件，通知其他组件同步
+                    // Broadcast global service change event to notify other components
                     window.dispatchEvent(new CustomEvent('pa-service-changed', {
                         detail: { service_type: 'translate', service_id: 'baidu' }
                     }));
@@ -1262,14 +1262,14 @@ class NodeHelpTranslator {
 
         menuItems.push({ separator: true });
 
-        // 2. 为每个 LLM 服务创建菜单项
+        // 2. Create menu items for each LLM service
         services.filter(s => s.llm_models && s.llm_models.length > 0).forEach(service => {
             const isCurrentService = currentServiceId === service.id;
             const models = service.llm_models || [];
 
             if (models.length === 0) return;
 
-            // 创建模型子菜单
+            // Create model submenu
             const modelItems = models.map(model => {
                 const isCurrentModel = isCurrentService && currentModelName === model.name;
                 return {
@@ -1278,20 +1278,20 @@ class NodeHelpTranslator {
                     command: async () => {
                         const success = await this._setTranslateConfig(service.id, model.name);
                         if (success) {
-                            // 立即更新本地缓存，实现实时同步
+                            // Immediately update local cache for real-time sync
                             this._currentTranslateConfig = { provider: service.id, model: model.name };
 
                             const modelLabel = model.display_name || model.name;
                             UIToolkit.showStatusTip(
                                 document.querySelector(`.pa-translate-btn[data-node-name="${nodeName}"]`),
                                 'success',
-                                `已选择: ${service.name} - ${modelLabel}`
+                                `Selected: ${service.name} - ${modelLabel}`
                             );
                             if (this.currentHelpPanel.splitBtn) {
                                 this.currentHelpPanel.splitBtn.updateMenu(this._getMenuItems(nodeName, currentMode));
                             }
 
-                            // 广播全局服务变更事件，通知其他组件同步
+                            // Broadcast global service change event to notify other components
                             window.dispatchEvent(new CustomEvent('pa-service-changed', {
                                 detail: { service_type: 'translate', service_id: service.id, model_name: model.name }
                             }));
@@ -1320,11 +1320,11 @@ class NodeHelpTranslator {
         const btn = document.querySelector(`.pa-translate-btn[data-node-name="${nodeName}"]`);
         if (!btn) return;
 
-        // 寻找内容容器的增强逻辑
+        // Enhanced logic for finding content container
         // Find header then panel then content
         let contentEl = null;
 
-        // 按钮就在 properties-panel 中 (V3)
+        // Button is in properties-panel (V3)
         const v3Panel = btn.closest('[data-testid="properties-panel"]');
         if (v3Panel) {
             contentEl = v3Panel.querySelector('.node-help-content');
