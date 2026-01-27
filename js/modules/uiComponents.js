@@ -2215,7 +2215,7 @@ export function createSplitButton(options) {
         span.textContent = text;
         mainContent.appendChild(span);
 
-        // 更新 stored data for subsequent updates via updateIcon
+        // Update stored data for subsequent updates via updateIcon
         mainKey.dataset.label = text;
         mainKey.dataset.icon = iconClass || '';
     };

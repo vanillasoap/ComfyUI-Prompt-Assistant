@@ -426,7 +426,7 @@ class UIToolkit {
             const oldInfo = this.#activeButtonInfo;
             // Reset old button state
             this.setButtonState(oldInfo.widget, oldInfo.buttonId, 'active', false);
-            // logger.debug(`按钮状态重置 | 按钮:${oldInfo.buttonId} | 节点:${oldInfo.widget.nodeId}`);
+            // logger.debug(`Button state reset | Button:${oldInfo.buttonId} | Node:${oldInfo.widget.nodeId}`);
         }
 
         // Set new active button
@@ -435,7 +435,7 @@ class UIToolkit {
         // If there's new button info, set its state to active
         if (buttonInfo) {
             this.setButtonState(buttonInfo.widget, buttonInfo.buttonId, 'active', true);
-            // logger.debug(`按钮激活 | 按钮:${buttonInfo.buttonId} | 节点:${buttonInfo.widget.nodeId}`);
+            // logger.debug(`Button activated | Button:${buttonInfo.buttonId} | Node:${buttonInfo.widget.nodeId}`);
         }
     }
 
@@ -455,7 +455,7 @@ class UIToolkit {
         e.preventDefault();
         e.stopPropagation();
 
-        // logger.debug(`弹窗按钮点击 | 按钮: ${buttonId} | 节点: ${widget.nodeId}`);
+        // logger.debug(`Popup button click | Button: ${buttonId} | Node: ${widget.nodeId}`);
 
         // Check current button state
         const isCurrentActive = this.isActiveButton(widget, buttonId);
@@ -666,7 +666,7 @@ class UIToolkit {
                         null
                     );
                 } else {
-                    // logger.debug(`Button op complete | Result:${success ? 'Success' : 'Failed'} | 按钮:${buttonId}`);
+                    // logger.debug(`Button op complete | Result:${success ? 'Success' : 'Failed'} | Button:${buttonId}`);
                     this.showStatusTip(
                         e.currentTarget,
                         'success',

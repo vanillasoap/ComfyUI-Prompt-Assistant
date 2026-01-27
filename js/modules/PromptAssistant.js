@@ -677,7 +677,7 @@ class PromptAssistant {
     }
 
     /**
-     * 获取实例
+     * Get instance
      */
     static getInstance(nodeId) {
         if (nodeId == null) return null;
@@ -685,7 +685,7 @@ class PromptAssistant {
     }
 
     /**
-     * 检查实例是否存在
+     * Check if instance exists
      */
     static hasInstance(nodeId) {
         if (nodeId == null) return false;
@@ -693,18 +693,18 @@ class PromptAssistant {
     }
 
     /**
-     * 检查节点并设置小助手
-     * 查找节点中的有效输入控件并创建小助手
+     * Check node and set up assistant
+     * Find valid input widgets in node and create assistant
      */
     checkAndSetupNode(node) {
-        // 快速检查
+        // Quick check
         if (!window.FEATURES.enabled || !node) return;
 
         const isVueMode = LiteGraph.vueNodesMode === true;
 
 
 
-        // Vue mode下特殊节点（Note/Markdown/Subgraph）即使没有 LiteGraph widgets 也是有效的
+        // In Vue mode, special nodes (Note/Markdown/Subgraph) are valid even without LiteGraph widgets
         if (!node.widgets) {
 
             if (isVueMode && PromptAssistant.isValidNode(node)) {
@@ -713,14 +713,14 @@ class PromptAssistant {
             return;
         }
 
-        // 后续检查：如果虽然有 widgets 但不是我们识别的有效节点，也回退处理
+        // Follow-up check: if node has widgets but is not recognized as valid, also fall back
         const isValid = PromptAssistant.isValidNode(node);
         if (!isValid) {
 
             return;
         }
 
-        // 获取所有有效的输入控件
+        // Get all valid input widgets
         const validInputs = node.widgets.filter(widget => {
             if (!widget.node) widget.node = node;
             const isValidInput = UIToolkit.isValidInput(widget, { debug: false, node: node });
@@ -731,95 +731,95 @@ class PromptAssistant {
 
 
         if (validInputs.length === 0) {
-            // 非目标节点类型（如 LoadImage）没有文本控件是正常的，使用 debug 级别
-            logger.debug(`[checkAndSetupNode] 节点无有效控件 | ID: ${node.id} | 类型: ${node.type}`);
+            // Non-target node types (e.g. LoadImage) having no text widgets is normal, use debug level
+            logger.debug(`[checkAndSetupNode] Node has no valid widgets | ID: ${node.id} | Type: ${node.type}`);
 
-            // Vue mode下节点可能暂时没有识别到 LiteGraph 控件，强制回退到 DOM 扫描模式
+            // In Vue mode, node may temporarily not have recognized LiteGraph widgets, force fallback to DOM scan mode
             if (isVueMode && isValid) {
                 this._handleVueDomScanNode(node);
             }
             return;
         }
 
-        // 为每个有效控件创建小助手
+        // Create assistant for each valid widget
         validInputs.forEach((inputWidget, widgetIndex) => {
             const inputId = inputWidget.name || inputWidget.id;
 
-            // 生成唯一的 assistantKey
-            // 对于同名的多个输入框（如 Show Any 节点的列表输入），使用索引区分
+            // Generate unique assistantKey
+            // For multiple inputs with the same name (e.g. Show Any node list inputs), use index to distinguish
             let assistantKey = `${node.id}_${inputId}`;
 
-            // 检查是否存在同名的输入框，如果存在则使用索引或 DOM 元素的唯一标识
+            // Check if same-name inputs exist, if so use index or DOM element unique ID
             const sameNameWidgets = validInputs.filter(w => (w.name || w.id) === inputId);
             if (sameNameWidgets.length > 1) {
-                // 多个同名输入框，使用索引或输入框元素的内存地址作为唯一标识
+                // Multiple same-name inputs, use index or input element memory address as unique ID
                 const inputEl = inputWidget.inputEl || inputWidget.element;
                 if (inputEl) {
-                    // 为输入框元素添加唯一标识
+                    // Add unique identifier to input element
                     if (!inputEl.dataset.promptAssistantUniqueId) {
                         inputEl.dataset.promptAssistantUniqueId = `${node.id}_${inputId}_${widgetIndex}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                     }
                     assistantKey = inputEl.dataset.promptAssistantUniqueId;
                 } else {
-                    // 降级方案：使用索引
+                    // Fallback: use index
                     assistantKey = `${node.id}_${inputId}_${widgetIndex}`;
                 }
             }
 
-            // 检查实例是否已存在
+            // Check if instance already exists
             if (PromptAssistant.hasInstance(assistantKey)) {
-                // 如果实例存在，检查输入控件是否已更新
+                // If instance exists, check if input widget has been updated
                 const instance = PromptAssistant.getInstance(assistantKey);
                 const currentInputEl = inputWidget.inputEl;
                 const instanceInputEl = instance?.text_element;
 
-                // 只有在以下情况下才清理并重建：
-                // 1. 两个元素都存在
-                // 2. 它们是不同的元素
-                // 3. 不是因为临时的 DOM 状态变化（如打开弹窗）
+                // Only clean up and rebuild when:
+                // 1. Both elements exist
+                // 2. They are different elements
+                // 3. Not due to temporary DOM state change (e.g. opening popup)
                 if (instanceInputEl && currentInputEl && instanceInputEl !== currentInputEl) {
-                    // 进一步检查：确保确实需要重建（避免误判）
-                    // 如果当前元素已经从 DOM 中移除，才需要清理
+                    // Further check: ensure rebuild is actually needed (avoid false positives)
+                    // Only clean up if current element has been removed from DOM
                     if (!document.body.contains(instanceInputEl)) {
-                        logger.debug(() => `[checkAndSetupNode] 输入元素已失效，清理实例 | 节点ID: ${node.id}`);
+                        logger.debug(() => `[checkAndSetupNode] Input element invalidated, cleaning up instance | Node ID: ${node.id}`);
                         this.cleanup(node.id);
                     } else {
-                        // 元素仍然在 DOM 中，可能只是引用变化，不需要清理
-                        // logger.debug(() => `[checkAndSetupNode] 输入元素引用变化但仍有效，跳过清理 | 节点ID: ${node.id}`);
+                        // Element still in DOM, may just be reference change, no cleanup needed
+                        // logger.debug(() => `[checkAndSetupNode] Input element reference changed but still valid, skipping cleanup | Node ID: ${node.id}`);
                         return;
                     }
                 } else if (!currentInputEl && instanceInputEl) {
-                    // Vue 模式下，inputEl 可能暂时为 null，不应该触发清理
-                    logger.debug(() => `[checkAndSetupNode] 当前inputEl为null，跳过清理（Vue模式下可能暂时为null） | 节点ID: ${node.id}`);
+                    // In Vue mode, inputEl may temporarily be null, should not trigger cleanup
+                    logger.debug(() => `[checkAndSetupNode] Current inputEl is null, skipping cleanup (may be temporarily null in Vue mode) | Node ID: ${node.id}`);
                     return;
                 } else {
-                    // 实例存在且未更新，跳过
+                    // Instance exists and not updated, skip
                     return;
                 }
             }
 
-            // 再次检查总开关状态，确保在创建过程中没有被禁用
+            // Re-check master switch state to ensure not disabled during creation
             if (!window.FEATURES.enabled) {
                 return;
             }
 
-            // 【防重复挂载检查】在创建前检查 inputEl 是否已被其他实例挂载
+            // [Duplicate mount check] Check if inputEl is already mounted by another instance before creation
             const inputEl = inputWidget.inputEl || inputWidget.element;
             if (inputEl && inputEl._promptAssistantMounted) {
                 return;
             }
 
-            // 创建小助手实例
+            // Create assistant instance
             const assistant = this.setupNodeAssistant(node, inputWidget, assistantKey);
             if (assistant) {
-                logger.debugSample(() => `[小助手] 创建实例 | 节点:${node.id} | 控件:${inputId} | 索引:${widgetIndex}`);
+                logger.debugSample(() => `[Assistant] Instance created | Node:${node.id} | Widget:${inputId} | Index:${widgetIndex}`);
             }
         });
     }
 
     /**
- * Vue mode 下对特殊或动态节点（Note/Subgraph等）的 DOM 扫描处理
- * 当 LiteGraph widgets 尚未就绪时，直接从 DOM 中扫描 textarea 并挂载
+ * Vue mode DOM scan handling for special or dynamic nodes (Note/Subgraph etc.)
+ * When LiteGraph widgets are not yet ready, scan textarea directly from DOM and mount
  */
     _handleVueDomScanNode(node) {
         if (!node) return;
@@ -827,27 +827,27 @@ class PromptAssistant {
         const isMarkdown = this._isMarkdownNode(node);
         const isSubgraph = this._isSubgraphNode(node);
 
-        // 仅处理我们识别的有效节点
+        // Only process nodes we recognize as valid
         if (!isMarkdown && !isSubgraph) return;
 
         const nodeId = node.id;
 
-        // 使用 NodeMountService 提供的逻辑，在 DOM 容器中查找所有潜在的输入框
+        // Use NodeMountService logic to find all potential input fields in the DOM container
         const nodeContainer = document.querySelector(`[data-node-id="${nodeId}"]`);
         if (!nodeContainer) {
-            // 如果容器还没渲染，则启动一次带重试的单次挂载尝试（针对主要输入框）
+            // If container is not rendered yet, start a single mount attempt with retry (for main input)
             if (isMarkdown) {
                 this._retryDomScan(node, 'text');
             }
             return;
         }
 
-        // 查找所有 textarea（优先找 PrimeVue 的 .p-textarea）
+        // Find all textareas (prefer PrimeVue .p-textarea)
         const primeTextareas = Array.from(nodeContainer.querySelectorAll('textarea.p-textarea'));
         const textareas = primeTextareas.length > 0 ? primeTextareas : Array.from(nodeContainer.querySelectorAll('textarea'));
 
         if (textareas.length === 0) {
-            // 可能是 TipTap 编辑器（针对 Note 节点）
+            // May be TipTap editor (for Note nodes)
             const editor = nodeContainer.querySelector('.tiptap') || nodeContainer.querySelector('.ProseMirror');
             if (editor) {
                 this._mountDomAssistant(node, editor, 'text', 0);
@@ -855,29 +855,29 @@ class PromptAssistant {
             return;
         }
 
-        // 遍历所有找到的 textarea 并尝试挂载
+        // Iterate all found textareas and attempt to mount
         textareas.forEach((el, index) => {
-            // 生成 Key：对于 Note 节点通常只有一个，对于子图有多个
+            // Generate Key: Note nodes usually have one, subgraphs have multiple
             const inputId = textareas.length === 1 ? 'text' : `input_${index}`;
             this._mountDomAssistant(node, el, inputId, index);
         });
     }
 
     /**
-     * 执行实际的 DOM 挂载
+     * Execute actual DOM mounting
      */
     _mountDomAssistant(node, element, inputId, index) {
         const assistantKey = `${node.id}_${inputId}`;
         if (PromptAssistant.hasInstance(assistantKey)) return;
 
-        // 检查元素是否已被挂载
+        // Check if element is already mounted
         if (element._promptAssistantMounted) return;
 
-        // 创建虚拟 widget
+        // Create virtual widget
         const virtualWidget = {
             name: inputId, id: inputId, type: 'textarea',
             inputEl: element, element: element, node: node,
-            _domIndex: index // 记录 DOM 索引
+            _domIndex: index // Record DOM index
         };
 
         const nodeInfo = {
@@ -892,12 +892,12 @@ class PromptAssistant {
         const assistant = this.createAssistant(node, inputId, virtualWidget, nodeInfo, assistantKey);
         if (assistant) {
             this.showAssistantUI(assistant);
-            logger.debugSample(() => `[DOM扫描] ${node.type}节点挂载成功 | ID: ${node.id} | Key: ${assistantKey}`);
+            logger.debugSample(() => `[DOM Scan] ${node.type} node mounted successfully | ID: ${node.id} | Key: ${assistantKey}`);
         }
     }
 
     /**
-     * 针对初始 DOM 未就绪的情况进行一次带重试的扫描
+     * Perform a scan with retry for cases where initial DOM is not ready
      */
     _retryDomScan(node, inputId) {
         const widgetStub = { name: inputId, node: node };
@@ -910,15 +910,15 @@ class PromptAssistant {
     }
 
     /**
-     * 为节点设置小助手
-     * 创建小助手实例并初始化显示状态
+     * Set up assistant for node
+     * Create assistant instance and initialize display state
      */
     setupNodeAssistant(node, inputWidget, assistantKey = null) {
 
 
-        // 简化参数检查
+        // Simplified parameter check
         if (!node || !inputWidget) {
-            logger.error(`[setupNodeAssistant] 参数无效 | node: ${!!node} | inputWidget: ${!!inputWidget}`);
+            logger.error(`[setupNodeAssistant] Invalid parameters | node: ${!!node} | inputWidget: ${!!inputWidget}`);
             return null;
         }
 
@@ -930,7 +930,7 @@ class PromptAssistant {
 
 
 
-            // 简化节点信息
+            // Simplified node info
             const nodeInfo = {
                 workflow_id: app.graph?._workflow_id || 'unknown',
                 nodeType: node.type,
@@ -939,7 +939,7 @@ class PromptAssistant {
                 isVueMode: isVueMode
             };
 
-            // 处理inputWidget的inputEl引用
+            // Handle inputWidget's inputEl reference
             let processedWidget = inputWidget;
             if (isNoteNode) {
                 const inputEl = inputWidget.element || inputWidget.inputEl;
@@ -953,7 +953,7 @@ class PromptAssistant {
 
             }
 
-            // 创建小助手实例
+            // Create assistant instance
 
             const assistant = this.createAssistant(
                 node,
@@ -965,58 +965,58 @@ class PromptAssistant {
 
             if (assistant) {
 
-                // 初始化显示状态
-                // 初始化显示状态
+                // Initialize display state
+                // Initialize display state
                 this.showAssistantUI(assistant);
                 return assistant;
             } else {
-                console.warn(`[setupNodeAssistant] ⚠️ createAssistant 返回 null`);
+                console.warn(`[setupNodeAssistant] createAssistant returned null`);
             }
 
             return null;
         } catch (error) {
-            logger.error(`[setupNodeAssistant] ❌ 异常 | 节点: ${node.id} | 错误:`, error);
-            logger.error(`创建小助手失败 | 节点ID: ${node.id} | 原因: ${error.message}`);
+            logger.error(`[setupNodeAssistant] Exception | Node: ${node.id} | Error:`, error);
+            logger.error(`Assistant creation failed | Node ID: ${node.id} | Reason: ${error.message}`);
             return null;
         }
     }
 
     /**
-     * 创建小助手实例
-     * 根据节点和输入控件构建小助手对象并初始化UI
+     * Create assistant instance
+     * Build assistant object from node and input widget and initialize UI
      */
     createAssistant(node, inputId, inputWidget, nodeInfo = {}, assistantKey = null) {
 
 
-        // 简化前置检查
+        // Simplified pre-check
         if (!window.FEATURES.enabled || !node || !inputId || !inputWidget) {
-            logger.error(`[createAssistant] ❌ 前置检查失败 | enabled: ${window.FEATURES.enabled} | node: ${!!node} | inputId: ${inputId} | inputWidget: ${!!inputWidget}`);
+            logger.error(`[createAssistant] Pre-check failed | enabled: ${window.FEATURES.enabled} | node: ${!!node} | inputId: ${inputId} | inputWidget: ${!!inputWidget}`);
             return null;
         }
 
 
-        // 确保widget设置了node引用
+        // Ensure widget has node reference set
         if (!inputWidget.node) {
             inputWidget.node = node;
         }
 
-        // 验证是否为有效输入
+        // Validate if input is valid
 
         if (!UIToolkit.isValidInput(inputWidget, { node: node })) {
-            console.warn(`[createAssistant] ⚠️ 输入无效 | 节点: ${node?.id} | 控件: ${inputId}`);
+            console.warn(`[createAssistant] Invalid input | Node: ${node?.id} | Widget: ${inputId}`);
             return null;
         }
 
 
-        // 获取输入元素
+        // Get input element
         let inputEl = inputWidget.inputEl || inputWidget.element;
         const isVueMode = typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true;
 
 
 
-        // 非Vue mode下，inputEl必须存在
+        // In non-Vue mode, inputEl must exist
         if (!inputEl && !isVueMode) {
-            logger.error(`[createAssistant] ❌ 非Vue模式下inputEl不存在 | 节点: ${node?.id}`);
+            logger.error(`[createAssistant] inputEl does not exist in non-Vue mode | Node: ${node?.id}`);
             return null;
         }
 
@@ -1025,7 +1025,7 @@ class PromptAssistant {
 
 
 
-        // 检查是否已存在实例
+        // Check if instance already exists
         if (PromptAssistant.hasInstance(widgetKey)) {
 
             return PromptAssistant.getInstance(widgetKey);
@@ -1033,7 +1033,7 @@ class PromptAssistant {
 
 
 
-        // 创建小助手对象
+        // Create assistant object
         const widget = {
             type: "prompt_assistant",
             name: inputId,
@@ -1051,19 +1051,19 @@ class PromptAssistant {
                 isVueMode: isVueMode
             },
             isTransitioning: false,
-            // 保存初始节点引用作为后备（Vue Node 2.0 子图切换场景）
+            // Save initial node reference as fallback (Vue Node 2.0 subgraph switching scenario)
             _initialNode: node
         };
 
-        // 动态获取节点的 getter，避免持有已删除节点的引用
-        // 【修复】优先从 graph 获取，失败时回退到初始引用（解决子图切换时画布未同步问题）
+        // Dynamic getter for node, avoid holding reference to deleted node
+        // [Fix] Prefer getting from graph, fall back to initial reference on failure (fixes canvas not synced during subgraph switching)
         Object.defineProperty(widget, 'node', {
             get() {
                 if (this.isDestroyed) return null;
-                // 优先从当前画布 graph 动态获取
+                // Prefer dynamically getting from current canvas graph
                 const graphNode = app.canvas?.graph?._nodes_by_id?.[this.nodeId];
                 if (graphNode) return graphNode;
-                // 回退：使用初始节点引用（如果仍有效）
+                // Fallback: use initial node reference (if still valid)
                 if (this._initialNode && this._initialNode.id === this.nodeId) {
                     return this._initialNode;
                 }
@@ -1074,7 +1074,7 @@ class PromptAssistant {
 
 
 
-        // 创建全局输入框映射
+        // Create global input field mapping
         if (!window.PromptAssistantInputWidgetMap) {
             window.PromptAssistantInputWidgetMap = {};
         }
@@ -1086,14 +1086,14 @@ class PromptAssistant {
 
 
 
-        // 创建UI并添加到实例集合
+        // Create UI and add to instance collection
         this.createAssistantUI(widget, inputWidget);
 
         PromptAssistant.addInstance(widgetKey, widget);
 
 
 
-        // 初始化绑定
+        // Initialize bindings
         if (inputEl) {
             this._initializeInputElBindings(widget, inputWidget, node, inputId, nodeInfo);
         } else {
@@ -1105,22 +1105,22 @@ class PromptAssistant {
     }
 
     /**
-     * 初始化inputEl相关的事件绑定
-     * 在传统模式下立即调用，Vue mode下在找到textarea后调用
+     * Initialize inputEl-related event bindings
+     * Called immediately in traditional mode, called after finding textarea in Vue mode
      */
     _initializeInputElBindings(widget, inputWidget, node, inputId, nodeInfo) {
         const inputEl = inputWidget.inputEl || widget.inputEl;
         if (!inputEl) {
-            logger.warn(`[_initializeInputElBindings] inputEl不存在 | 节点ID: ${node?.id}`);
+            logger.warn(`[_initializeInputElBindings] inputEl does not exist | Node ID: ${node?.id}`);
             return;
         }
 
         const nodeId = node.id;
 
-        // 初始化撤销状态（只初始化一次，使用widget级别的标记）
+        // Initialize undo state (only once, using widget-level flag)
         if (!widget._undoStateInitialized) {
             const initialValue = inputEl.value || '';
-            // 如果初始值不为空，则直接添加到历史记录中，确保可以撤销回初始状态
+            // If initial value is not empty, add to history directly to ensure undo can restore to initial state
             if (initialValue.trim()) {
                 HistoryCacheService.addHistoryAndUpdateUndoState(nodeId, inputId, initialValue, 'input');
             } else {
@@ -1128,27 +1128,27 @@ class PromptAssistant {
             }
             widget._undoStateInitialized = true;
         }
-        // 初始化时立即更新撤销/重做按钮状态
+        // Immediately update undo/redo button state on initialization
         UIToolkit.updateUndoRedoButtonState(widget, HistoryCacheService);
 
-        // 检查是否已绑定事件（避免重复绑定）
-        // 【关键修复】使用 widget 级别的标记来精确控制绑定状态
-        // 确保不会因为 _eventCleanupFunctions 中包含其他清理函数（如按钮菜单）而误判
+        // Check if events already bound (avoid duplicate bindings)
+        // [Key fix] Use widget-level flag to precisely control binding state
+        // Ensure no false positive from _eventCleanupFunctions containing other cleanup functions (e.g. button menu)
         if (widget._inputEventsBound) {
-            logger.debug(`[_initializeInputElBindings] 跳过绑定 | 节点ID: ${nodeId} | 原因: 已绑定`);
+            logger.debug(`[_initializeInputElBindings] Skipping binding | Node ID: ${nodeId} | Reason: Already bound`);
             return;
         }
 
-        // 如果检测到遗留标记，静默处理
+        // If legacy flag detected, handle silently
 
         inputEl._promptAssistantBound = true;
         widget._inputEventsBound = true;
         widget._eventCleanupFunctions = widget._eventCleanupFunctions || [];
 
-        // 绑定输入框失焦事件，写入历史
-        // 使用事件管理器添加DOM事件监听
+        // Bind input blur event, write to history
+        // Use event manager to add DOM event listener
         const removeBlurListener = EventManager.addDOMListener(inputEl, 'blur', async () => {
-            // logger.debug(`历史写入准备｜ 原因：失焦事件触发 node_id=${node.id} input_id=${inputId}`);
+            // logger.debug(`History write preparation | Reason: blur event triggered node_id=${node.id} input_id=${inputId}`);
             HistoryCacheService.addHistory({
                 workflow_id: nodeInfo?.workflow_id || '',
                 node_id: node.id,
@@ -1157,29 +1157,29 @@ class PromptAssistant {
                 operation_type: 'input',
                 timestamp: Date.now()
             });
-            // 重置撤销状态
+            // Reset undo state
             HistoryCacheService.initUndoState(node.id, inputId, inputEl.value);
-            // 更新按钮状态
+            // Update button state
             UIToolkit.updateUndoRedoButtonState(widget, HistoryCacheService);
-            // logger.debug(`历史写入完成｜原因：输入框失焦 node_id=${node.id} input_id=${inputId}`);
+            // logger.debug(`History write complete | Reason: input blur node_id=${node.id} input_id=${inputId}`);
         });
 
-        // 保存清理函数引用，以便后续清理
+        // Save cleanup function reference for later cleanup
         widget._eventCleanupFunctions = widget._eventCleanupFunctions || [];
         widget._eventCleanupFunctions.push(removeBlurListener);
 
-        // 添加输入事件监听，实时更新撤销/重做按钮状态和位置调整
+        // Add input event listener for real-time undo/redo button state and position adjustment
         const removeInputListener = EventManager.addDOMListener(inputEl, 'input', () => {
             UIToolkit.updateUndoRedoButtonState(widget, HistoryCacheService);
-            // 检测滚动条状态并调整位置
+            // Detect scrollbar state and adjust position
             this._adjustPositionForScrollbar(widget, inputEl);
         });
         widget._eventCleanupFunctions.push(removeInputListener);
 
-        // 添加ResizeObserver监听输入框尺寸变化
+        // Add ResizeObserver to monitor input field size changes
         if (window.ResizeObserver) {
             const resizeObserver = new ResizeObserver(() => {
-                // 延迟执行，确保浏览器完成布局更新
+                // Delay execution to ensure browser completes layout update
                 setTimeout(() => {
                     this._adjustPositionForScrollbar(widget, inputEl);
                 }, 10);
@@ -1187,12 +1187,12 @@ class PromptAssistant {
 
             resizeObserver.observe(inputEl);
 
-            // 添加清理函数
+            // Add cleanup function
             widget._eventCleanupFunctions.push(() => {
                 resizeObserver.disconnect();
             });
         } else {
-            // 降级方案：监听window resize事件
+            // Fallback: listen to window resize event
             const removeResizeListener = EventManager.addDOMListener(window, 'resize',
                 EventManager.debounce(() => {
                     this._adjustPositionForScrollbar(widget, inputEl);
@@ -1202,10 +1202,10 @@ class PromptAssistant {
         }
     }
 
-    // ---UI管理功能---
+    // ---UI Management---
     /**
-     * 创建小助手UI
-     * 构建DOM元素并设置事件监听和初始样式
+     * Create assistant UI
+     * Build DOM elements and set up event listeners and initial styles
      */
     createAssistantUI(widget, inputWidget) {
         const nodeId = widget.nodeId;
@@ -1229,7 +1229,7 @@ class PromptAssistant {
                 anchorPosition: locationSetting,
                 enableDragSort: true,
                 onButtonOrderChange: (order) => {
-                    logger.debug(`[排序更新] 节点:${nodeId} | 新顺序: ${order.join(',')}`);
+                    logger.debug(`[Sort update] Node:${nodeId} | New order: ${order.join(',')}`);
                 },
                 shouldCollapse: () => {
                     return !this._checkAssistantActiveState(widget);
