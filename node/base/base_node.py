@@ -111,7 +111,7 @@ class BaseNode:
         except (asyncio.CancelledError, KeyboardInterrupt):
             # 捕获中断异常,不格式化错误
             print(f"{self.LOG_PREFIX} 检测到异步任务被取消")
-            result_container['result'] = {"success": False, "error": "任务被中断"}
+            result_container['result'] = {"success": False, "error": "Task interrupted"}
         except Exception as e:
             # 捕获其他异常,让子类处理格式化
             result_container['result'] = {"success": False, "error": str(e)}
@@ -216,18 +216,18 @@ class BaseNode:
         """
         # 使用临时规则
         if use_temp_rule and temp_rule_content:
-            return temp_rule_content, "临时规则"
+            return temp_rule_content, "Custom Rule"
         
         # 从配置获取模板
         from ...config_manager import config_manager
         system_prompts = config_manager.get_system_prompts()
         
         if not system_prompts:
-            return default_content, "默认规则"
+            return default_content, "Default Rule"
         
         prompts = system_prompts.get(prompt_type, {})
         if not prompts:
-            return default_content, "默认规则"
+            return default_content, "Default Rule"
         
         # 按显示名称匹配
         for key, value in prompts.items():

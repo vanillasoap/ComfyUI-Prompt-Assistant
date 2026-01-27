@@ -57,7 +57,7 @@ class LLMNodeBase(BaseNode):
         
         # 如果没有任何选项,返回默认值避免ComfyUI报错
         if not options:
-            options = ["智谱"]
+            options = ["Zhipu"]
         
         return options
     
@@ -83,7 +83,7 @@ class LLMNodeBase(BaseNode):
         # 百度翻译使用独立的baidu_translate配置,不在model_services列表中
         baidu_config = config_manager.load_config().get('baidu_translate', {})
         # 即使没有配置app_id,也要显示百度选项
-        options.append("百度翻译")
+        options.append("Baidu Translate")
         
         # ---动态获取其他LLM服务---
         services = config_manager.get_all_services()
@@ -128,7 +128,7 @@ class LLMNodeBase(BaseNode):
             model_name = None
         
         # ---特殊处理:百度翻译---
-        if service_name in ['百度翻译', '百度', 'baidu']:
+        if service_name in ['Baidu Translate', 'Baidu', 'baidu', '百度翻译', '百度']:
             return 'baidu', None
         
         # 查找对应的service_id
@@ -195,7 +195,7 @@ class LLMNodeBase(BaseNode):
                 result_container['result'] = result
             except (asyncio.CancelledError, KeyboardInterrupt):
                 print(f"{self.LOG_PREFIX} 异步任务被取消")
-                result_container['result'] = {"success": False, "error": "任务被中断"}
+                result_container['result'] = {"success": False, "error": "Task interrupted"}
             except Exception as e:
                 # 捕获其他异常,格式化错误信息
                 error_message = format_api_error(e, provider)
