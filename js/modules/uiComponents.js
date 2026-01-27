@@ -1,19 +1,19 @@
 /**
- * 通用UI组件库
- * 提供项目中可复用的UI组件
+ * Common UI Component Library
+ * Provides reusable UI components for the project
  */
 
 import { app } from "../../../../scripts/app.js";
 import { logger } from '../utils/logger.js';
 
-// ---动态 Z-Index 计算---
+// ---Dynamic Z-Index Calculation---
 /**
- * 获取 ComfyUI 设置弹窗的 z-index 值
- * 只针对 ComfyUI 的 p-dialog 元素进行查找，避免遍历所有 DOM 元素造成性能问题
- * @returns {number} ComfyUI 弹窗的 z-index 值，如果不存在则返回基础值
+ * Get the z-index value of the ComfyUI settings dialog
+ * Only searches for ComfyUI's p-dialog elements to avoid performance issues from traversing all DOM elements
+ * @returns {number} z-index value of the ComfyUI dialog, returns the base value if not found
  */
 function getComfyUIDialogZIndex() {
-    // ComfyUI 使用 PrimeVue，设置弹窗的类名是 .p-dialog
+    // ComfyUI uses PrimeVue, the settings dialog class name is .p-dialog
     const comfyDialog = document.querySelector('.p-dialog');
     if (comfyDialog) {
         const zIndex = parseInt(window.getComputedStyle(comfyDialog).zIndex, 10);
@@ -21,24 +21,24 @@ function getComfyUIDialogZIndex() {
             return zIndex;
         }
     }
-    // 如果没有找到 ComfyUI 弹窗，返回 CSS 变量定义的基础值
+    // If no ComfyUI dialog is found, return the base value defined by CSS variables
     return 10200;
 }
 
 /**
- * 创建通用的设置弹窗
- * @param {Object} options 弹窗配置选项
- * @param {string} options.title 弹窗标题
- * @param {Function} options.renderContent 渲染弹窗内容的函数
- * @param {Function} options.renderNotice 渲染通知区域的函数（可选，显示在标题和内容之间）
- * @param {Function} options.onSave 保存按钮点击回调
- * @param {Function} options.onCancel 取消按钮点击回调（可选）
- * @param {boolean} options.isConfirmDialog 是否是确认对话框（可选）
- * @param {string} options.saveButtonText 保存按钮文本（可选）
- * @param {string} options.cancelButtonText 取消按钮文本（可选）
- * @param {string} options.saveButtonIcon 保存按钮图标（可选）
- * @param {boolean} options.isDangerButton 保存按钮是否为危险按钮样式（可选，红色背景）
- * @param {boolean} options.disableBackdropAndCloseOnClickOutside 禁用遮罩层和点击外部关闭（可选）
+ * Create a common settings dialog
+ * @param {Object} options Dialog configuration options
+ * @param {string} options.title Dialog title
+ * @param {Function} options.renderContent Function to render dialog content
+ * @param {Function} options.renderNotice Function to render notice area (optional, displayed between title and content)
+ * @param {Function} options.onSave Save button click callback
+ * @param {Function} options.onCancel Cancel button click callback (optional)
+ * @param {boolean} options.isConfirmDialog Whether it is a confirm dialog (optional)
+ * @param {string} options.saveButtonText Save button text (optional)
+ * @param {string} options.cancelButtonText Cancel button text (optional)
+ * @param {string} options.saveButtonIcon Save button icon (optional)
+ * @param {boolean} options.isDangerButton Whether the save button uses danger style (optional, red background)
+ * @param {boolean} options.disableBackdropAndCloseOnClickOutside Disable backdrop and close on click outside (optional)
  */
 export function createSettingsDialog(options) {
     try {
@@ -48,62 +48,62 @@ export function createSettingsDialog(options) {
             renderNotice = null,
             onSave,
             onCancel = null,
-            onClose = null,  // 关闭回调（无论保存还是取消都会调用）
+            onClose = null,  // Close callback (called regardless of save or cancel)
             isConfirmDialog = false,
-            saveButtonText = '保存',
-            cancelButtonText = '取消',
+            saveButtonText = 'Save',
+            cancelButtonText = 'Cancel',
             saveButtonIcon = 'pi-check',
-            isDangerButton = false,  // 是否为危险按钮
+            isDangerButton = false,  // Whether it is a danger button
             dialogClassName = null,
             disableBackdropAndCloseOnClickOutside = false,
-            hideFooter = false,  // 是否隐藏底部按钮
+            hideFooter = false,  // Whether to hide the footer buttons
         } = options;
 
         let overlay = null;
         if (!disableBackdropAndCloseOnClickOutside) {
-            // 创建遮罩层
+            // Create overlay
             overlay = document.createElement('div');
             overlay.className = 'settings-modal-overlay';
             document.body.appendChild(overlay);
         }
 
 
-        // 创建弹窗
+        // Create dialog
         const modal = document.createElement('div');
         modal.className = 'settings-modal';
 
-        // 如果提供了额外的对话框类名，添加到modal
+        // If an additional dialog class name is provided, add it to modal
         if (dialogClassName) {
             modal.classList.add(dialogClassName);
         }
 
-        // 如果是确认对话框，设置特殊样式
+        // If it's a confirm dialog, set special styles
         if (isConfirmDialog) {
-            // 只有在没有提供自定义类名的情况下才设置默认宽度
+            // Only set default width if no custom class name is provided
             if (!dialogClassName) {
                 modal.style.width = 'min(90vw, 400px)';
             }
             modal.style.minHeight = 'auto';
-            // z-index 由 CSS 的 .settings-modal 和 .settings-modal-overlay 统一管理，不需要在 JS 中设置
+            // z-index is managed uniformly by CSS .settings-modal and .settings-modal-overlay, no need to set in JS
         }
 
-        // 表单修改状态
+        // Form modification state
         let isFormModified = false;
 
-        // 内部关闭函数：关闭弹窗并调用 onClose 回调
+        // Internal close function: close the dialog and call the onClose callback
         const closeDialog = () => {
             closeModalWithAnimation(modal, overlay);
-            // 在动画完成后调用 onClose 回调
+            // Call onClose callback after animation completes
             if (onClose) {
                 setTimeout(() => {
                     onClose();
-                }, 300); // 与动画时间匹配
+                }, 300); // Match animation duration
             }
         };
 
-        // 处理关闭弹窗的逻辑
+        // Handle dialog close logic
         const handleCloseModal = async (saveAction) => {
-            // 如果是保存操作，直接保存并关闭，不弹出确认对话框
+            // If it's a save action, save directly and close without showing a confirm dialog
             if (saveAction) {
                 try {
                     await onSave(content);
@@ -111,7 +111,7 @@ export function createSettingsDialog(options) {
                 } catch (error) {
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: "保存失败",
+                        summary: "Save Failed",
                         detail: error.message,
                         life: 3000
                     });
@@ -119,38 +119,38 @@ export function createSettingsDialog(options) {
                 return;
             }
 
-            // 只有在表单被修改、不是确认对话框、且未提供 onCancel 时才显示确认对话框
-            // 如果提供了 onCancel，表示调用者选择跳过二次确认
+            // Only show confirm dialog when form is modified, not a confirm dialog, and no onCancel is provided
+            // If onCancel is provided, it means the caller chose to skip secondary confirmation
             if (isFormModified && !isConfirmDialog && !onCancel) {
-                // 创建确认对话框
+                // Create confirm dialog
                 createSettingsDialog({
-                    title: '确认操作',
+                    title: 'Confirm Action',
                     isConfirmDialog: true,
-                    saveButtonText: '返回',
+                    saveButtonText: 'Back',
                     saveButtonIcon: 'pi-undo',
-                    cancelButtonText: '关闭',
+                    cancelButtonText: 'Close',
                     renderContent: (content) => {
                         content.style.textAlign = 'center';
                         content.style.padding = '1rem';
 
                         const confirmMessage = document.createElement('p');
-                        confirmMessage.textContent = '配置已修改，是否保存？';
+                        confirmMessage.textContent = 'Configuration has been modified. Do you want to save?';
                         confirmMessage.style.margin = '0';
                         confirmMessage.style.fontSize = '1rem';
 
                         content.appendChild(confirmMessage);
                     },
                     onSave: () => {
-                        // 返回按钮只关闭确认对话框，不执行保存操作
-                        // 这里不需要做任何操作，因为默认的对话框关闭逻辑会在点击按钮后执行
+                        // The back button only closes the confirm dialog, does not perform save
+                        // No action needed here, as the default dialog close logic executes after button click
                     },
                     onCancel: () => {
-                        // 关闭主对话框
+                        // Close the main dialog
                         closeDialog();
                     }
                 });
             } else {
-                // 没有修改或是确认对话框或有 onCancel，直接关闭
+                // No modifications, or is a confirm dialog, or has onCancel - close directly
                 if (onCancel && !isConfirmDialog) {
                     onCancel();
                 }
@@ -159,7 +159,7 @@ export function createSettingsDialog(options) {
         };
 
         if (!disableBackdropAndCloseOnClickOutside) {
-            // 点击遮罩层关闭弹窗
+            // Click overlay to close dialog
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     handleCloseModal(false);
@@ -167,7 +167,7 @@ export function createSettingsDialog(options) {
             });
         }
 
-        // 创建弹窗头部
+        // Create dialog header
         const header = document.createElement('div');
         header.className = 'p-dialog-header';
 
@@ -177,7 +177,7 @@ export function createSettingsDialog(options) {
 
         const closeButton = document.createElement('button');
         closeButton.className = 'p-dialog-header-icon p-dialog-header-close p-link';
-        closeButton.setAttribute('aria-label', '关闭');
+        closeButton.setAttribute('aria-label', 'Close');
         closeButton.innerHTML = '<span class="pi pi-times"></span>';
         closeButton.onclick = () => {
             handleCloseModal(false);
@@ -190,7 +190,7 @@ export function createSettingsDialog(options) {
         header.appendChild(titleSpan);
         header.appendChild(headerIcons);
 
-        // 创建通知区域（在标题和内容之间）
+        // Create notice area (between title and content)
         let noticeArea = null;
         if (renderNotice) {
             noticeArea = document.createElement('div');
@@ -198,20 +198,20 @@ export function createSettingsDialog(options) {
             renderNotice(noticeArea);
         }
 
-        // 创建弹窗内容
+        // Create dialog content
         const content = document.createElement('div');
         content.className = 'p-dialog-content';
 
-        // 监听表单变化
+        // Track form changes
         const trackFormChanges = (formElement) => {
-            // 为所有输入元素添加变更监听
+            // Add change listeners to all input elements
             const inputs = formElement.querySelectorAll('input, textarea, select');
             inputs.forEach(input => {
                 const originalValue = input.type === 'checkbox' ? input.checked : input.value;
 
                 input.addEventListener('change', () => {
                     const currentValue = input.type === 'checkbox' ? input.checked : input.value;
-                    // 只有当值真正改变时才标记为已修改
+                    // Only mark as modified when the value actually changes
                     if (currentValue !== originalValue) {
                         isFormModified = true;
                     }
@@ -220,7 +220,7 @@ export function createSettingsDialog(options) {
                 if (input.tagName.toLowerCase() === 'textarea' || input.type === 'text') {
                     input.addEventListener('input', () => {
                         const currentValue = input.value;
-                        // 只有当值真正改变时才标记为已修改
+                        // Only mark as modified when the value actually changes
                         if (currentValue !== originalValue) {
                             isFormModified = true;
                         }
@@ -228,16 +228,16 @@ export function createSettingsDialog(options) {
                 }
             });
 
-            // 监听自定义下拉框变化
+            // Track custom dropdown changes
             const dropdowns = formElement.querySelectorAll('.p-dropdown');
             dropdowns.forEach(dropdown => {
-                // 存储原始选中值
+                // Store original selected value
                 const hiddenSelect = dropdown.querySelector('select');
                 const originalValue = hiddenSelect ? hiddenSelect.value : '';
 
                 const observer = new MutationObserver(() => {
                     const currentValue = hiddenSelect ? hiddenSelect.value : '';
-                    // 只有当值真正改变时才标记为已修改
+                    // Only mark as modified when the value actually changes
                     if (currentValue !== originalValue) {
                         isFormModified = true;
                     }
@@ -246,21 +246,21 @@ export function createSettingsDialog(options) {
             });
         };
 
-        // 渲染内容并跟踪变化
+        // Render content and track changes
         renderContent(content, header);
 
-        // 如果不是确认对话框且内容中有表单，添加变更跟踪
+        // If not a confirm dialog and content contains forms, add change tracking
         if (!isConfirmDialog) {
             const forms = content.querySelectorAll('form');
             forms.forEach(trackFormChanges);
 
-            // 如果没有找到表单，则监视整个内容区域
+            // If no forms found, watch the entire content area
             if (forms.length === 0) {
                 trackFormChanges(content);
             }
         }
 
-        // 创建弹窗底部
+        // Create dialog footer
         const footer = document.createElement('div');
         footer.className = 'p-dialog-footer';
 
@@ -268,10 +268,10 @@ export function createSettingsDialog(options) {
         cancelButton.className = 'p-button p-component p-button-secondary';
         cancelButton.innerHTML = `<span class="p-button-icon-left pi pi-times"></span><span class="p-button-label">${cancelButtonText}</span>`;
 
-        // 为不同类型的对话框设置不同的关闭行为
+        // Set different close behavior for different dialog types
         if (isConfirmDialog) {
             cancelButton.onclick = () => {
-                // 对于确认对话框，"关闭"按钮应执行onCancel回调（该回调负责关闭主窗口），然后关闭自己
+                // For confirm dialogs, the "Close" button should execute onCancel callback (which closes the main window), then close itself
                 if (onCancel) {
                     onCancel();
                 }
@@ -279,37 +279,37 @@ export function createSettingsDialog(options) {
             };
         } else {
             cancelButton.onclick = () => {
-                // 对于普通对话框，使用标准的关闭处理逻辑
+                // For standard dialogs, use the standard close handling logic
                 handleCloseModal(false);
             };
         }
 
         const saveButton = document.createElement('button');
-        // 根据isDangerButton参数设置按钮样式
+        // Set button style based on isDangerButton parameter
         saveButton.className = isDangerButton
             ? 'p-button p-component p-button-danger'
             : 'p-button p-component';
         saveButton.innerHTML = `<span class="p-button-icon-left pi ${saveButtonIcon}"></span><span class="p-button-label">${saveButtonText}</span>`;
         saveButton.onclick = () => {
-            // 如果是确认对话框中的返回按钮，直接关闭确认对话框
+            // If it's the back button in a confirm dialog, close the confirm dialog directly
             if (isConfirmDialog) {
                 try {
-                    // 对于确认对话框，先执行onSave回调，然后关闭弹窗
+                    // For confirm dialogs, execute onSave callback first, then close the dialog
                     const result = onSave && onSave(content);
-                    // 如果onSave返回Promise，等待其完成
+                    // If onSave returns a Promise, wait for it to complete
                     if (result instanceof Promise) {
                         result.then(() => {
                             closeModalWithAnimation(modal, overlay);
                         }).catch(error => {
-                            logger.error(`确认对话框处理失败: ${error.message}`);
+                            logger.error(`Confirm dialog processing failed: ${error.message}`);
                             closeModalWithAnimation(modal, overlay);
                         });
                     } else {
-                        // 普通返回值，直接关闭
+                        // Normal return value, close directly
                         closeModalWithAnimation(modal, overlay);
                     }
                 } catch (error) {
-                    logger.error(`确认对话框处理失败: ${error.message}`);
+                    logger.error(`Confirm dialog processing failed: ${error.message}`);
                     closeModalWithAnimation(modal, overlay);
                 }
             } else {
@@ -320,7 +320,7 @@ export function createSettingsDialog(options) {
         footer.appendChild(cancelButton);
         footer.appendChild(saveButton);
 
-        // 加入拖动功能
+        // Add drag functionality
         let isDragging = false;
         let startX = 0;
         let startY = 0;
@@ -333,17 +333,17 @@ export function createSettingsDialog(options) {
             e.preventDefault();
             isDragging = true;
 
-            // 获取鼠标相对于弹窗的偏移量
+            // Get mouse offset relative to the dialog
             const rect = modal.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
 
-            // 移除居中定位
+            // Remove centered positioning
             modal.style.transform = 'none';
             modal.style.left = rect.left + 'px';
             modal.style.top = rect.top + 'px';
 
-            // 添加拖动状态
+            // Add dragging state
             modal.classList.add('dragging');
 
             document.addEventListener('mousemove', onDrag);
@@ -354,23 +354,23 @@ export function createSettingsDialog(options) {
             if (!isDragging) return;
             e.preventDefault();
 
-            // 计算新位置（考虑鼠标在弹窗内的偏移量）
+            // Calculate new position (considering mouse offset within the dialog)
             let newLeft = e.clientX - offsetX;
             let newTop = e.clientY - offsetY;
 
-            // 获取视口和弹窗尺寸
+            // Get viewport and dialog dimensions
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             const modalRect = modal.getBoundingClientRect();
             const modalWidth = modalRect.width;
             const modalHeight = modalRect.height;
 
-            // 边界检查（保持10px边距）
+            // Boundary check (maintain 10px margin)
             const margin = 10;
             newLeft = Math.max(margin, Math.min(newLeft, viewportWidth - modalWidth - margin));
             newTop = Math.max(margin, Math.min(newTop, viewportHeight - modalHeight - margin));
 
-            // 更新位置
+            // Update position
             modal.style.left = `${newLeft}px`;
             modal.style.top = `${newTop}px`;
         };
@@ -384,30 +384,30 @@ export function createSettingsDialog(options) {
 
         header.addEventListener('mousedown', startDragging);
 
-        // 组装弹窗
+        // Assemble dialog
         modal.appendChild(header);
         if (noticeArea) {
             modal.appendChild(noticeArea);
         }
         modal.appendChild(content);
 
-        // 只有在 hideFooter 为 false 时才添加底部按钮
+        // Only add footer buttons when hideFooter is false
         if (!hideFooter) {
             modal.appendChild(footer);
         }
 
-        // 动态计算 z-index，确保始终在 ComfyUI 弹窗之上
-        // 必须在 appendChild 之前设置，否则动画起始帧会使用 CSS 静态值
+        // Dynamically calculate z-index to ensure it's always above ComfyUI dialogs
+        // Must be set before appendChild, otherwise the animation start frame will use the CSS static value
         const baseZIndex = getComfyUIDialogZIndex() + 10;
         modal.style.zIndex = baseZIndex;
         if (overlay) {
             overlay.style.zIndex = baseZIndex - 1;
         }
 
-        // 显示弹窗和遮罩层
+        // Display dialog and overlay
         document.body.appendChild(modal);
 
-        // 添加显示动画
+        // Add show animation
         requestAnimationFrame(() => {
             modal.classList.add('modal-show');
             if (overlay) {
@@ -417,23 +417,23 @@ export function createSettingsDialog(options) {
 
         return modal;
     } catch (error) {
-        logger.error(`创建设置弹窗失败: ${error.message}`);
+        logger.error(`Failed to create settings dialog: ${error.message}`);
         app.extensionManager.toast.add({
             severity: "error",
-            summary: "创建弹窗失败",
-            detail: error.message || "创建设置弹窗过程中发生错误",
+            summary: "Failed to Create Dialog",
+            detail: error.message || "An error occurred while creating the settings dialog",
             life: 3000
         });
     }
 }
 
 /**
- * 关闭弹窗时添加动画效果
- * @param {HTMLElement} modal 弹窗元素
- * @param {HTMLElement} overlay 遮罩层元素
+ * Add animation effect when closing dialog
+ * @param {HTMLElement} modal Dialog element
+ * @param {HTMLElement} overlay Overlay element
  */
 export function closeModalWithAnimation(modal, overlay) {
-    // 添加关闭动画类
+    // Add close animation class
     modal.classList.remove('modal-show');
     modal.classList.add('modal-hide');
     if (overlay) {
@@ -441,7 +441,7 @@ export function closeModalWithAnimation(modal, overlay) {
         overlay.classList.add('overlay-hide');
     }
 
-    // 等待动画完成后移除弹窗和遮罩层
+    // Wait for animation to complete before removing dialog and overlay
     setTimeout(() => {
         if (modal.parentNode) {
             modal.parentNode.removeChild(modal);
@@ -449,16 +449,16 @@ export function closeModalWithAnimation(modal, overlay) {
         if (overlay && overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
         }
-    }, 300); // 与 CSS transition 时间相匹配
+    }, 300); // Match CSS transition duration
 }
 
 /**
- * 创建表单组
- * @param {string} title 表单组标题
- * @param {Array<{text: string, url: string}>} links 标题右侧的链接数组
- * @param {Object} [options] 额外可选项
- * @param {string} [options.prefixText] 链接前的前缀纯文本（不作为链接，不包在标签内）
- * @returns {HTMLElement} 表单组容器
+ * Create a form group
+ * @param {string} title Form group title
+ * @param {Array<{text: string, url: string}>} links Array of links on the right side of the title
+ * @param {Object} [options] Additional options
+ * @param {string} [options.prefixText] Prefix plain text before links (not wrapped in a link tag)
+ * @returns {HTMLElement} Form group container
  */
 export function createFormGroup(title, links = [], options = {}) {
     const { prefixText = null } = options;
@@ -487,7 +487,7 @@ export function createFormGroup(title, links = [], options = {}) {
         const serviceLinksContainer = document.createElement('div');
         serviceLinksContainer.className = 'settings-service-links';
 
-        // 可选的前缀文本，保持与链接字号一致（不包在<a>标签内）
+        // Optional prefix text, same font size as links (not wrapped in <a> tag)
         if (prefixText) {
             const prefix = document.createElement('span');
             prefix.className = 'settings-service-prefix';
@@ -497,7 +497,7 @@ export function createFormGroup(title, links = [], options = {}) {
 
         links.forEach((linkInfo, index) => {
             if (index > 0) {
-                // 添加分隔符
+                // Add separator
                 const separator = document.createElement('span');
                 separator.textContent = '｜';
                 separator.className = 'settings-service-separator';
@@ -524,41 +524,41 @@ export function createFormGroup(title, links = [], options = {}) {
 }
 
 /**
- * 创建浮动标签输入框组 (PrimeVue FloatLabel variant="on" 风格)
- * @param {string} label 标签文本
- * @param {string} placeholder 占位符文本
- * @param {string} type 输入框类型
- * @returns {Object} 包含 group 和 input 的对象
+ * Create a floating label input group (PrimeVue FloatLabel variant="on" style)
+ * @param {string} label Label text
+ * @param {string} placeholder Placeholder text
+ * @param {string} type Input type
+ * @returns {Object} Object containing group and input
  */
 export function createInputGroup(label, placeholder, type = 'text') {
     const group = document.createElement('div');
     group.className = 'settings-form-group';
 
-    // 创建浮动标签容器
+    // Create floating label container
     const floatContainer = document.createElement('div');
     floatContainer.className = 'float-label-container';
 
-    // 创建输入框
+    // Create input
     const input = document.createElement('input');
     input.className = 'p-inputtext p-component';
     input.type = type;
-    // 使用空格作为 placeholder 以触发 :not(:placeholder-shown) 选择器
+    // Use space as placeholder to trigger :not(:placeholder-shown) selector
     input.placeholder = ' ';
 
-    // 创建浮动标签
+    // Create floating label
     const floatLabel = document.createElement('label');
     floatLabel.textContent = label;
 
-    // 组装结构: input 在前, label 在后 (使用 ~ 选择器)
+    // Assemble structure: input first, label after (using ~ selector)
     floatContainer.appendChild(input);
     floatContainer.appendChild(floatLabel);
 
-    // 如果是数字输入框,添加自定义上下调整按钮
+    // If number input, add custom up/down adjustment buttons
     if (type === 'number') {
         const buttonsContainer = document.createElement('div');
         buttonsContainer.className = 'number-input-buttons';
 
-        // 增加按钮
+        // Increase button
         const increaseBtn = document.createElement('button');
         increaseBtn.className = 'number-input-button';
         increaseBtn.type = 'button';
@@ -569,11 +569,11 @@ export function createInputGroup(label, placeholder, type = 'text') {
             const currentValue = parseFloat(input.value) || 0;
             const newValue = Math.min(currentValue + step, max);
             input.value = newValue;
-            // 触发change事件以保存数据
+            // Trigger change event to save data
             input.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        // 减少按钮
+        // Decrease button
         const decreaseBtn = document.createElement('button');
         decreaseBtn.className = 'number-input-button';
         decreaseBtn.type = 'button';
@@ -584,7 +584,7 @@ export function createInputGroup(label, placeholder, type = 'text') {
             const currentValue = parseFloat(input.value) || 0;
             const newValue = Math.max(currentValue - step, min);
             input.value = newValue;
-            // 触发change事件以保存数据
+            // Trigger change event to save data
             input.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
@@ -599,13 +599,13 @@ export function createInputGroup(label, placeholder, type = 'text') {
 }
 
 /**
- * 创建下拉选择框组 (PrimeVue FloatLabel variant="on" 风格)
- * @param {string} label 标签文本
- * @param {Array<{value: string, text: string}>} options 选项列表
- * @param {string} [initialValue=null] 初始选中的值
- * @param {Object} [config={}] 配置选项
- * @param {boolean} [config.showLabel=true] 是否显示浮动标签
- * @returns {Object} 包含 group 和 select 的对象
+ * Create a dropdown select group (PrimeVue FloatLabel variant="on" style)
+ * @param {string} label Label text
+ * @param {Array<{value: string, text: string}>} options Options list
+ * @param {string} [initialValue=null] Initially selected value
+ * @param {Object} [config={}] Configuration options
+ * @param {boolean} [config.showLabel=true] Whether to show floating label
+ * @returns {Object} Object containing group and select
  */
 export function createSelectGroup(label, options, initialValue = null, config = {}) {
     const { showLabel = true } = config;
@@ -613,13 +613,13 @@ export function createSelectGroup(label, options, initialValue = null, config = 
     const group = document.createElement('div');
     group.className = 'settings-form-group';
 
-    // 创建浮动标签容器
+    // Create floating label container
     const floatContainer = document.createElement('div');
     floatContainer.className = 'float-label-container';
 
     // Main Container
     const dropdownContainer = document.createElement('div');
-    // 增加自定义样式类 pa-dropdown，保留 p-dropdown 以兼容现有逻辑（如脏检查与布局选择器）
+    // Add custom style class pa-dropdown, keep p-dropdown for compatibility with existing logic (e.g. dirty check and layout selectors)
     dropdownContainer.className = 'pa-dropdown p-dropdown p-component w-full';
     dropdownContainer.style.position = 'relative'; // Needed for panel positioning
 
@@ -641,7 +641,7 @@ export function createSelectGroup(label, options, initialValue = null, config = 
     const dropdownPanel = document.createElement('div');
     dropdownPanel.className = 'pa-dropdown-panel p-dropdown-panel p-component settings-modal-dropdown-panel';
     dropdownPanel.style.display = 'none'; // Initially hidden
-    // z-index 由 CSS 的 --settings-dropdown-z-index 变量管理
+    // z-index is managed by the CSS --settings-dropdown-z-index variable
 
     const dropdownItemsWrapper = document.createElement('div');
     dropdownItemsWrapper.className = 'p-dropdown-items-wrapper';
@@ -651,21 +651,21 @@ export function createSelectGroup(label, options, initialValue = null, config = 
     dropdownList.setAttribute('role', 'listbox');
 
     /**
-     * 更新下拉框选项
-     * @param {Array<{value: string, text: string}>} newOptions - 新选项列表
-     * @param {string} [newValue=null] - 新选中的值
+     * Update dropdown options
+     * @param {Array<{value: string, text: string}>} newOptions - New options list
+     * @param {string} [newValue=null] - New selected value
      */
     const updateOptions = (newOptions, newValue = null) => {
-        // 清空现有选项
+        // Clear existing options
         select.innerHTML = '';
         dropdownList.innerHTML = '';
 
         if (!newOptions || newOptions.length === 0) {
-            dropdownLabel.textContent = '暂无选项';
+            dropdownLabel.textContent = 'No options available';
             return;
         }
 
-        // 填充新选项
+        // Populate new options
         newOptions.forEach(opt => {
             const optionEl = document.createElement('option');
             optionEl.value = opt.value;
@@ -693,8 +693,8 @@ export function createSelectGroup(label, options, initialValue = null, config = 
             dropdownList.appendChild(itemEl);
         });
 
-        // 设置选中的值
-        // 如果提供了 newValue 且在选项中，则使用它；否则尝试保持当前值；最后默认首项
+        // Set selected value
+        // If newValue is provided and exists in options, use it; otherwise try to keep current value; finally default to first item
         const currentVal = select.value;
         const valToSet = (newValue !== null && newOptions.some(o => o.value === newValue))
             ? newValue
@@ -705,7 +705,7 @@ export function createSelectGroup(label, options, initialValue = null, config = 
             if (selectedOption) {
                 dropdownLabel.textContent = selectedOption.text;
                 select.value = selectedOption.value;
-                // 设置高亮
+                // Set highlight
                 const initialItem = dropdownList.querySelector(`.p-dropdown-item[data-value="${valToSet}"]`);
                 if (initialItem) {
                     initialItem.classList.add('p-highlight');
@@ -714,7 +714,7 @@ export function createSelectGroup(label, options, initialValue = null, config = 
         }
     };
 
-    // 初始化渲染选项
+    // Initialize and render options
     updateOptions(options, initialValue);
 
     // Assemble dropdown
@@ -725,17 +725,17 @@ export function createSelectGroup(label, options, initialValue = null, config = 
     dropdownContainer.appendChild(dropdownLabel);
     dropdownContainer.appendChild(dropdownTrigger);
 
-    // 根据 showLabel 决定是否创建浮动标签
+    // Decide whether to create floating label based on showLabel
     if (showLabel) {
-        // 创建浮动标签
+        // Create floating label
         const floatLabel = document.createElement('label');
         floatLabel.textContent = label;
 
-        // 组装浮动标签结构: dropdown 在前, label 在后
+        // Assemble floating label structure: dropdown first, label after
         floatContainer.appendChild(dropdownContainer);
         floatContainer.appendChild(floatLabel);
     } else {
-        // 不显示浮动标签，直接添加下拉框
+        // No floating label, add dropdown directly
         floatContainer.appendChild(dropdownContainer);
     }
 
@@ -744,7 +744,7 @@ export function createSelectGroup(label, options, initialValue = null, config = 
     // --- Event Handling ---
     let isOpen = false;
 
-    // 更新面板位置的函数
+    // Function to update panel position
     const updatePanelPosition = () => {
         if (!isOpen) return;
 
@@ -762,26 +762,26 @@ export function createSelectGroup(label, options, initialValue = null, config = 
         dropdownPanel.classList.remove('p-enter-active');
         dropdownContainer.classList.remove('p-dropdown-open', 'p-focus');
 
-        // 移除事件监听器
+        // Remove event listeners
         window.removeEventListener('resize', updatePanelPosition);
         window.removeEventListener('scroll', updatePanelPosition, true);
 
-        // 等待动画完成后再移除面板和事件监听
+        // Wait for animation to complete before removing panel and event listeners
         setTimeout(() => {
             if (dropdownPanel.parentNode === document.body) {
                 document.body.removeChild(dropdownPanel);
             }
             document.removeEventListener('click', handleOutsideClick, true);
-        }, 120); // 与CSS中的transition时间相匹配
+        }, 120); // Match CSS transition duration
     };
 
     const openPanel = () => {
         isOpen = true;
 
-        // 将面板临时附加到 body 上以避免裁切
+        // Temporarily append panel to body to avoid clipping
         document.body.appendChild(dropdownPanel);
 
-        // 计算下拉框相对于视口的位置
+        // Calculate dropdown position relative to viewport
         const rect = dropdownContainer.getBoundingClientRect();
 
         // 设置面板样式
@@ -851,14 +851,14 @@ export function createSelectGroup(label, options, initialValue = null, config = 
  * @param {string} [initialValue=''] 初始值
  * @param {Object} [config={}] 配置选项
  * @param {string} [config.placeholder=''] 输入框占位符
- * @param {string} [config.emptyText='暂无选项'] 无选项时的提示文本
+ * @param {string} [config.emptyText='No options available'] 无选项时的提示文本
  * @param {boolean} [config.showLabel=true] 是否显示浮动标签
  * @returns {Object} 包含 group, input, setValue, getValue, updateOptions 的对象
  */
 export function createComboBoxGroup(label, options = [], initialValue = '', config = {}) {
     const {
         placeholder = '',
-        emptyText = '暂无选项',
+        emptyText = 'No options available',
         showLabel = true
     } = config;
 

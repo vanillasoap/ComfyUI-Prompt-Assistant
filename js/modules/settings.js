@@ -1,6 +1,6 @@
 /**
- * 小助手设置服务
- * 负责管理小助手的设置选项，提供开关控制功能
+ * Assistant Settings Service
+ * Manages assistant settings options and provides toggle control functionality
  */
 
 import { app } from "../../../../scripts/app.js";
@@ -26,27 +26,27 @@ import {
     createLoadingButton
 } from "./uiComponents.js";
 
-// 标记是否是首次加载页面
+// Flag for whether this is the first page load
 let isFirstLoad = true;
 
-// ---服务选择器配置---
+// ---Service Selector Configuration---
 const SERVICE_TYPES = {
     translate: {
-        name: '翻译',
+        name: 'Translate',
         configEndpoint: '/config/translate',
         serviceType: 'translate',
         filterKey: 'llm_models',
         includeBaidu: true
     },
     llm: {
-        name: '提示词优化',
+        name: 'Prompt Enhance',
         configEndpoint: '/config/llm',
         serviceType: 'llm',
         filterKey: 'llm_models',
         includeBaidu: false
     },
     vlm: {
-        name: '图像反推',
+        name: 'Image Caption',
         configEndpoint: '/config/vision',
         serviceType: 'vlm',
         filterKey: 'vlm_models',
@@ -54,22 +54,22 @@ const SERVICE_TYPES = {
     }
 };
 
-// ---服务选择器---
+// ---Service Selector---
 const serviceSelector = {
     _servicesCache: null,
     _cacheTime: 0,
-    _cacheDuration: 2000, // 缓存2秒
+    _cacheDuration: 2000, // Cache for 2 seconds
 
     /**
-     * 清除服务缓存
+     * Clear service cache
      */
     clearCache() {
         this._servicesCache = null;
         this._cacheTime = 0;
-        logger.debug('服务列表缓存已清除');
+        logger.debug('Service list cache cleared');
     },
 
-    // 获取服务列表（带缓存）
+    // Get service list (with cache)
     async getServices(forceRefresh = false) {
         const now = Date.now();
         if (!forceRefresh && this._servicesCache && (now - this._cacheTime) < this._cacheDuration) {
@@ -87,12 +87,12 @@ const serviceSelector = {
                 }
             }
         } catch (error) {
-            logger.error(`获取服务列表失败: ${error.message}`);
+            logger.error(`Failed to get service list: ${error.message}`);
         }
         return [];
     },
 
-    // 获取指定类型的当前服务ID
+    // Get current service ID for specified type
     async getCurrentService(type) {
         const config = SERVICE_TYPES[type];
         if (!config) return null;
@@ -104,12 +104,12 @@ const serviceSelector = {
                 return data.provider || null;
             }
         } catch (error) {
-            logger.error(`获取${config.name}当前服务失败: ${error.message}`);
+            logger.error(`Failed to get current ${config.name} service: ${error.message}`);
         }
         return null;
     },
 
-    // 设置指定类型的服务
+    // Set service for specified type
     async setCurrentService(type, serviceId) {
         const config = SERVICE_TYPES[type];
         if (!config) return false;
@@ -125,9 +125,9 @@ const serviceSelector = {
             });
 
             if (response.ok) {
-                logger.log(`${config.name}服务切换 | 服务ID: ${serviceId}`);
+                logger.log(`${config.name} service switched | Service ID: ${serviceId}`);
 
-                // 派发全局事件通知其他组件同步
+                // Dispatch global event to notify other components to sync
                 window.dispatchEvent(new CustomEvent('pa-service-changed', {
                     detail: { service_type: config.serviceType, service_id: serviceId }
                 }));
@@ -135,12 +135,12 @@ const serviceSelector = {
                 return true;
             }
         } catch (error) {
-            logger.error(`切换${config.name}服务失败: ${error.message}`);
+            logger.error(`Failed to switch ${config.name} service: ${error.message}`);
         }
         return false;
     },
 
-    // 获取指定类型可用的服务选项列表
+    // Get available service options for specified type
     async getServiceOptions(type) {
         const config = SERVICE_TYPES[type];
         if (!config) return [];
@@ -148,12 +148,12 @@ const serviceSelector = {
         const services = await this.getServices();
         const options = [];
 
-        // 添加百度翻译选项（仅翻译类型）
+        // Add Baidu Translate option (translate type only)
         if (config.includeBaidu) {
-            options.push({ value: 'baidu', text: '百度翻译' });
+            options.push({ value: 'baidu', text: 'Baidu Translate' });
         }
 
-        // 过滤并添加其他服务
+        // Filter and add other services
         services
             .filter(service => {
                 const models = service[config.filterKey];
@@ -170,25 +170,25 @@ const serviceSelector = {
     }
 };
 
-// 将服务选择器挂载到全局 app 对象，方便其他模块（如 PromptAssistant.js, imageCaption.js）调用，
-// 同时避免模块间的循环引用问题。
+// Mount service selector to global app object for use by other modules (e.g., PromptAssistant.js, imageCaption.js),
+// also avoiding circular reference issues between modules.
 app.paServiceSelector = serviceSelector;
 
-// ---版本检查工具函数---
+// ---Version Check Utility Functions---
 
-// 版本检查状态缓存
+// Version check state cache
 let versionCheckCache = {
-    checked: false,        // 是否已检查过
-    latestVersion: null,   // 最新版本号
-    hasUpdate: false       // 是否有更新
+    checked: false,        // Whether already checked
+    latestVersion: null,   // Latest version number
+    hasUpdate: false       // Whether an update is available
 };
 
 /**
- * 从 jsDelivr 获取最新版本号（通过读取 pyproject.toml）
- * @returns {Promise<string|null>} 返回最新版本号，格式如 "1.2.3"，失败返回 null
+ * Fetch latest version number from jsDelivr (by reading pyproject.toml)
+ * @returns {Promise<string|null>} Returns latest version number like "1.2.3", or null on failure
  */
 async function fetchLatestVersion() {
-    // 如果已经检查过，直接返回缓存结果
+    // If already checked, return cached result directly
     if (versionCheckCache.checked) {
         return versionCheckCache.latestVersion;
     }
@@ -199,7 +199,7 @@ async function fetchLatestVersion() {
         });
 
         if (!response.ok) {
-            logger.warn(`[版本检查] 请求失败: ${response.status}`);
+            logger.warn(`[Version Check] Request failed: ${response.status}`);
             versionCheckCache.checked = true;
             return null;
         }
@@ -208,30 +208,30 @@ async function fetchLatestVersion() {
         const versionMatch = tomlContent.match(/^version\s*=\s*["']([^"']+)["']/m);
         const version = versionMatch ? versionMatch[1] : null;
 
-        // 缓存检查结果
+        // Cache check result
         versionCheckCache.checked = true;
         versionCheckCache.latestVersion = version;
 
         return version;
     } catch (error) {
-        logger.warn(`[版本检查] 获取失败: ${error.message}`);
+        logger.warn(`[Version Check] Fetch failed: ${error.message}`);
         versionCheckCache.checked = true;
         return null;
     }
 }
 
 /**
- * 比较两个版本号
- * @param {string} v1 - 第一个版本号
- * @param {string} v2 - 第二个版本号
- * @returns {number} v1 > v2 返回 1，v1 < v2 返回 -1，v1 === v2 返回 0
+ * Compare two version numbers
+ * @param {string} v1 - First version number
+ * @param {string} v2 - Second version number
+ * @returns {number} Returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 === v2
  */
 function compareVersion(v1, v2) {
-    // 将版本号分割为数字数组
+    // Split version numbers into arrays of digits
     const parts1 = v1.split('.').map(n => parseInt(n, 10) || 0);
     const parts2 = v2.split('.').map(n => parseInt(n, 10) || 0);
 
-    // 确保两个数组长度相同
+    // Ensure both arrays have the same length
     const maxLength = Math.max(parts1.length, parts2.length);
 
     for (let i = 0; i < maxLength; i++) {
@@ -246,49 +246,49 @@ function compareVersion(v1, v2) {
 }
 
 
-// ====================== 设置管理 ======================
+// ====================== Settings Management ======================
 
 /**
- * 显示API配置弹窗
+ * Show API configuration dialog
  */
 function showAPIConfigModal() {
     try {
-        // 调用API配置管理器的显示弹窗方法
+        // Call API config manager's show dialog method
         apiConfigManager.showAPIConfigModal();
     } catch (error) {
-        logger.error(`打开API配置弹窗失败: ${error.message}`);
+        logger.error(`Failed to open API configuration dialog: ${error.message}`);
         app.extensionManager.toast.add({
             severity: "error",
-            summary: "打开配置失败",
-            detail: error.message || "打开配置弹窗过程中发生错误",
+            summary: "Failed to open configuration",
+            detail: error.message || "An error occurred while opening the configuration dialog",
             life: 3000
         });
     }
 }
 
 /**
- * 显示规则配置弹窗
+ * Show rules configuration dialog
  */
 function showRulesConfigModal() {
     try {
-        // 调用规则配置管理器的显示弹窗方法
+        // Call rules config manager's show dialog method
         rulesConfigManager.showRulesConfigModal();
     } catch (error) {
-        logger.error(`打开规则配置弹窗失败: ${error.message}`);
+        logger.error(`Failed to open rules configuration dialog: ${error.message}`);
         app.extensionManager.toast.add({
             severity: "error",
-            summary: "打开配置失败",
-            detail: error.message || "打开配置弹窗过程中发生错误",
+            summary: "Failed to open configuration",
+            detail: error.message || "An error occurred while opening the configuration dialog",
             life: 3000
         });
     }
 }
 
 /**
- * 创建服务选择器下拉框
- * @param {string} type - 服务类型: 'translate' | 'llm' | 'vlm'
- * @param {string} label - 显示名称
- * @returns {HTMLElement} 设置行元素
+ * Create service selector dropdown
+ * @param {string} type - Service type: 'translate' | 'llm' | 'vlm'
+ * @param {string} label - Display name
+ * @returns {HTMLElement} Settings row element
  */
 function createServiceSelector(type, label) {
     const row = document.createElement("tr");
@@ -300,46 +300,46 @@ function createServiceSelector(type, label) {
 
     const selectCell = document.createElement("td");
 
-    // 创建加载占位容器
+    // Create loading placeholder container
     const container = document.createElement("div");
     container.style.minWidth = "180px";
-    container.innerHTML = '<span style="color: var(--p-text-muted-color); font-size: 12px;">加载中...</span>';
+    container.innerHTML = '<span style="color: var(--p-text-muted-color); font-size: 12px;">Loading...</span>';
 
     selectCell.appendChild(container);
     row.appendChild(selectCell);
 
-    let currentOptions = []; // 存储当前选项引用
-    let updateDropdownOptions = null; // 存储更新函数
+    let currentOptions = []; // Store current options reference
+    let updateDropdownOptions = null; // Store update function
 
     /**
-     * 更新下拉框内容
-     * @param {boolean} force - 是否强制刷新数据
+     * Update dropdown content
+     * @param {boolean} force - Whether to force refresh data
      */
     const updateContent = async (force = false) => {
         try {
             if (force) {
-                // 如果是强制刷新（如配置变更或点击触发），先清除缓存
+                // If force refresh (e.g., config change or click trigger), clear cache first
                 serviceSelector.clearCache();
             }
 
-            // 获取服务列表和当前选中的服务
+            // Get service list and currently selected service
             const [options, currentService] = await Promise.all([
                 serviceSelector.getServiceOptions(type),
                 serviceSelector.getCurrentService(type)
             ]);
 
-            // 如果已经存在下拉框实例，则尝试增量更新
+            // If dropdown instance already exists, try incremental update
             if (updateDropdownOptions) {
                 updateDropdownOptions(options, currentService);
                 currentOptions = options;
                 return;
             }
 
-            // ---首次加载逻辑---
+            // ---First load logic---
             container.innerHTML = '';
 
             if (options.length === 0) {
-                container.innerHTML = '<span style="color: var(--p-text-muted-color); font-size: 12px;">暂无可用服务</span>';
+                container.innerHTML = '<span style="color: var(--p-text-muted-color); font-size: 12px;">No services available</span>';
                 return;
             }
 
@@ -348,21 +348,21 @@ function createServiceSelector(type, label) {
             const { group, select } = res;
             updateDropdownOptions = res.updateOptions;
 
-            // 将 group 的子元素添加到容器
+            // Append group's child elements to the container
             while (group.firstChild) {
                 container.appendChild(group.firstChild);
             }
 
-            // 监听点击/按下事件：当用户准备点击下拉框时，尝试静默同步最新配置
+            // Listen for click/mousedown events: when user is about to click the dropdown, try to silently sync latest config
             const dropdownContainer = container.querySelector('.pa-dropdown');
             if (dropdownContainer) {
                 dropdownContainer.addEventListener('mousedown', () => {
-                    // 点击时触发刷新，但不显示“同步中”以避免干扰 UI
+                    // Trigger refresh on click, but don't show "syncing" to avoid UI disruption
                     updateContent(true);
                 });
             }
 
-            // 监听变更事件
+            // Listen for change events
             select.addEventListener('change', async () => {
                 const newValue = select.value;
                 if (!newValue) return;
@@ -376,16 +376,16 @@ function createServiceSelector(type, label) {
                 try {
                     const success = await serviceSelector.setCurrentService(type, newValue);
                     if (success) {
-                        logger.log(`设置${label}服务 | 服务: ${newValue}`);
+                        logger.log(`Set ${label} service | Service: ${newValue}`);
                     } else {
-                        logger.error(`设置${label}服务失败`);
+                        logger.error(`Failed to set ${label} service`);
                         const oldValue = await serviceSelector.getCurrentService(type);
                         if (oldValue && updateDropdownOptions) {
                             updateDropdownOptions(currentOptions, oldValue);
                         }
                     }
                 } catch (error) {
-                    logger.error(`设置${label}服务异常: ${error.message}`);
+                    logger.error(`Error setting ${label} service: ${error.message}`);
                 } finally {
                     if (dropdown) {
                         dropdown.style.opacity = '';
@@ -395,136 +395,136 @@ function createServiceSelector(type, label) {
             });
 
         } catch (error) {
-            logger.error(`同步${label}配置失败: ${error.message}`);
+            logger.error(`Failed to sync ${label} config: ${error.message}`);
             if (!updateDropdownOptions) {
-                container.innerHTML = '<span style="color: var(--p-red-400); font-size: 12px;">加载失败</span>';
+                container.innerHTML = '<span style="color: var(--p-red-400); font-size: 12px;">Loading failed</span>';
             }
         }
     };
 
-    // 初始加载
+    // Initial load
     updateContent();
 
-    // 监听配置更新事件（当 API 配置管理器修改配置后触发）
+    // Listen for config update events (triggered when API config manager modifies config)
     const onConfigUpdated = () => {
-        logger.debug(`收到配置更新通知，同步${label}状态...`);
+        logger.debug(`Received config update notification, syncing ${label} state...`);
         updateContent(true);
     };
     window.addEventListener('pa-config-updated', onConfigUpdated);
 
-    // 销毁监听器的清理函数（简单处理，因为设置面板通常随页面销毁）
-    // 如果之后有更复杂的组件挂载逻辑，可以在这里返回一个清理函数给外部调用
+    // Cleanup function for destroying listeners (simple handling, as settings panel typically destroyed with page)
+    // If more complex component mounting logic is needed later, a cleanup function can be returned here for external use
 
     return row;
 }
 
 
 /**
- * 注册设置选项
- * 将设置选项添加到ComfyUI设置面板
+ * Register settings options
+ * Add settings options to the ComfyUI settings panel
  */
 export function registerSettings() {
     try {
         app.registerExtension({
             name: "PromptAssistant.Settings",
             settings: [
-                // 总开关 - 独立控制小助手系统级功能
+                // Master switch - independently controls assistant system-level features
                 {
                     id: "PromptAssistant.Features.Enabled",
-                    name: "启用小助手",
-                    category: ["✨提示词小助手", "小助手功能开关", "总开关"],
+                    name: "Enable Assistant",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Master Switch"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "关闭后，提示词小助手所有功能将禁用",
+                    tooltip: "When disabled, all Prompt Assistant features will be turned off",
                     onChange: async (value) => {
                         try {
-                            // 获取当前状态，用于判断是否是初始化
+                            // Get current state to determine if this is initialization
                             const currentState = window.FEATURES.enabled;
 
-                            // 只有状态真正变化时才输出日志
+                            // Only log when state actually changes
                             if (currentState !== value) {
-                                logger.log(`总开关状态变更 | 状态:${value ? "启用" : "禁用"}`);
+                                logger.log(`Master switch state changed | Status: ${value ? "Enabled" : "Disabled"}`);
                             } else {
-                                // 如果状态没有变化，使用调试级别日志
-                                logger.debug(`总开关状态保持不变 | 状态:${value ? "启用" : "禁用"}`);
+                                // If state unchanged, use debug level log
+                                logger.debug(`Master switch state unchanged | Status: ${value ? "Enabled" : "Disabled"}`);
                             }
 
-                            // 更新全局状态
+                            // Update global state
                             window.FEATURES.enabled = value;
 
-                            // 从全局 app 对象获取 promptAssistant 实例
+                            // Get promptAssistant instance from global app object
                             const promptAssistantInstance = app.promptAssistant;
                             const imageCaptionInstance = app.imageCaption;
 
                             if (!promptAssistantInstance) {
-                                logger.error("总开关切换失败 | 错误:未找到PromptAssistant实例");
+                                logger.error("Master switch toggle failed | Error: PromptAssistant instance not found");
                                 return;
                             }
 
-                            // 根据开关状态执行相应操作
+                            // Execute corresponding operations based on switch state
                             if (value) {
-                                // 启用功能
+                                // Enable features
                                 await promptAssistantInstance.toggleGlobalFeature(true, currentState !== value);
                                 if (imageCaptionInstance) {
                                     await imageCaptionInstance.toggleGlobalFeature(true, currentState !== value);
                                 }
 
-                                // 只在状态真正变化且不是首次加载时记录日志和显示提示
+                                // Only log and show toast when state actually changes and not first load
                                 if (currentState !== value) {
-                                    logger.debug("功能启用完成");
-                                    // 只在状态发生变化且不是首次加载时显示提示
+                                    logger.debug("Features enabled successfully");
+                                    // Only show toast when state changes and not first load
                                     if (!isFirstLoad) {
                                         app.extensionManager.toast.add({
                                             severity: "info",
-                                            summary: "提示词小助手已启用",
+                                            summary: "Prompt Assistant enabled",
                                             life: 3000
                                         });
                                     }
                                 }
                             } else {
-                                // 禁用功能
+                                // Disable features
                                 await promptAssistantInstance.toggleGlobalFeature(false, currentState !== value);
                                 if (imageCaptionInstance) {
                                     await imageCaptionInstance.toggleGlobalFeature(false, currentState !== value);
                                 }
 
-                                // 只在状态真正变化且不是首次加载时记录日志和显示提示
+                                // Only log and show toast when state actually changes and not first load
                                 if (currentState !== value) {
-                                    logger.debug("功能禁用完成");
-                                    // 只在状态发生变化且不是首次加载时显示提示
+                                    logger.debug("Features disabled successfully");
+                                    // Only show toast when state changes and not first load
                                     if (!isFirstLoad) {
                                         app.extensionManager.toast.add({
                                             severity: "warn",
-                                            summary: "提示词小助手已禁用",
+                                            summary: "Prompt Assistant disabled",
                                             life: 3000
                                         });
                                     }
                                 }
                             }
 
-                            // 设置首次加载标志为 false，表示已经完成首次加载
+                            // Set first load flag to false, indicating first load is complete
                             isFirstLoad = false;
                         } catch (error) {
-                            logger.error(`总开关切换异常 | 错误:${error.message}`);
+                            logger.error(`Master switch toggle error | Error: ${error.message}`);
                         }
                     }
                 },
 
-                // 小助手创建方式设置
+                // Assistant creation mode setting
                 {
                     id: "PromptAssistant.Settings.CreationMode",
-                    name: "小助手创建方式（提示词）",
-                    category: ["✨提示词小助手", "系统", "提示词小助手创建方式"],
+                    name: "Assistant Creation Mode (Prompt)",
+                    category: ["✨Prompt Assistant", "System", "Prompt Assistant Creation Mode"],
                     type: "combo",
                     options: [
-                        { text: "自动创建", value: "auto" },
-                        { text: "选中节点时创建", value: "manual" }
+                        { text: "Auto Create", value: "auto" },
+                        { text: "Create on Node Select", value: "manual" }
                     ],
                     defaultValue: "auto",
-                    tooltip: "自动创建：节点创建或加载时自动显示小助手；选中节点时创建：仅选中节点时显示",
+                    tooltip: "Auto Create: automatically show assistant when node is created or loaded; Create on Node Select: only show when node is selected",
                     onChange: (value) => {
-                        logger.log(`小助手创建方式变更 | 模式:${value === 'auto' ? '自动创建' : '选中节点时创建'}`);
-                        // 如果切换到自动创建，立即尝试初始化所有节点
+                        logger.log(`Assistant creation mode changed | Mode: ${value === 'auto' ? 'Auto Create' : 'Create on Node Select'}`);
+                        // If switching to auto create, immediately try to initialize all nodes
                         if (value === 'auto' && window.FEATURES.enabled && app.graph) {
                             const nodes = app.graph._nodes || [];
                             nodes.forEach(node => {
@@ -536,21 +536,21 @@ export function registerSettings() {
                     }
                 },
 
-                // 反推小助手创建方式设置
+                // Image Caption assistant creation mode setting
                 {
                     id: "PromptAssistant.Settings.ImageCaptionCreationMode",
-                    name: "小助手创建方式（图像反推）",
-                    category: ["✨提示词小助手", "系统", "图像小助手创建方式"],
+                    name: "Assistant Creation Mode (Image Caption)",
+                    category: ["✨Prompt Assistant", "System", "Image Assistant Creation Mode"],
                     type: "combo",
                     options: [
-                        { text: "自动创建", value: "auto" },
-                        { text: "选中节点时创建", value: "manual" }
+                        { text: "Auto Create", value: "auto" },
+                        { text: "Create on Node Select", value: "manual" }
                     ],
                     defaultValue: "auto",
-                    tooltip: "自动创建：节点创建或加载时自动显示反推小助手；选中节点时创建：仅选中节点时显示",
+                    tooltip: "Auto Create: automatically show Image Caption assistant when node is created or loaded; Create on Node Select: only show when node is selected",
                     onChange: (value) => {
-                        logger.log(`反推小助手创建方式变更 | 模式:${value === 'auto' ? '自动创建' : '选中节点时创建'}`);
-                        // 如果切换到自动创建，立即尝试初始化所有节点
+                        logger.log(`Image Caption assistant creation mode changed | Mode: ${value === 'auto' ? 'Auto Create' : 'Create on Node Select'}`);
+                        // If switching to auto create, immediately try to initialize all nodes
                         if (value === 'auto' && window.FEATURES.enabled && window.FEATURES.imageCaption && app.graph) {
                             const nodes = app.graph._nodes || [];
                             nodes.forEach(node => {
@@ -562,31 +562,31 @@ export function registerSettings() {
                     }
                 },
 
-                // 小助手布局（提示词）
+                // Assistant layout (Prompt)
                 {
                     id: "PromptAssistant.Location",
-                    name: "小助手布局（提示词）",
-                    category: ["✨提示词小助手", "界面", "提示词小助手布局"],
+                    name: "Assistant Layout (Prompt)",
+                    category: ["✨Prompt Assistant", "Interface", "Prompt Assistant Layout"],
                     type: "combo",
                     options: [
-                        // { text: "左上（横向）", value: "top-left-h" },
-                        // { text: "左上（垂直）", value: "top-left-v" },
-                        // { text: "中上（横向）", value: "top-center-h" },
+                        // { text: "Top Left (Horizontal)", value: "top-left-h" },
+                        // { text: "Top Left (Vertical)", value: "top-left-v" },
+                        // { text: "Top Center (Horizontal)", value: "top-center-h" },
                         // { text: "⇗ ━", value: "top-right-h" },
                         // { text: "⇗ ┃", value: "top-right-v" },
-                        { text: "右中（垂直）", value: "right-center-v" },
-                        { text: "右下（横向）", value: "bottom-right-h" },
-                        { text: "右下（垂直）", value: "bottom-right-v" },
-                        { text: "下中（横向）", value: "bottom-center-h" },
-                        { text: "左下（横向）", value: "bottom-left-h" },
-                        // { text: "左下（垂直）", value: "bottom-left-v" },
-                        // { text: "左中（垂直）", value: "left-center-v" }
+                        { text: "Right Center (Vertical)", value: "right-center-v" },
+                        { text: "Bottom Right (Horizontal)", value: "bottom-right-h" },
+                        { text: "Bottom Right (Vertical)", value: "bottom-right-v" },
+                        { text: "Bottom Center (Horizontal)", value: "bottom-center-h" },
+                        { text: "Bottom Left (Horizontal)", value: "bottom-left-h" },
+                        // { text: "Bottom Left (Vertical)", value: "bottom-left-v" },
+                        // { text: "Left Center (Vertical)", value: "left-center-v" }
                     ],
-                    defaultValue: "bottom-right-h", // 默认右下横向
-                    tooltip: "设置提示词小助手在输入框周围的布局和展开方向",
+                    defaultValue: "bottom-right-h", // Default bottom-right horizontal
+                    tooltip: "Set the layout and expansion direction of the Prompt Assistant around the input box",
                     onChange: (value) => {
-                        logger.log(`提示词小助手布局变更 | 布局:${value}`);
-                        // 通知所有实例更新布局（通过 CSS 类处理）
+                        logger.log(`Prompt Assistant layout changed | Layout: ${value}`);
+                        // Notify all instances to update layout (handled via CSS classes)
                         PromptAssistant.instances.forEach(widget => {
                             if (widget.container && widget.container.setAnchorPosition) {
                                 widget.container.setAnchorPosition(value);
@@ -594,21 +594,21 @@ export function registerSettings() {
                         });
                     }
                 },
-                // 小助手位置设置（图像反推）
+                // Assistant position setting (Image Caption)
                 {
                     id: "ImageCaption.Location",
-                    name: "小助手布局（图像反推）",
-                    category: ["✨提示词小助手", "界面", "图像小助手布局"],
+                    name: "Assistant Layout (Image Caption)",
+                    category: ["✨Prompt Assistant", "Interface", "Image Assistant Layout"],
                     type: "combo",
                     options: [
-                        { text: "横", value: "bottom-left-h" },
-                        { text: "竖", value: "bottom-left-v" }
+                        { text: "Horizontal", value: "bottom-left-h" },
+                        { text: "Vertical", value: "bottom-left-v" }
                     ],
-                    defaultValue: "bottom-left-h", // 默认横向
-                    tooltip: "设置图像反推小助手的展开方向（位置固定在左下角）",
+                    defaultValue: "bottom-left-h", // Default horizontal
+                    tooltip: "Set the expansion direction of the Image Caption assistant (position fixed at bottom-left)",
                     onChange: (value) => {
-                        logger.log(`图像反推小助手布局变更 | 布局:${value}`);
-                        // 通知所有实例更新布局
+                        logger.log(`Image Caption assistant layout changed | Layout: ${value}`);
+                        // Notify all instances to update layout
                         ImageCaption.instances.forEach(assistant => {
                             if (assistant.container && assistant.container.setAnchorPosition) {
                                 assistant.container.setAnchorPosition(value);
@@ -617,12 +617,12 @@ export function registerSettings() {
                     },
                 },
 
-                // API 配置按钮
+                // API configuration button
                 {
                     id: "PromptAssistant.Features.APIConfig",
-                    name: "百度和大语言模型API配置",
-                    category: ["✨提示词小助手", " 配置", "API配置"],
-                    tooltip: "配置或修改API信息",
+                    name: "Baidu and LLM API Configuration",
+                    category: ["✨Prompt Assistant", " Configuration", "API Configuration"],
+                    tooltip: "Configure or modify API information",
                     type: () => {
                         const row = document.createElement("tr");
                         row.className = "promptwidget-settings-row";
@@ -632,9 +632,9 @@ export function registerSettings() {
                         row.appendChild(labelCell);
 
                         const buttonCell = document.createElement("td");
-                        const button = createLoadingButton("API管理器", async () => {
+                        const button = createLoadingButton("API Manager", async () => {
                             showAPIConfigModal();
-                        }, false); // 设置 showSuccessToast 为 false
+                        }, false); // Set showSuccessToast to false
 
                         buttonCell.appendChild(button);
                         row.appendChild(buttonCell);
@@ -642,269 +642,269 @@ export function registerSettings() {
                     }
                 },
 
-                // ---服务类别设置---
-                // 翻译服务选择
+                // ---Service category settings---
+                // Translate service selection
                 {
                     id: "PromptAssistant.Service.Translate",
-                    name: "选择翻译服务",
-                    category: ["✨提示词小助手", " 配置", "翻译"],
-                    tooltip: "选择一个服务商用于翻译，也可以通过右键翻译按钮来切换",
+                    name: "Select Translate Service",
+                    category: ["✨Prompt Assistant", " Configuration", "Translate"],
+                    tooltip: "Select a service provider for translation; you can also switch by right-clicking the Translate button",
                     type: () => {
-                        return createServiceSelector('translate', '翻译');
+                        return createServiceSelector('translate', 'Translate');
                     }
                 },
 
-                // 提示词优化服务选择
+                // Prompt Enhance service selection
                 {
                     id: "PromptAssistant.Service.LLM",
-                    name: "选择提示词优化服务",
-                    category: ["✨提示词小助手", " 配置", "提示词优化"],
-                    tooltip: "选择一个服务商用于提示词优化，也可以通过右键提示词优化按钮来切换",
+                    name: "Select Prompt Enhance Service",
+                    category: ["✨Prompt Assistant", " Configuration", "Prompt Enhance"],
+                    tooltip: "Select a service provider for prompt enhancement; you can also switch by right-clicking the Enhance button",
                     type: () => {
-                        return createServiceSelector('llm', '提示词优化');
+                        return createServiceSelector('llm', 'Prompt Enhance');
                     }
                 },
 
-                // 图像反推服务选择
+                // Image Caption service selection
                 {
                     id: "PromptAssistant.Service.VLM",
-                    name: "选择图像反推服务",
-                    category: ["✨提示词小助手", " 配置", "图像反推"],
-                    tooltip: "选择一个服务商用于图像反推，也可以通过右键反推按钮来切换",
+                    name: "Select Image Caption Service",
+                    category: ["✨Prompt Assistant", " Configuration", "Image Caption"],
+                    tooltip: "Select a service provider for image captioning; you can also switch by right-clicking the Caption button",
                     type: () => {
-                        return createServiceSelector('vlm', '图像反推');
+                        return createServiceSelector('vlm', 'Image Caption');
                     }
                 },
 
-                // 历史功能（包含历史、撤销、重做按钮）
+                // History feature (includes history, undo, redo buttons)
                 {
                     id: "PromptAssistant.Features.History",
-                    name: "启用历史功能",
-                    category: ["✨提示词小助手", "小助手功能开关", "历史功能"],
+                    name: "Enable History Feature",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "History Feature"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭历史、撤销、重做功能",
+                    tooltip: "Enable or disable history, undo, and redo features",
                     onChange: (value) => {
                         const oldValue = FEATURES.history;
                         FEATURES.history = value;
-                        handleFeatureChange('历史功能', value, oldValue);
-                        logger.log(`历史功能 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('History Feature', value, oldValue);
+                        logger.log(`History Feature - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 标签工具
+                // Tags tool
                 {
                     id: "PromptAssistant.Features.Tag",
-                    name: "启用标签工具",
-                    category: ["✨提示词小助手", "小助手功能开关", "标签功能"],
+                    name: "Enable Tags Tool",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Tags Feature"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭标签工具功能",
+                    tooltip: "Enable or disable the tags tool feature",
                     onChange: (value) => {
                         const oldValue = FEATURES.tag;
                         FEATURES.tag = value;
-                        handleFeatureChange('标签工具', value, oldValue);
-                        logger.log(`标签工具 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('Tags Tool', value, oldValue);
+                        logger.log(`Tags Tool - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 扩写功能
+                // Enhance feature
                 {
                     id: "PromptAssistant.Features.Expand",
-                    name: "启用提示词优化功能",
-                    category: ["✨提示词小助手", "小助手功能开关", "提示词优化功能"],
+                    name: "Enable Prompt Enhance Feature",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Prompt Enhance Feature"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭提示词优化功能",
+                    tooltip: "Enable or disable the prompt enhance feature",
                     onChange: (value) => {
                         const oldValue = FEATURES.expand;
                         FEATURES.expand = value;
-                        handleFeatureChange('提示词优化功能', value, oldValue);
-                        logger.log(`提示词优化功能 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('Prompt Enhance Feature', value, oldValue);
+                        logger.log(`Prompt Enhance Feature - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 翻译功能
+                // Translate feature
                 {
                     id: "PromptAssistant.Features.Translate",
-                    name: "启用翻译功能",
-                    category: ["✨提示词小助手", "小助手功能开关", "翻译功能"],
+                    name: "Enable Translate Feature",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Translate Feature"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭翻译功能",
+                    tooltip: "Enable or disable the translate feature",
                     onChange: (value) => {
                         const oldValue = FEATURES.translate;
                         FEATURES.translate = value;
-                        handleFeatureChange('翻译功能', value, oldValue);
-                        logger.log(`翻译功能 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('Translate Feature', value, oldValue);
+                        logger.log(`Translate Feature - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 使用翻译缓存功能
+                // Use translate cache feature
                 {
                     id: "PromptAssistant.Features.UseTranslateCache",
-                    name: "使用翻译缓存",
-                    category: ["✨提示词小助手", " 翻译功能设置", "翻译缓存"],
+                    name: "Use Translate Cache",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Translate Cache"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启后，如果翻译内容翻译过，则使用历史翻译结果，避免相同内容重复翻译改变原意。如果需要重新翻译，请随便加一个空格即可跳过缓存。",
+                    tooltip: "When enabled, previously translated content will use cached results to avoid re-translating identical content. To force re-translation, simply add a space to bypass the cache.",
                     onChange: (value) => {
                         const oldValue = FEATURES.useTranslateCache;
                         FEATURES.useTranslateCache = value;
-                        logger.log(`使用翻译缓存 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Translate Cache - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 混合语言缓存选项
+                // Mixed language cache option
                 {
                     id: "PromptAssistant.Features.CacheMixedLangTranslation",
-                    name: "混合语言翻译进行缓存",
-                    category: ["✨提示词小助手", " 翻译功能设置", "混合语言缓存"],
+                    name: "Cache Mixed Language Translations",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Mixed Language Cache"],
                     type: "boolean",
                     defaultValue: false,
-                    tooltip: "关闭时，中英文混合内容的翻译结果不会写入缓存，避免污染缓存。开启后会正常缓存。",
+                    tooltip: "When disabled, translation results of mixed Chinese-English content will not be written to cache, avoiding cache pollution. When enabled, caching works normally.",
                     onChange: (value) => {
                         FEATURES.cacheMixedLangTranslation = value;
-                        logger.log(`混合语言缓存 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Mixed Language Cache - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 混合语言翻译规则
+                // Mixed language translation rules
                 {
                     id: "PromptAssistant.Features.MixedLangTranslateRule",
-                    name: "混合语言翻译规则",
-                    category: ["✨提示词小助手", " 翻译功能设置", "混合语言规则"],
+                    name: "Mixed Language Translation Rules",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Mixed Language Rules"],
                     type: "combo",
                     options: [
-                        { text: "翻译成英文", value: "to_en" },
-                        { text: "翻译成中文", value: "to_zh" },
-                        { text: "自动翻译小比例语言", value: "auto_minor" },
-                        { text: "自动翻译大比例语言", value: "auto_major" }
+                        { text: "Translate to English", value: "to_en" },
+                        { text: "Translate to Chinese", value: "to_zh" },
+                        { text: "Auto-translate minority language", value: "auto_minor" },
+                        { text: "Auto-translate majority language", value: "auto_major" }
                     ],
                     defaultValue: "to_en",
-                    tooltip: "根据个人使用偏好设置混合中英文内容的翻译规则",
+                    tooltip: "Set translation rules for mixed Chinese-English content based on personal preference",
                     onChange: (value) => {
                         FEATURES.mixedLangTranslateRule = value;
-                        logger.log(`混合语言翻译规则 - 已设置为:${value}`);
+                        logger.log(`Mixed Language Translation Rules - set to: ${value}`);
                     }
                 },
 
-                // 翻译格式化选项
+                // Translation formatting options
                 {
                     id: "PromptAssistant.Features.TranslateFormatPunctuation",
-                    name: "始终使用半角标点符号",
-                    category: ["✨提示词小助手", " 翻译功能设置", "标点处理"],
+                    name: "Always Use Half-width Punctuation",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Punctuation Handling"],
                     type: "boolean",
                     defaultValue: false,
-                    tooltip: "打开后，翻译结果会自动将中文标点符号替换成英文标点符号",
+                    tooltip: "When enabled, translation results will automatically replace Chinese punctuation with English punctuation",
                     onChange: (value) => {
                         FEATURES.translateFormatPunctuation = value;
-                        logger.log(`标点符号转换 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Punctuation Conversion - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
                 {
                     id: "PromptAssistant.Features.TranslateFormatSpace",
-                    name: "自动移除多余空格",
-                    category: ["✨提示词小助手", " 翻译功能设置", "空格处理"],
+                    name: "Auto-remove Extra Spaces",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Space Handling"],
                     type: "boolean",
                     defaultValue: false,
-                    tooltip: "打开后，翻译结果会自动移除多余空格",
+                    tooltip: "When enabled, translation results will automatically remove extra spaces",
                     onChange: (value) => {
                         FEATURES.translateFormatSpace = value;
-                        logger.log(`移除多余空格 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Remove Extra Spaces - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
                 {
                     id: "PromptAssistant.Features.TranslateFormatDots",
-                    name: "移除多余连续点号",
-                    category: ["✨提示词小助手", " 翻译功能设置", "点号处理"],
+                    name: "Remove Redundant Consecutive Dots",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Dots Handling"],
                     type: "boolean",
                     defaultValue: false,
-                    tooltip: "打开后，翻译结果会将多余的“......”统一为“...”",
+                    tooltip: "When enabled, translation results will normalize excessive '......' to '...'",
                     onChange: (value) => {
                         FEATURES.translateFormatDots = value;
-                        logger.log(`处理连续点号 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Handle Consecutive Dots - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
                 {
                     id: "PromptAssistant.Features.TranslateFormatNewline",
-                    name: "保留换行符",
-                    category: ["✨提示词小助手", " 翻译功能设置", "换行处理"],
+                    name: "Preserve Line Breaks",
+                    category: ["✨Prompt Assistant", " Translate Settings", "Line Break Handling"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "打开后，翻译结果会尽量保持原文的换行，避免翻译后丢失段落",
+                    tooltip: "When enabled, translation results will try to maintain the original line breaks, avoiding loss of paragraph structure after translation",
                     onChange: (value) => {
                         FEATURES.translateFormatNewline = value;
-                        logger.log(`保留换行符 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Preserve Line Breaks - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
 
 
-                // 图像反推功能
+                // Image Caption feature
                 {
                     id: "PromptAssistant.Features.ImageCaption",
-                    name: "启用图像反推功能",
-                    category: ["✨提示词小助手", "小助手功能开关", "图像反推"],
+                    name: "Enable Image Caption Feature",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Image Caption"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭图像反推提示词功能",
+                    tooltip: "Enable or disable the image caption prompt feature",
                     onChange: (value) => {
                         const oldValue = FEATURES.imageCaption;
                         FEATURES.imageCaption = value;
-                        handleFeatureChange('图像反推', value, oldValue);
-                        logger.log(`图像反推功能 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('Image Caption', value, oldValue);
+                        logger.log(`Image Caption Feature - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 节点帮助翻译功能
+                // Node help translation feature
                 {
                     id: "PromptAssistant.Features.NodeHelpTranslator",
-                    name: "启用节点信息翻译",
-                    category: ["✨提示词小助手", "小助手功能开关", "节点信息翻译"],
+                    name: "Enable Node Info Translation",
+                    category: ["✨Prompt Assistant", "Assistant Feature Toggles", "Node Info Translation"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启或关闭ComfyUI侧边栏节点帮助文档的翻译功能",
+                    tooltip: "Enable or disable translation of ComfyUI sidebar node help documentation",
                     onChange: (value) => {
                         const oldValue = FEATURES.nodeHelpTranslator;
                         FEATURES.nodeHelpTranslator = value;
-                        handleFeatureChange('节点信息翻译', value, oldValue);
-                        logger.log(`节点信息翻译功能 - 已${value ? "启用" : "禁用"}`);
+                        handleFeatureChange('Node Info Translation', value, oldValue);
+                        logger.log(`Node Info Translation Feature - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 系统设置
+                // System settings
                 {
                     id: "PromptAssistant.Settings.LogLevel",
-                    name: "日志级别",
-                    category: ["✨提示词小助手", "系统", "日志级别"],
+                    name: "Log Level",
+                    category: ["✨Prompt Assistant", "System", "Log Level"],
                     type: "hidden",
                     defaultValue: "0",
                     options: [
-                        { text: "错误日志", value: "0" },
-                        { text: "基础日志", value: "1" },
-                        { text: "详细日志", value: "2" }
+                        { text: "Error Logs", value: "0" },
+                        { text: "Basic Logs", value: "1" },
+                        { text: "Verbose Logs", value: "2" }
                     ],
-                    tooltip: "设置日志输出级别：错误日志(仅错误)、基础日志(错误+基础信息)、详细日志(错误+基础信息+调试信息)",
+                    tooltip: "Set log output level: Error Logs (errors only), Basic Logs (errors + basic info), Verbose Logs (errors + basic info + debug info)",
                     onChange: (value) => {
                         const oldValue = window.FEATURES.logLevel;
                         window.FEATURES.logLevel = parseInt(value);
                         logger.setLevel(window.FEATURES.logLevel);
-                        logger.log(`日志级别已更新 | 原级别:${oldValue} | 新级别:${value}`);
+                        logger.log(`Log level updated | Previous: ${oldValue} | New: ${value}`);
                     }
                 },
 
-                // 显示流式输出进度
+                // Show streaming output progress
                 {
                     id: "PromptAssistant.Settings.ShowStreamingProgress",
-                    name: "控制台流式输出进度日志",
-                    category: ["✨提示词小助手", "系统", "终端日志"],
+                    name: "Console Streaming Progress Logs",
+                    category: ["✨Prompt Assistant", "System", "Terminal Logs"],
                     type: "boolean",
                     defaultValue: false,
-                    tooltip: "开启后，控制台会显示流式输出过程，在某些终端可能导致刷屏；关闭后只显示静态的'生成中...'。",
+                    tooltip: "When enabled, the console will show streaming output progress, which may cause screen flooding on some terminals; when disabled, only shows a static 'Generating...' message.",
                     onChange: async (value) => {
                         FEATURES.showStreamingProgress = value;
-                        // 通知后端更新设置
+                        // Notify backend to update settings
                         try {
                             await fetch(APIService.getApiUrl('/settings/streaming_progress'), {
                                 method: 'POST',
@@ -912,55 +912,55 @@ export function registerSettings() {
                                 body: JSON.stringify({ enabled: value })
                             });
                         } catch (error) {
-                            logger.error(`更新流式进度设置失败: ${error.message}`);
+                            logger.error(`Failed to update streaming progress setting: ${error.message}`);
                         }
-                        logger.log(`流式输出进度 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Streaming Progress - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
-                // 流式输出开关
+                // Streaming output toggle
                 {
                     id: "PromptAssistant.Settings.EnableStreaming",
-                    name: "流式输出开关",
-                    category: ["✨提示词小助手", "系统", "流式体验"],
+                    name: "Streaming Output Toggle",
+                    category: ["✨Prompt Assistant", "System", "Streaming Experience"],
                     type: "boolean",
                     defaultValue: true,
-                    tooltip: "开启时，翻译、扩写、识别等功能将以逐字生成的流式效果显示；关闭时则恢复为全部生成后一次性显示的阻塞模式。",
+                    tooltip: "When enabled, translate, enhance, caption and other features will display with streaming character-by-character generation effect; when disabled, results will be displayed all at once after full generation.",
                     onChange: (value) => {
                         FEATURES.enableStreaming = value;
-                        logger.log(`流式输出开关 - 已${value ? "启用" : "禁用"}`);
+                        logger.log(`Streaming Output Toggle - ${value ? "Enabled" : "Disabled"}`);
                     }
                 },
 
                 {
                     id: "PromptAssistant.Settings.IconOpacity",
-                    name: " 小助手图标不透明度",
-                    category: ["✨提示词小助手", "界面", "小助手图标"],
+                    name: " Assistant Icon Opacity",
+                    category: ["✨Prompt Assistant", "Interface", "Assistant Icon"],
                     type: "slider",
                     min: 0,
                     max: 100,
                     step: 1,
                     defaultValue: 20,
-                    tooltip: "设置折叠后小助手图标的不透明度",
+                    tooltip: "Set the opacity of the collapsed assistant icon",
                     onChange: (value) => {
-                        // 将0-100的值转换为0-1的透明度
+                        // Convert 0-100 value to 0-1 opacity
                         const opacity = value * 0.01;
                         document.documentElement.style.setProperty('--assistant-icon-opacity', opacity);
-                        logger.log(`小助手图标不透明度已更新 | 值:${value}% | 透明度:${opacity}`);
+                        logger.log(`Assistant icon opacity updated | Value: ${value}% | Opacity: ${opacity}`);
                     },
                     onLoad: (value) => {
-                        // 初始化时应用默认值
+                        // Apply default value on initialization
                         const opacity = value * 0.01;
                         document.documentElement.style.setProperty('--assistant-icon-opacity', opacity);
-                        logger.debug(`小助手图标不透明度初始化 | 值:${value}% | 透明度:${opacity}`);
+                        logger.debug(`Assistant icon opacity initialized | Value: ${value}% | Opacity: ${opacity}`);
                     }
                 },
 
                 {
                     id: "PromptAssistant.Settings.ClearCache",
-                    name: "清理历史、标签、翻译缓存",
-                    category: ["✨提示词小助手", "系统", "清理缓存"],
-                    tooltip: "清理所有缓存，包括历史记录、标签、翻译缓存、节点文档翻译缓存",
+                    name: "Clear History, Tags, and Translate Cache",
+                    category: ["✨Prompt Assistant", "System", "Clear Cache"],
+                    tooltip: "Clear all caches including history records, tags, translate cache, and node documentation translate cache",
                     type: () => {
                         const row = document.createElement("tr");
                         row.className = "promptwidget-settings-row";
@@ -970,35 +970,35 @@ export function registerSettings() {
                         row.appendChild(labelCell);
 
                         const buttonCell = document.createElement("td");
-                        const button = createLoadingButton("清理所有缓存", async () => {
+                        const button = createLoadingButton("Clear All Cache", async () => {
                             try {
-                                // 获取清理前的缓存统计
+                                // Get cache stats before clearing
                                 const beforeStats = {
                                     history: HistoryCacheService.getHistoryStats(),
                                     tags: 0,
                                     translate: TranslateCacheService.getTranslateCacheStats(),
-                                    nodeHelpTranslate: 0 // 节点文档翻译缓存
+                                    nodeHelpTranslate: 0 // Node documentation translate cache
                                 };
 
-                                // 统计所有标签数量
+                                // Count all tags
                                 const tagCacheKeys = Object.keys(localStorage)
                                     .filter(key => key.startsWith(CACHE_CONFIG.TAG_KEY_PREFIX));
 
-                                // 计算所有缓存中的标签总数
+                                // Calculate total tag count across all caches
                                 tagCacheKeys.forEach(key => {
                                     try {
                                         const cacheData = JSON.parse(localStorage.getItem(key));
                                         if (cacheData && typeof cacheData === 'object') {
-                                            // 获取缓存中的标签数量
+                                            // Get tag count in cache
                                             const tagCount = Object.keys(cacheData).length;
                                             beforeStats.tags += tagCount;
                                         }
                                     } catch (e) {
-                                        // 移除错误日志，静默处理解析错误
+                                        // Remove error log, silently handle parse errors
                                     }
                                 });
 
-                                // 统计节点文档翻译缓存数量
+                                // Count node documentation translate cache entries
                                 try {
                                     const nodeHelpCache = sessionStorage.getItem('pa_node_help_translations');
                                     if (nodeHelpCache) {
@@ -1006,48 +1006,48 @@ export function registerSettings() {
                                         beforeStats.nodeHelpTranslate = Object.keys(parsed).length;
                                     }
                                 } catch (e) {
-                                    // 静默处理
+                                    // Silent handling
                                 }
 
-                                // 执行历史记录清理操作
+                                // Execute history clearing operation
                                 HistoryCacheService.clearAllHistory();
 
-                                // 清理所有标签缓存
+                                // Clear all tag caches
                                 TagCacheService.clearAllTagCache();
 
-                                // 清理翻译缓存
+                                // Clear translate cache
                                 TranslateCacheService.clearAllTranslateCache();
 
-                                // 清理节点文档翻译缓存（sessionStorage）
+                                // Clear node documentation translate cache (sessionStorage)
                                 sessionStorage.removeItem('pa_node_help_translations');
 
-                                // 清理旧版本的标签缓存（以PromptAssistant_tag_cache_开头的所有记录）
+                                // Clear legacy tag caches (all records starting with PromptAssistant_tag_cache_)
                                 Object.keys(localStorage)
                                     .filter(key => key.startsWith('PromptAssistant_tag_cache_'))
                                     .forEach(key => localStorage.removeItem(key));
 
-                                // 清除1.0.3以前版本遗留的三项配置信息，避免泄露
+                                // Clear three legacy config entries from versions before 1.0.3 to prevent leakage
                                 localStorage.removeItem("PromptAssistant_Settings_llm_api_key");
                                 localStorage.removeItem("PromptAssistant_Settings_baidu_translate_secret");
                                 localStorage.removeItem("PromptAssistant_Settings_baidu_translate_appid");
 
-                                // 获取清理后的缓存统计
+                                // Get cache stats after clearing
                                 const afterStats = {
                                     history: HistoryCacheService.getHistoryStats(),
-                                    tags: 0, // 清理后标签数应该为0
+                                    tags: 0, // Tag count should be 0 after clearing
                                     translate: TranslateCacheService.getTranslateCacheStats()
                                 };
 
-                                // 计算清理数量
+                                // Calculate cleared counts
                                 const clearedHistory = beforeStats.history.total - afterStats.history.total;
                                 const clearedTags = beforeStats.tags;
                                 const clearedTranslate = beforeStats.translate.total - afterStats.translate.total;
                                 const clearedNodeHelp = beforeStats.nodeHelpTranslate;
 
-                                // 只输出最终统计结果
-                                logger.log(`缓存清理完成 | 历史记录: ${clearedHistory}条 | 标签: ${clearedTags}个 | 翻译: ${clearedTranslate}条 | 节点文档: ${clearedNodeHelp}个`);
+                                // Output only final statistics
+                                logger.log(`Cache clearing complete | History: ${clearedHistory} entries | Tags: ${clearedTags} items | Translations: ${clearedTranslate} entries | Node docs: ${clearedNodeHelp} items`);
 
-                                // 更新所有实例的撤销/重做按钮状态
+                                // Update undo/redo button state for all instances
                                 PromptAssistant.instances.forEach((instance) => {
                                     if (instance && instance.nodeId && instance.inputId) {
                                         UIToolkit.updateUndoRedoButtonState(instance, HistoryCacheService);
@@ -1055,8 +1055,8 @@ export function registerSettings() {
                                 });
 
                             } catch (error) {
-                                // 简化错误日志
-                                logger.error(`缓存清理失败`);
+                                // Simplified error log
+                                logger.error(`Cache clearing failed`);
                                 throw error;
                             }
                         });
@@ -1069,11 +1069,11 @@ export function registerSettings() {
 
 
 
-                // 关于插件信息
+                // About plugin info
                 {
                     id: "PromptAssistant.Settings.About",
-                    name: "关于",
-                    category: ["✨提示词小助手", " ✨提示词小助手"],
+                    name: "About",
+                    category: ["✨Prompt Assistant", " ✨Prompt Assistant"],
                     type: () => {
                         const row = document.createElement("tr");
                         row.className = "promptwidget-settings-row";
@@ -1082,7 +1082,7 @@ export function registerSettings() {
                         cell.style.display = "flex";
                         cell.style.alignItems = "center";
                         cell.style.gap = "12px";
-                        // 版本徽标容器（整体可点击跳转最新版本）
+                        // Version badge container (entire area clickable to navigate to latest release)
                         const versionLink = document.createElement("a");
                         versionLink.href = "https://github.com/yawiii/comfyui_prompt_assistant/releases/latest";
                         versionLink.target = "_blank";
@@ -1097,15 +1097,15 @@ export function registerSettings() {
                         versionContainer.style.gap = "8px";
                         versionLink.appendChild(versionContainer);
 
-                        // 版本徽标
+                        // Version badge
                         const versionBadge = document.createElement("img");
                         versionBadge.alt = "Version";
                         versionBadge.style.display = "block";
                         versionBadge.style.height = "20px";
 
-                        // 从全局变量获取版本号
+                        // Get version number from global variable
                         if (!window.PromptAssistant_Version) {
-                            logger.error("未找到版本号，徽标将无法正确显示");
+                            logger.error("Version number not found, badge will not display correctly");
                             versionBadge.src = `https://img.shields.io/badge/%E7%89%88%E6%9C%AC-%E6%9C%AA%E7%9F%A5-red?style=flat`;
                             versionContainer.appendChild(versionBadge);
                         } else {
@@ -1113,42 +1113,42 @@ export function registerSettings() {
                             versionBadge.src = `https://img.shields.io/badge/%E7%89%88%E6%9C%AC-${currentVersion}-green?style=flat`;
                             versionContainer.appendChild(versionBadge);
 
-                            // 使用缓存检查版本，避免重复请求
+                            // Use cache to check version, avoid repeated requests
                             if (versionCheckCache.checked && versionCheckCache.hasUpdate) {
-                                // 已检查过且有更新，直接应用缓存的结果
+                                // Already checked and update available, apply cached result directly
                                 const latestVersion = versionCheckCache.latestVersion;
-                                const labelEncoded = encodeURIComponent("有新版本");
+                                const labelEncoded = encodeURIComponent("New Version");
                                 const messageEncoded = encodeURIComponent(`${currentVersion}→${latestVersion}`);
                                 versionBadge.src = `https://img.shields.io/badge/${labelEncoded}-${messageEncoded}-orange?style=flat&labelColor=555555`;
                                 versionBadge.style.cursor = "pointer";
-                                versionBadge.title = `当前版本: ${currentVersion}\n最新版本: ${latestVersion}\n点击前往下载`;
+                                versionBadge.title = `Current version: ${currentVersion}\nLatest version: ${latestVersion}\nClick to download`;
                             } else if (!versionCheckCache.checked) {
-                                // 首次检查，发起异步请求
+                                // First check, initiate async request
                                 fetchLatestVersion().then(latestVersion => {
                                     if (latestVersion && compareVersion(latestVersion, currentVersion) > 0) {
                                         versionCheckCache.hasUpdate = true;
-                                        const labelEncoded = encodeURIComponent("有新版本");
+                                        const labelEncoded = encodeURIComponent("New Version");
                                         const messageEncoded = encodeURIComponent(`${currentVersion}→${latestVersion}`);
                                         versionBadge.src = `https://img.shields.io/badge/${labelEncoded}-${messageEncoded}-orange?style=flat&labelColor=555555`;
                                         versionBadge.style.cursor = "pointer";
-                                        versionBadge.title = `当前版本: ${currentVersion}\n最新版本: ${latestVersion}\n点击前往下载`;
-                                        logger.log(`[版本检查] 发现新版本: ${currentVersion} → ${latestVersion}`);
+                                        versionBadge.title = `Current version: ${currentVersion}\nLatest version: ${latestVersion}\nClick to download`;
+                                        logger.log(`[Version Check] New version found: ${currentVersion} → ${latestVersion}`);
                                     } else if (latestVersion) {
-                                        versionBadge.title = `当前已是最新版本: ${currentVersion}`;
-                                        logger.debug(`[版本检查] 当前版本: ${currentVersion}`);
+                                        versionBadge.title = `Already on latest version: ${currentVersion}`;
+                                        logger.debug(`[Version Check] Current version: ${currentVersion}`);
                                     }
                                 }).catch(error => {
-                                    logger.warn(`[版本检查] 出错: ${error.message}`);
+                                    logger.warn(`[Version Check] Error: ${error.message}`);
                                 });
                             } else {
-                                // 已检查过但没有更新
-                                versionBadge.title = `当前已是最新版本: ${currentVersion}`;
+                                // Already checked but no update
+                                versionBadge.title = `Already on latest version: ${currentVersion}`;
                             }
                         }
 
                         cell.appendChild(versionLink);
 
-                        // GitHub 徽标
+                        // GitHub badge
                         const authorTag = document.createElement("a");
                         authorTag.href = "https://github.com/yawiii/comfyui_prompt_assistant";
                         authorTag.target = "_blank";

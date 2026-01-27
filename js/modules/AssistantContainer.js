@@ -9,7 +9,7 @@ import "../lib/Sortable.min.js";
  */
 window.PA_DEBUG_NO_COLLAPSE = window.PA_DEBUG_NO_COLLAPSE || false;
 
-// 锚点位置枚举
+// Anchor position enum
 export const ANCHOR_POSITION = {
     TOP_LEFT_H: 'top-left-h',
     TOP_LEFT_V: 'top-left-v',
@@ -33,11 +33,11 @@ export class AssistantContainer {
         this.offset = options.offset || { x: 0, y: 0 };
         this.enableDragSort = options.enableDragSort !== false;
 
-        // 回调函数
+        // Callbacks
         this.onButtonOrderChange = options.onButtonOrderChange;
         this.shouldCollapse = options.shouldCollapse;
 
-        // 状态
+        // State
         this.isCollapsed = true;
         this.isTransitioning = false;
         this.isDestroyed = false;
@@ -48,14 +48,14 @@ export class AssistantContainer {
         this.indicator = null;
         this.content = null;
 
-        // 定时器
+        // Timers
         this._collapseTimer = null;
         this._expandTimer = null;
 
-        // 事件清理函数
+        // Event cleanup functions
         this._cleanupFunctions = [];
 
-        // Sortable 实例
+        // Sortable instance
         this._sortable = null;
     }
 

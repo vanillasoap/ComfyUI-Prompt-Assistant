@@ -1,76 +1,76 @@
 /**
- * 一级注释：本地缓存服务模块
- * 统一管理历史记录和标签的本地缓存
+ * Local Cache Service Module
+ * Unified management of local caching for history records and tags
  */
 
 import { logger } from '../utils/logger.js';
 import { PromptFormatter } from "../utils/promptFormatter.js";
 
-// ---缓存配置---
+// ---Cache Configuration---
 const CACHE_CONFIG = {
-    // 统一前缀
+    // Unified prefix
     GLOBAL_PREFIX: "PromptAssistant_",
 
-    // 历史缓存配置
+    // History cache configuration
     HISTORY_CACHE_KEY: "PromptAssistant_history_cache_all",
-    MAX_HISTORY_PER_NODE: 20,  // 每个节点最多保存的历史条数
-    MAX_HISTORY_GLOBAL: 100,   // 全局最多保存的历史条数
-    MAX_CONTENT_LENGTH: 5000,  // 单条历史最大长度限制
+    MAX_HISTORY_PER_NODE: 20,  // Maximum history entries per node
+    MAX_HISTORY_GLOBAL: 100,   // Maximum global history entries
+    MAX_CONTENT_LENGTH: 5000,  // Maximum length per history entry
 
-    // 标签缓存配置
+    // Tag cache configuration
     TAG_CACHE_KEY: "PromptAssistant_tag_cache_all",
-    MAX_TAGS_PER_INPUT: 100,    // 每个输入框最多保存的标签数量
-    MAX_TAGS_GLOBAL: 500,      // 全局最多保存的标签数量
+    MAX_TAGS_PER_INPUT: 100,    // Maximum tags per input field
+    MAX_TAGS_GLOBAL: 500,      // Maximum global tags
 
-    // 翻译缓存配置
+    // Translation cache configuration
     TRANSLATE_CACHE_KEY: "PromptAssistant_translate_cache",
-    MAX_TRANSLATE_CACHE: 200,  // 最多保存的翻译缓存条数
+    MAX_TRANSLATE_CACHE: 200,  // Maximum translation cache entries
 };
 
 /**
- * 通用缓存服务
- * 提供基础的缓存操作方法
+ * General Cache Service
+ * Provides basic cache operation methods
  */
 class CacheService {
     /**
-     * 从localStorage获取数据
+     * Get data from localStorage
      */
     static get(key) {
         try {
             const data = localStorage.getItem(key);
             return data ? JSON.parse(data) : null;
         } catch (error) {
-            logger.error(`缓存服务 | 读取失败 | 键:${key} | 错误:${error.message}`);
+            logger.error(`Cache Service | Read failed | Key:${key} | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 将数据存储到localStorage
+     * Store data to localStorage
      */
     static set(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
             return true;
         } catch (error) {
-            logger.error(`缓存服务 | 写入失败 | 键:${key} | 错误:${error.message}`);
+            logger.error(`Cache Service | Write failed | Key:${key} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 从localStorage删除数据
+     * Delete data from localStorage
      */
     static remove(key) {
         try {
             localStorage.removeItem(key);
         } catch (error) {
-            logger.error(`缓存服务 | 删除失败 | 键:${key} | 错误:${error.message}`);
+            logger.error(`Cache Service | Delete failed | Key:${key} | Error:${error.message}`);
         }
     }
 
     /**
-     * 清除指定前缀的所有缓存
+     * Clear all caches with a specified prefix
      */
     static clearByPrefix(prefix) {
         try {
@@ -82,23 +82,23 @@ class CacheService {
                 }
             }
             keysToRemove.forEach(key => this.remove(key));
-            // logger.debug(`缓存服务 | 清除前缀缓存 | 前缀:${prefix} | 数量:${keysToRemove.length}`);
+            // logger.debug(`Cache Service | Clear prefix cache | Prefix:${prefix} | Count:${keysToRemove.length}`);
         } catch (error) {
-            logger.error(`缓存服务 | 清除前缀缓存失败 | 前缀:${prefix} | 错误:${error.message}`);
+            logger.error(`Cache Service | Clear prefix cache failed | Prefix:${prefix} | Error:${error.message}`);
         }
     }
 }
 
 /**
- * 历史缓存服务
- * 管理历史记录的缓存操作
+ * History Cache Service
+ * Manages cache operations for history records
  */
 class HistoryCacheService {
-    // 添加撤销/重做状态记录
-    static undoStates = new Map(); // 格式: { "nodeId_inputId": { currentIndex: number, records: array } }
+    // Undo/redo state tracking
+    static undoStates = new Map(); // Format: { "nodeId_inputId": { currentIndex: number, records: array } }
 
     /**
-     * 获取所有历史记录
+     * Get all history records
      */
     static getAllHistory() {
         const key = CACHE_CONFIG.HISTORY_CACHE_KEY;
@@ -106,7 +106,7 @@ class HistoryCacheService {
     }
 
     /**
-     * 保存所有历史记录
+     * Save all history records
      */
     static saveAllHistory(history) {
         const key = CACHE_CONFIG.HISTORY_CACHE_KEY;
@@ -114,7 +114,7 @@ class HistoryCacheService {
     }
 
     /**
-     * 获取历史记录列表
+     * Get history record list
      */
     static getHistoryList({ nodeId = null, limit = 50, workflowId = null } = {}) {
         try {
@@ -125,12 +125,12 @@ class HistoryCacheService {
                 filteredHistory = allHistory.filter(item => item.workflow_id === workflowId);
             }
 
-            // 确保每条历史记录都有必要的字段
+            // Ensure each history record has required fields
             const validHistory = filteredHistory.filter(item => {
                 const isValid = item && item.node_id && item.input_id &&
                     item.content && item.timestamp && item.operation_type;
                 if (!isValid) {
-                    logger.debug(`历史缓存 | 跳过无效记录 | 节点:${item?.node_id}`);
+                    logger.debug(`History Cache | Skipping invalid record | Node:${item?.node_id}`);
                 }
                 return isValid;
             });
@@ -157,13 +157,13 @@ class HistoryCacheService {
 
             return [...currentNodeHistory, ...otherNodesHistory].slice(0, limit);
         } catch (error) {
-            logger.error(`历史缓存 | 获取历史失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Get history failed | Error:${error.message}`);
             return [];
         }
     }
 
     /**
-     * 获取指定节点和输入框的历史记录
+     * Get history records for a specific node and input field
      */
     static getInputHistory(nodeId, inputId, oldToNew = false) {
         try {
@@ -173,20 +173,20 @@ class HistoryCacheService {
             const filtered = allHistory.filter(item =>
                 item.node_id === nodeId &&
                 item.input_id === inputId &&
-                (!workflowId || item.workflow_id === workflowId) // 如果有workflowId，则匹配
+                (!workflowId || item.workflow_id === workflowId) // Match workflowId if available
             );
-            // 根据参数决定排序方向
+            // Sort based on parameter direction
             return filtered.sort((a, b) =>
                 oldToNew ? a.timestamp - b.timestamp : b.timestamp - a.timestamp
             );
         } catch (error) {
-            logger.error(`历史缓存 | 获取输入框历史失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Get input history failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return [];
         }
     }
 
     /**
-     * 检查是否为重复的翻译记录
+     * Check if this is a repeated translation record
      */
     static isRepeatedTranslation(nodeId, inputId, content, operationType) {
         try {
@@ -194,29 +194,29 @@ class HistoryCacheService {
                 return false;
             }
 
-            // 获取该节点和输入框的历史记录
+            // Get history records for this node and input field
             const history = this.getInputHistory(nodeId, inputId, false);
             if (!history || history.length === 0) {
                 return false;
             }
 
-            // 获取最近的一条记录
+            // Get the most recent record
             const lastRecord = history[0];
             if (!lastRecord || lastRecord.operation_type !== 'translate') {
                 return false;
             }
 
-            // 检查内容是否匹配
+            // Check if content matches
             const currentContent = content.trim();
             const lastContent = lastRecord.content.trim();
 
-            // 查询翻译缓存
+            // Query translation cache
             const cacheResult = TranslateCacheService.queryTranslateCache(currentContent);
             if (!cacheResult) {
                 return false;
             }
 
-            // 检查是否为原文-译文或译文-原文的切换
+            // Check if this is a source-translation or translation-source toggle
             if (cacheResult.type === 'source' && cacheResult.translatedText === lastContent) {
                 return true;
             }
@@ -226,80 +226,80 @@ class HistoryCacheService {
 
             return false;
         } catch (error) {
-            logger.error(`历史缓存 | 检查重复翻译失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Check repeated translation failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 添加历史记录
+     * Add history record
      */
     static addHistory(historyItem) {
         try {
-            // 验证必要字段
+            // Validate required fields
             if (!historyItem.node_id || !historyItem.input_id || historyItem.content === undefined) {
-                logger.error("历史缓存 | 添加历史失败 | 缺少必要字段");
+                logger.error("History Cache | Add history failed | Missing required fields");
                 return false;
             }
 
-            // 如果内容为空或只包含空白字符，跳过记录
+            // Skip recording if content is empty or whitespace only
             if (!historyItem.content || historyItem.content.trim() === '') {
-                logger.debug(`历史缓存 | 跳过添加 | 节点:${historyItem.node_id} | 原因:空内容`);
+                logger.debug(`History Cache | Skip adding | Node:${historyItem.node_id} | Reason:empty content`);
                 return false;
             }
 
-            // 内容长度限制
+            // Content length limit
             let content = historyItem.content;
             if (content.length > CACHE_CONFIG.MAX_CONTENT_LENGTH) {
                 content = content.substring(0, CACHE_CONFIG.MAX_CONTENT_LENGTH) + "...";
             }
 
-            // 检查是否为重复的翻译记录
+            // Check if this is a repeated translation record
             if (this.isRepeatedTranslation(historyItem.node_id, historyItem.input_id, content, historyItem.operation_type)) {
-                logger.debug(`历史缓存 | 跳过添加 | 节点:${historyItem.node_id} | 原因:重复的翻译记录`);
+                logger.debug(`History Cache | Skip adding | Node:${historyItem.node_id} | Reason:repeated translation record`);
                 return false;
             }
 
             const allHistory = this.getAllHistory();
 
-            // 获取当前节点和输入框的历史记录
+            // Get history records for the current node and input field
             const nodeHistory = allHistory.filter(item =>
                 item.node_id === historyItem.node_id &&
                 item.input_id === historyItem.input_id
             );
 
-            // 检查是否与最近的一条历史记录内容相同
+            // Check if content matches the most recent record
             if (nodeHistory.length > 0) {
-                // 按时间戳降序排序，获取最新的记录
+                // Sort by timestamp descending, get the latest record
                 const latestHistory = nodeHistory.sort((a, b) => b.timestamp - a.timestamp)[0];
                 if (latestHistory.content === content) {
-                    logger.debug(`历史缓存 | 跳过添加 | 节点:${historyItem.node_id} | 原因:与上一条记录相同`);
+                    logger.debug(`History Cache | Skip adding | Node:${historyItem.node_id} | Reason:same as previous record`);
                     return false;
                 }
             }
 
-            // 创建新的历史记录
+            // Create new history record
             const newItem = {
                 workflow_id: app.graph?._workflow_id || 'unknown',
                 node_id: historyItem.node_id,
                 input_id: historyItem.input_id,
                 content: content,
                 operation_type: historyItem.operation_type || null,
-                timestamp: Date.now() + 1, // 确保时间戳唯一
+                timestamp: Date.now() + 1, // Ensure unique timestamp
                 request_id: historyItem.request_id || null
             };
 
-            // 添加到历史记录末尾
+            // Append to history records
             allHistory.push(newItem);
 
-            // 限制每个节点的历史记录数量
+            // Limit history records per node
             const currentNodeHistory = allHistory.filter(item => item.node_id === historyItem.node_id);
             if (currentNodeHistory.length > CACHE_CONFIG.MAX_HISTORY_PER_NODE) {
-                // 按时间戳排序
+                // Sort by timestamp
                 currentNodeHistory.sort((a, b) => b.timestamp - a.timestamp);
-                // 获取要保留的记录的时间戳
+                // Get the cutoff timestamp for records to keep
                 const cutoffTimestamp = currentNodeHistory[CACHE_CONFIG.MAX_HISTORY_PER_NODE - 1].timestamp;
-                // 移除旧记录
+                // Remove old records
                 const filteredHistory = allHistory.filter(item =>
                     item.node_id !== historyItem.node_id ||
                     item.timestamp >= cutoffTimestamp
@@ -308,50 +308,50 @@ class HistoryCacheService {
                 allHistory.push(...filteredHistory);
             }
 
-            // 限制全局历史记录数量
+            // Limit global history record count
             if (allHistory.length > CACHE_CONFIG.MAX_HISTORY_GLOBAL) {
-                // 按时间戳排序
+                // Sort by timestamp
                 allHistory.sort((a, b) => b.timestamp - a.timestamp);
                 allHistory.length = CACHE_CONFIG.MAX_HISTORY_GLOBAL;
             }
 
             this.saveAllHistory(allHistory);
-            // logger.debug(`历史缓存 | 添加历史 | 节点:${historyItem.node_id} | 内容长度:${content.length}`);
+            // logger.debug(`History Cache | Added history | Node:${historyItem.node_id} | Content length:${content.length}`);
             return true;
         } catch (error) {
-            logger.error(`历史缓存 | 添加历史失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Add history failed | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 初始化撤销状态
+     * Initialize undo state
      */
     static initUndoState(nodeId, inputId, currentContent) {
         try {
             const key = `${nodeId}_${inputId}`;
 
-            // 获取该输入框的历史记录（从旧到新）
+            // Get history records for this input field (old to new)
             const inputHistory = this.getInputHistory(nodeId, inputId, true);
 
-            // 创建撤销状态，指向最新的记录
+            // Create undo state, pointing to the latest record
             const undoState = {
-                currentIndex: inputHistory.length - 1, // 指向最后一条记录
-                currentContent: currentContent,    // 保存当前内容
+                currentIndex: inputHistory.length - 1, // Point to the last record
+                currentContent: currentContent,    // Save current content
                 lastHistoryTimestamp: inputHistory.length > 0 ? inputHistory[inputHistory.length - 1].timestamp : 0
             };
 
-            // 更新撤销状态
+            // Update undo state
             this.undoStates.set(key, undoState);
 
-            // logger.debug(`历史缓存 | 初始化撤销状态 | 节点:${nodeId} | 输入框:${inputId} | 历史数:${inputHistory.length} | 当前位置:${undoState.currentIndex}`);
+            // logger.debug(`History Cache | Init undo state | Node:${nodeId} | Input:${inputId} | History count:${inputHistory.length} | Current position:${undoState.currentIndex}`);
         } catch (error) {
-            logger.error(`历史缓存 | 初始化撤销状态失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Init undo state failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
         }
     }
 
     /**
-     * 执行撤销操作
+     * Perform undo operation
      */
     static undo(nodeId, inputId) {
         try {
@@ -362,38 +362,38 @@ class HistoryCacheService {
                 return null;
             }
 
-            // 获取历史记录（从旧到新）
+            // Get history records (old to new)
             const history = this.getInputHistory(nodeId, inputId, true);
 
-            // 如果没有历史记录，返回null
+            // If no history records, return null
             if (history.length === 0) {
                 return null;
             }
 
-            // 如果已经是第一条记录，无法继续撤销
+            // If already at the first record, cannot undo further
             if (state.currentIndex <= 0) {
                 return null;
             }
 
-            // 更新当前位置
+            // Update current position
             state.currentIndex--;
 
-            // 从历史记录中获取内容
+            // Get content from history records
             const content = history[state.currentIndex]?.content || '';
 
-            // 更新状态
+            // Update state
             this.undoStates.set(key, state);
 
-            // logger.debug(`历史缓存 | 撤销操作 | 节点:${nodeId} | 输入框:${inputId} | 位置:${state.currentIndex}/${history.length - 1} | 内容:${content}`);
+            // logger.debug(`History Cache | Undo operation | Node:${nodeId} | Input:${inputId} | Position:${state.currentIndex}/${history.length - 1} | Content:${content}`);
             return content;
         } catch (error) {
-            logger.error(`历史缓存 | 撤销操作失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Undo operation failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 执行重做操作
+     * Perform redo operation
      */
     static redo(nodeId, inputId) {
         try {
@@ -404,38 +404,38 @@ class HistoryCacheService {
                 return null;
             }
 
-            // 获取历史记录（从旧到新）
+            // Get history records (old to new)
             const history = this.getInputHistory(nodeId, inputId, true);
 
-            // 如果没有历史记录，返回null
+            // If no history records, return null
             if (history.length === 0) {
                 return null;
             }
 
-            // 如果已经是最后一条记录，无法重做
+            // If already at the last record, cannot redo
             if (state.currentIndex >= history.length - 1) {
                 return null;
             }
 
-            // 更新当前位置
+            // Update current position
             state.currentIndex++;
 
-            // 从历史记录中获取内容
+            // Get content from history records
             const content = history[state.currentIndex]?.content || '';
 
-            // 更新状态
+            // Update state
             this.undoStates.set(key, state);
 
-            logger.debug(`历史缓存 | 重做操作 | 节点:${nodeId} | 输入框:${inputId} | 位置:${state.currentIndex}/${history.length - 1} | 内容:${content}`);
+            logger.debug(`History Cache | Redo operation | Node:${nodeId} | Input:${inputId} | Position:${state.currentIndex}/${history.length - 1} | Content:${content}`);
             return content;
         } catch (error) {
-            logger.error(`历史缓存 | 重做操作失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Redo operation failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 检查是否可以撤销
+     * Check if undo is available
      */
     static canUndo(nodeId, inputId) {
         try {
@@ -443,13 +443,13 @@ class HistoryCacheService {
             const state = this.undoStates.get(key);
             return state && state.currentIndex > 0;
         } catch (error) {
-            logger.error(`历史缓存 | 检查撤销状态失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Check undo state failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 检查是否可以重做
+     * Check if redo is available
      */
     static canRedo(nodeId, inputId) {
         try {
@@ -460,55 +460,55 @@ class HistoryCacheService {
             const history = this.getInputHistory(nodeId, inputId, true);
             return state.currentIndex < history.length - 1;
         } catch (error) {
-            logger.error(`历史缓存 | 检查重做状态失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`History Cache | Check redo state failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 清除所有历史记录
+     * Clear all history records
      */
     static clearAllHistory() {
         try {
-            // 清除所有历史记录
+            // Clear all history records
             this.saveAllHistory([]);
-            // 清除所有撤销状态
+            // Clear all undo states
             this.undoStates.clear();
-            // logger.debug("历史缓存 | 清除所有历史");
+            // logger.debug("History Cache | Cleared all history");
         } catch (error) {
-            logger.error(`历史缓存 | 清除所有历史失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Clear all history failed | Error:${error.message}`);
         }
     }
 
     /**
-     * 清除指定节点的历史记录
+     * Clear history records for a specific node
      */
     static clearNodeHistory(nodeId) {
         try {
-            // 获取所有历史记录
+            // Get all history records
             const allHistory = this.getAllHistory();
 
-            // 过滤出不属于该节点的记录
+            // Filter out records not belonging to this node
             const filteredHistory = allHistory.filter(item => item.node_id !== nodeId);
 
-            // 保存过滤后的历史记录
+            // Save filtered history records
             this.saveAllHistory(filteredHistory);
 
-            // 清除该节点的撤销状态
+            // Clear undo states for this node
             for (const [key] of this.undoStates) {
                 if (key.startsWith(nodeId + "_")) {
                     this.undoStates.delete(key);
                 }
             }
 
-            // logger.debug(`历史缓存 | 清除节点历史 | 节点:${nodeId}`);
+            // logger.debug(`History Cache | Clear node history | Node:${nodeId}`);
         } catch (error) {
-            logger.error(`历史缓存 | 清除节点历史失败 | 节点:${nodeId} | 错误:${error.message}`);
+            logger.error(`History Cache | Clear node history failed | Node:${nodeId} | Error:${error.message}`);
         }
     }
 
     /**
-     * 清除指定工作流的所有历史记录
+     * Clear all history records for a specific workflow
      */
     static clearWorkflowHistory(workflowId) {
         if (!workflowId) return;
@@ -516,17 +516,17 @@ class HistoryCacheService {
             const allHistory = this.getAllHistory();
             const filteredHistory = allHistory.filter(item => item.workflow_id !== workflowId);
             this.saveAllHistory(filteredHistory);
-            // logger.debug(`历史缓存 | 清除工作流历史 | 工作流ID:${workflowId}`);
+            // logger.debug(`History Cache | Clear workflow history | Workflow ID:${workflowId}`);
         } catch (error) {
-            logger.error(`历史缓存 | 清除工作流历史失败 | 工作流ID:${workflowId} | 错误:${error.message}`);
+            logger.error(`History Cache | Clear workflow history failed | Workflow ID:${workflowId} | Error:${error.message}`);
         }
     }
 
     /**
-     * 添加历史记录并更新撤销状态
+     * Add history record and update undo state
      */
     static addHistoryAndUpdateUndoState(nodeId, inputId, content, operationType = 'input') {
-        // 首先尝试添加历史记录
+        // First attempt to add history record
         const success = this.addHistory({
             node_id: nodeId,
             input_id: inputId,
@@ -536,7 +536,7 @@ class HistoryCacheService {
         });
 
         if (success) {
-            // 更新撤销状态
+            // Update undo state
             const key = `${nodeId}_${inputId}`;
             const state = this.undoStates.get(key) || {
                 currentIndex: 0,
@@ -544,25 +544,25 @@ class HistoryCacheService {
                 lastHistoryTimestamp: 0
             };
 
-            // 获取最新的历史记录
+            // Get the latest history records
             const history = this.getInputHistory(nodeId, inputId, true);
 
-            // 更新状态
+            // Update state
             state.currentIndex = history.length - 1;
             state.currentContent = content;
             state.lastHistoryTimestamp = Date.now();
 
-            // 保存状态
+            // Save state
             this.undoStates.set(key, state);
 
-            // logger.debug(`历史缓存 | 更新撤销状态 | 节点:${nodeId} | 输入框:${inputId} | 位置:${state.currentIndex}`);
+            // logger.debug(`History Cache | Update undo state | Node:${nodeId} | Input:${inputId} | Position:${state.currentIndex}`);
         }
 
         return success;
     }
 
     /**
-     * 获取历史记录统计信息
+     * Get history record statistics
      */
     static getHistoryStats() {
         try {
@@ -572,7 +572,7 @@ class HistoryCacheService {
                 byNode: {}
             };
 
-            // 按节点统计
+            // Count by node
             allHistory.forEach(item => {
                 if (!stats.byNode[item.node_id]) {
                     stats.byNode[item.node_id] = 0;
@@ -580,85 +580,85 @@ class HistoryCacheService {
                 stats.byNode[item.node_id]++;
             });
 
-            // logger.debug(`历史缓存 | 获取统计 | 总数:${stats.total} | 节点数:${Object.keys(stats.byNode).length}`);
+            // logger.debug(`History Cache | Get stats | Total:${stats.total} | Node count:${Object.keys(stats.byNode).length}`);
             return stats;
         } catch (error) {
-            logger.error(`历史缓存 | 获取统计失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Get stats failed | Error:${error.message}`);
             return { total: 0, byNode: {} };
         }
     }
 
     /**
-     * 修改历史记录项的操作类型
+     * Update the operation type of a history record item
      */
     static updateHistoryItemType(nodeId, inputId, timestamp, newType) {
         try {
-            // 获取所有历史记录
+            // Get all history records
             const allHistory = this.getAllHistory();
 
-            // 查找匹配的历史记录
+            // Find the matching history record
             const itemIndex = allHistory.findIndex(item =>
                 item.node_id === nodeId &&
                 item.input_id === inputId &&
                 item.timestamp === timestamp
             );
 
-            // 如果找到匹配的记录，修改其操作类型
+            // If a matching record is found, update its operation type
             if (itemIndex !== -1) {
                 allHistory[itemIndex].operation_type = newType;
 
-                // 保存修改后的历史记录
+                // Save the updated history records
                 this.saveAllHistory(allHistory);
 
-                // logger.debug(`历史缓存 | 修改操作类型 | 节点:${nodeId} | 输入框:${inputId} | 类型:${newType}`);
+                // logger.debug(`History Cache | Update operation type | Node:${nodeId} | Input:${inputId} | Type:${newType}`);
                 return true;
             } else {
-                // logger.debug(`历史缓存 | 修改操作类型失败 | 未找到匹配记录 | 节点:${nodeId} | 输入框:${inputId}`);
+                // logger.debug(`History Cache | Update operation type failed | No matching record | Node:${nodeId} | Input:${inputId}`);
                 return false;
             }
         } catch (error) {
-            logger.error(`历史缓存 | 修改操作类型失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Update operation type failed | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 更新历史记录项
+     * Update a history record item
      */
     static updateHistoryItem(nodeId, inputId, timestamp, updates) {
         try {
-            // 获取所有历史记录
+            // Get all history records
             const allHistory = this.getAllHistory();
 
-            // 查找匹配的历史记录
+            // Find the matching history record
             const itemIndex = allHistory.findIndex(item =>
                 item.node_id === nodeId &&
                 item.input_id === inputId &&
                 item.timestamp === timestamp
             );
 
-            // 如果找到匹配的记录，更新指定字段
+            // If a matching record is found, update the specified fields
             if (itemIndex !== -1) {
-                // 更新所有提供的字段
+                // Update all provided fields
                 Object.assign(allHistory[itemIndex], updates);
 
-                // 保存修改后的历史记录
+                // Save the updated history records
                 this.saveAllHistory(allHistory);
 
-                logger.debug(`历史缓存 | 更新记录 | 节点:${nodeId} | 输入框:${inputId} | 字段:${Object.keys(updates).join(',')}`);
+                logger.debug(`History Cache | Update record | Node:${nodeId} | Input:${inputId} | Fields:${Object.keys(updates).join(',')}`);
                 return true;
             } else {
-                logger.debug(`历史缓存 | 更新失败 | 未找到匹配记录 | 节点:${nodeId} | 输入框:${inputId}`);
+                logger.debug(`History Cache | Update failed | No matching record | Node:${nodeId} | Input:${inputId}`);
                 return false;
             }
         } catch (error) {
-            logger.error(`历史缓存 | 更新记录失败 | 错误:${error.message}`);
+            logger.error(`History Cache | Update record failed | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 根据请求ID获取相关联的历史记录
+     * Get related history records by request ID
      */
     static getHistoryByRequestId(requestId) {
         try {
@@ -669,50 +669,50 @@ class HistoryCacheService {
                 item.request_id === requestId
             ).sort((a, b) => b.timestamp - a.timestamp);
         } catch (error) {
-            logger.error(`历史缓存 | 获取请求关联历史失败 | 请求ID:${requestId} | 错误:${error.message}`);
+            logger.error(`History Cache | Get request-related history failed | Request ID:${requestId} | Error:${error.message}`);
             return [];
         }
     }
 }
 
 /**
- * 标签缓存服务
- * 管理标签的缓存操作
+ * Tag Cache Service
+ * Manages cache operations for tags
  */
 class TagCacheService {
     /**
-     * 获取或创建标签格式
+     * Get or create tag formats
      */
     static getOrCreateFormats(rawTag) {
         return PromptFormatter.formatTag(rawTag);
     }
 
     /**
-     * 获取所有标签缓存
+     * Get all tag cache
      */
     static getAllTagCache() {
         try {
             const data = CacheService.get(CACHE_CONFIG.TAG_CACHE_KEY);
             return data || {};
         } catch (error) {
-            logger.error(`标签缓存 | 获取所有缓存失败 | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get all cache failed | Error:${error.message}`);
             return {};
         }
     }
 
     /**
-     * 保存所有标签缓存
+     * Save all tag cache
      */
     static saveAllTagCache(cache) {
         try {
             CacheService.set(CACHE_CONFIG.TAG_CACHE_KEY, cache);
         } catch (error) {
-            logger.error(`标签缓存 | 保存所有缓存失败 | 错误:${error.message}`);
+            logger.error(`Tag Cache | Save all cache failed | Error:${error.message}`);
         }
     }
 
     /**
-     * 获取标签缓存
+     * Get tag cache
      */
     static getTagCache(nodeId, inputId) {
         try {
@@ -722,13 +722,13 @@ class TagCacheService {
             const data = allCache[key] || {};
             return new Map(Object.entries(data));
         } catch (error) {
-            logger.error(`标签缓存 | 获取缓存失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get cache failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return new Map();
         }
     }
 
     /**
-     * 添加标签到缓存
+     * Add tag to cache
      */
     static addTag(nodeId, inputId, rawTag, formats) {
         try {
@@ -737,14 +737,14 @@ class TagCacheService {
             const key = `${workflowId}_${nodeId}_${inputId}`;
             const cache = this.getTagCache(nodeId, inputId);
 
-            // 确保formats包含所有必要的格式
+            // Ensure formats contain all necessary formats
             const format1 = formats.format1 || ` ${rawTag}`;
             const format2 = formats.format2 || ` ${rawTag},`;
             const format3 = formats.format3 || `, ${rawTag}`;
             const format4 = formats.format4 || `, ${rawTag},`;
             const insertedFormat = formats.insertedFormat || null;
 
-            // 如果标签已存在，直接更新
+            // If tag already exists, update directly
             if (cache.has(rawTag)) {
                 cache.set(rawTag, {
                     format1,
@@ -755,29 +755,29 @@ class TagCacheService {
                 });
                 allCache[key] = Object.fromEntries(cache);
                 this.saveAllTagCache(allCache);
-                logger.debug(`标签缓存 | 更新标签 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag}`);
+                logger.debug(`Tag Cache | Update tag | Node:${nodeId} | Input:${inputId} | Tag:${rawTag}`);
                 return true;
             }
 
-            // 检查当前输入框的标签数量限制
+            // Check tag count limit for current input field
             if (cache.size >= CACHE_CONFIG.MAX_TAGS_PER_INPUT) {
-                // 获取所有标签及其最后使用时间
+                // Get all tags and their last used time
                 const tagEntries = Array.from(cache.entries()).map(([tag, formats]) => ({
                     tag,
                     formats,
                     lastUsed: formats.lastUsed || 0
                 }));
 
-                // 按最后使用时间排序
+                // Sort by last used time
                 tagEntries.sort((a, b) => a.lastUsed - b.lastUsed);
 
-                // 删除最旧的标签
+                // Delete the oldest tag
                 const oldestTag = tagEntries[0].tag;
                 cache.delete(oldestTag);
-                logger.debug(`标签缓存 | 自动淘汰 | 节点:${nodeId} | 输入框:${inputId} | 淘汰标签:${oldestTag}`);
+                logger.debug(`Tag Cache | Auto eviction | Node:${nodeId} | Input:${inputId} | Evicted tag:${oldestTag}`);
             }
 
-            // 检查全局标签数量限制
+            // Check global tag count limit
             let totalTags = 0;
             const allTags = [];
             for (const [cacheKey, inputTags] of Object.entries(allCache)) {
@@ -795,10 +795,10 @@ class TagCacheService {
             }
 
             if (totalTags >= CACHE_CONFIG.MAX_TAGS_GLOBAL) {
-                // 按最后使用时间排序
+                // Sort by last used time
                 allTags.sort((a, b) => a.lastUsed - b.lastUsed);
 
-                // 删除最旧的标签
+                // Delete the oldest tag
                 const oldest = allTags[0];
                 const oldKey = `${oldest.workflowId}_${oldest.nodeId}_${oldest.inputId}`;
                 const oldCache = new Map(Object.entries(allCache[oldKey] || {}));
@@ -810,33 +810,33 @@ class TagCacheService {
                     delete allCache[oldKey];
                 }
 
-                logger.debug(`标签缓存 | 自动淘汰 | 全局限制 | 淘汰标签:${oldest.tag} | 位置:${oldKey}`);
+                logger.debug(`Tag Cache | Auto eviction | Global limit | Evicted tag:${oldest.tag} | Location:${oldKey}`);
             }
 
-            // 添加新标签
+            // Add new tag
             cache.set(rawTag, {
                 format1,
                 format2,
                 format3,
                 format4,
                 insertedFormat,
-                lastUsed: Date.now() // 添加最后使用时间
+                lastUsed: Date.now() // Add last used time
             });
 
-            // 更新全局缓存
+            // Update global cache
             allCache[key] = Object.fromEntries(cache);
             this.saveAllTagCache(allCache);
 
-            logger.debug(`标签缓存 | 添加标签 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag}`);
+            logger.debug(`Tag Cache | Add tag | Node:${nodeId} | Input:${inputId} | Tag:${rawTag}`);
             return true;
         } catch (error) {
-            logger.error(`标签缓存 | 添加标签失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Add tag failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 从缓存中移除标签
+     * Remove tag from cache
      */
     static removeTag(nodeId, inputId, rawTag) {
         try {
@@ -847,24 +847,24 @@ class TagCacheService {
 
             const result = cache.delete(rawTag);
             if (result) {
-                // 更新全局缓存
+                // Update global cache
                 if (cache.size > 0) {
                     allCache[key] = Object.fromEntries(cache);
                 } else {
                     delete allCache[key];
                 }
                 this.saveAllTagCache(allCache);
-                logger.debug(`标签缓存 | 移除标签 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag}`);
+                logger.debug(`Tag Cache | Remove tag | Node:${nodeId} | Input:${inputId} | Tag:${rawTag}`);
             }
             return result;
         } catch (error) {
-            logger.error(`标签缓存 | 移除标签失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Remove tag failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 检查标签是否在输入框中
+     * Check if tag exists in input field
      */
     static isTagInInput(nodeId, inputId, rawTag, inputValue) {
         try {
@@ -873,65 +873,65 @@ class TagCacheService {
                 return false;
             }
 
-            // 按优先级顺序检查各种格式
+            // Check formats in priority order
             const checkOrder = ['insertedFormat', 'format4', 'format3', 'format2', 'format1'];
 
             for (const formatKey of checkOrder) {
                 const format = formats[formatKey];
                 if (format && inputValue.includes(format)) {
-                    // logger.debug(`标签检查 | 结果:已存在 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 匹配格式:${formatKey}`);
+                    // logger.debug(`Tag Check | Result:exists | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Matched format:${formatKey}`);
                     return true;
                 }
             }
 
             return false;
         } catch (error) {
-            logger.error(`标签检查 | 结果:异常 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Check | Result:error | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 获取标签的所有格式
+     * Get all formats for a tag
      */
     static getTagFormats(nodeId, inputId, rawTag) {
         try {
             const cache = this.getTagCache(nodeId, inputId);
             return cache.get(rawTag) || null;
         } catch (error) {
-            logger.error(`标签缓存 | 获取标签格式失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get tag formats failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 获取标签的插入格式
+     * Get the inserted format for a tag
      */
     static getInsertedFormat(nodeId, inputId, rawTag) {
         try {
             const formats = this.getTagFormats(nodeId, inputId, rawTag);
             return formats ? formats.insertedFormat : null;
         } catch (error) {
-            logger.error(`标签缓存 | 获取插入格式失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get inserted format failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 获取所有原始标签
+     * Get all raw tags
      */
     static getAllRawTags(nodeId, inputId) {
         try {
             const cache = this.getTagCache(nodeId, inputId);
             return Array.from(cache.keys());
         } catch (error) {
-            logger.error(`标签缓存 | 获取所有标签失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get all tags failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
             return [];
         }
     }
 
     /**
-     * 清除标签缓存
+     * Clear tag cache
      */
     static clearCache(nodeId, inputId) {
         try {
@@ -939,20 +939,20 @@ class TagCacheService {
             const workflowId = app.graph?._workflow_id || 'unknown';
             const key = `${workflowId}_${nodeId}_${inputId}`;
 
-            // 删除指定节点的缓存
+            // Delete cache for the specified node
             if (allCache[key]) {
                 delete allCache[key];
                 this.saveAllTagCache(allCache);
             }
 
-            // logger.debug(`标签缓存 | 清除缓存 | 节点:${nodeId} | 输入框:${inputId}`);
+            // logger.debug(`Tag Cache | Clear cache | Node:${nodeId} | Input:${inputId}`);
         } catch (error) {
-            logger.error(`标签缓存 | 清除缓存失败 | 节点:${nodeId} | 输入框:${inputId} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Clear cache failed | Node:${nodeId} | Input:${inputId} | Error:${error.message}`);
         }
     }
 
     /**
-     * 获取标签统计信息
+     * Get tag statistics
      */
     static getTagStats() {
         try {
@@ -960,7 +960,7 @@ class TagCacheService {
             let total = 0;
             const byNode = {};
 
-            // 遍历所有缓存计算统计信息
+            // Iterate all caches to calculate statistics
             for (const [key, tags] of Object.entries(allCache)) {
                 const [workflowId, nodeId, inputId] = key.split('_');
                 const count = Object.keys(tags).length;
@@ -973,16 +973,16 @@ class TagCacheService {
             }
 
             const stats = { total, byNode };
-            // logger.debug(`标签缓存 | 获取统计 | 总数:${total} | 节点数:${Object.keys(byNode).length}`);
+            // logger.debug(`Tag Cache | Get stats | Total:${total} | Node count:${Object.keys(byNode).length}`);
             return stats;
         } catch (error) {
-            logger.error(`标签缓存 | 获取统计失败 | 错误:${error.message}`);
+            logger.error(`Tag Cache | Get stats failed | Error:${error.message}`);
             return { total: 0, byNode: {} };
         }
     }
 
     /**
-     * 更新标签的插入格式
+     * Update the inserted format for a tag
      */
     static updateInsertedFormat(nodeId, inputId, rawTag, insertedFormat) {
         try {
@@ -993,28 +993,28 @@ class TagCacheService {
             const formats = cache.get(rawTag);
 
             if (!formats) {
-                logger.debug(`标签缓存 | 更新插入格式失败 | 原因:标签不存在 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag}`);
+                logger.debug(`Tag Cache | Update inserted format failed | Reason:tag not found | Node:${nodeId} | Input:${inputId} | Tag:${rawTag}`);
                 return false;
             }
 
-            // 更新插入格式
+            // Update inserted format
             formats.insertedFormat = insertedFormat;
             cache.set(rawTag, formats);
 
-            // 更新全局缓存
+            // Update global cache
             allCache[key] = Object.fromEntries(cache);
             this.saveAllTagCache(allCache);
 
-            logger.debug(`标签缓存 | 更新插入格式 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 新格式:${insertedFormat}`);
+            logger.debug(`Tag Cache | Update inserted format | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | New format:${insertedFormat}`);
             return true;
         } catch (error) {
-            logger.error(`标签缓存 | 更新插入格式失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Update inserted format failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 更新标签的最后使用时间
+     * Update the last used time for a tag
      */
     static updateTagLastUsed(nodeId, inputId, rawTag) {
         try {
@@ -1029,15 +1029,15 @@ class TagCacheService {
                 cache.set(rawTag, tagData);
                 allCache[key] = Object.fromEntries(cache);
                 this.saveAllTagCache(allCache);
-                logger.debug(`标签缓存 | 更新使用时间 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag}`);
+                logger.debug(`Tag Cache | Update last used time | Node:${nodeId} | Input:${inputId} | Tag:${rawTag}`);
             }
         } catch (error) {
-            logger.error(`标签缓存 | 更新使用时间失败 | 节点:${nodeId} | 输入框:${inputId} | 标签:${rawTag} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Update last used time failed | Node:${nodeId} | Input:${inputId} | Tag:${rawTag} | Error:${error.message}`);
         }
     }
 
     /**
-     * 清除指定工作流的所有标签
+     * Clear all tags for a specific workflow
      */
     static clearWorkflowTags(workflowId) {
         if (!workflowId) return;
@@ -1051,32 +1051,32 @@ class TagCacheService {
                 }
             }
             this.saveAllTagCache(newCache);
-            logger.debug(`标签缓存 | 清除工作流标签 | 工作流ID:${workflowId}`);
+            logger.debug(`Tag Cache | Clear workflow tags | Workflow ID:${workflowId}`);
         } catch (error) {
-            logger.error(`标签缓存 | 清除工作流标签失败 | 工作流ID:${workflowId} | 错误:${error.message}`);
+            logger.error(`Tag Cache | Clear workflow tags failed | Workflow ID:${workflowId} | Error:${error.message}`);
         }
     }
 
     /**
-     * 清除所有标签缓存
+     * Clear all tag cache
      */
     static clearAllTagCache() {
         try {
             CacheService.remove(CACHE_CONFIG.TAG_CACHE_KEY);
-            logger.debug("标签缓存 | 清除所有缓存");
+            logger.debug("Tag Cache | Cleared all cache");
         } catch (error) {
-            logger.error(`标签缓存 | 清除缓存失败 | 错误:${error.message}`);
+            logger.error(`Tag Cache | Clear cache failed | Error:${error.message}`);
         }
     }
 }
 
 /**
- * 翻译缓存服务
- * 管理翻译结果的缓存操作
+ * Translation Cache Service
+ * Manages cache operations for translation results
  */
 class TranslateCacheService {
     /**
-     * 获取所有翻译缓存
+     * Get all translation cache
      */
     static getAllTranslateCache() {
         try {
@@ -1086,64 +1086,64 @@ class TranslateCacheService {
             }
             return new Map();
         } catch (error) {
-            logger.error(`翻译缓存 | 获取缓存失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Get cache failed | Error:${error.message}`);
             return new Map();
         }
     }
 
     /**
-     * 保存所有翻译缓存
+     * Save all translation cache
      */
     static saveAllTranslateCache(cache) {
         try {
-            // 将Map转换为普通对象
+            // Convert Map to plain object
             const data = Object.fromEntries(cache);
             CacheService.set(CACHE_CONFIG.TRANSLATE_CACHE_KEY, data);
         } catch (error) {
-            logger.error(`翻译缓存 | 保存缓存失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Save cache failed | Error:${error.message}`);
         }
     }
 
     /**
-     * 添加翻译缓存
+     * Add translation cache
      */
     static addTranslateCache(sourceText, translatedText) {
         try {
-            // 验证参数
+            // Validate parameters
             if (!sourceText || !translatedText) {
-                logger.error("翻译缓存 | 添加缓存失败 | 缺少必要参数");
+                logger.error("Translation Cache | Add cache failed | Missing required parameters");
                 return false;
             }
 
-            // 获取现有缓存
+            // Get existing cache
             const cache = this.getAllTranslateCache();
 
-            // 添加或更新缓存
+            // Add or update cache
             cache.set(sourceText, translatedText);
 
-            // 如果缓存过大，删除最旧的条目
+            // If cache is too large, delete oldest entries
             if (cache.size > CACHE_CONFIG.MAX_TRANSLATE_CACHE) {
-                // 将Map转换为数组以便操作
+                // Convert Map to array for manipulation
                 const entries = Array.from(cache.entries());
-                // 删除最早的条目，保留最新的MAX_TRANSLATE_CACHE条
+                // Delete oldest entries, keep the latest MAX_TRANSLATE_CACHE items
                 const newEntries = entries.slice(-CACHE_CONFIG.MAX_TRANSLATE_CACHE);
-                // 重建缓存
+                // Rebuild cache
                 cache.clear();
                 newEntries.forEach(([key, value]) => cache.set(key, value));
             }
 
-            // 保存缓存
+            // Save cache
             this.saveAllTranslateCache(cache);
-            logger.debug(`翻译缓存 | 添加缓存 | 原文长度:${sourceText.length} | 译文长度:${translatedText.length}`);
+            logger.debug(`Translation Cache | Add cache | Source length:${sourceText.length} | Translation length:${translatedText.length}`);
             return true;
         } catch (error) {
-            logger.error(`翻译缓存 | 添加缓存失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Add cache failed | Error:${error.message}`);
             return false;
         }
     }
 
     /**
-     * 查询翻译缓存
+     * Query translation cache
      */
     static queryTranslateCache(text) {
         try {
@@ -1151,10 +1151,10 @@ class TranslateCacheService {
 
             const cache = this.getAllTranslateCache();
 
-            // 检查是否为原文(key)
+            // Check if text is a source (key)
             if (cache.has(text)) {
                 const translatedText = cache.get(text);
-                // logger.debug(`翻译缓存 | 查询结果:命中原文 | 原文长度:${text.length} | 译文长度:${translatedText.length}`);
+                // logger.debug(`Translation Cache | Query result:source hit | Source length:${text.length} | Translation length:${translatedText.length}`);
                 return {
                     type: 'source',
                     text: text,
@@ -1162,10 +1162,10 @@ class TranslateCacheService {
                 };
             }
 
-            // 检查是否为译文(value)
+            // Check if text is a translation (value)
             for (const [source, translated] of cache.entries()) {
                 if (translated === text) {
-                    logger.debug(`翻译缓存 | 查询结果:命中译文 | 原文长度:${source.length} | 译文长度:${text.length}`);
+                    logger.debug(`Translation Cache | Query result:translation hit | Source length:${source.length} | Translation length:${text.length}`);
                     return {
                         type: 'translated',
                         text: text,
@@ -1174,29 +1174,29 @@ class TranslateCacheService {
                 }
             }
 
-            // 未命中缓存
-            logger.debug(`翻译缓存 | 查询结果:未命中 | 文本长度:${text.length}`);
+            // Cache miss
+            logger.debug(`Translation Cache | Query result:miss | Text length:${text.length}`);
             return null;
         } catch (error) {
-            logger.error(`翻译缓存 | 查询缓存失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Query cache failed | Error:${error.message}`);
             return null;
         }
     }
 
     /**
-     * 清除所有翻译缓存
+     * Clear all translation cache
      */
     static clearAllTranslateCache() {
         try {
             CacheService.remove(CACHE_CONFIG.TRANSLATE_CACHE_KEY);
-            logger.debug("翻译缓存 | 清除所有缓存");
+            logger.debug("Translation Cache | Cleared all cache");
         } catch (error) {
-            logger.error(`翻译缓存 | 清除缓存失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Clear cache failed | Error:${error.message}`);
         }
     }
 
     /**
-     * 获取翻译缓存统计信息
+     * Get translation cache statistics
      */
     static getTranslateCacheStats() {
         try {
@@ -1207,16 +1207,16 @@ class TranslateCacheService {
                 translatedTextLengths: 0
             };
 
-            // 计算原文和译文的总长度
+            // Calculate total lengths of source and translated texts
             for (const [source, translated] of cache.entries()) {
                 stats.sourceTextLengths += source.length;
                 stats.translatedTextLengths += translated.length;
             }
 
-            logger.debug(`翻译缓存 | 获取统计 | 总数:${stats.total} | 原文总长度:${stats.sourceTextLengths} | 译文总长度:${stats.translatedTextLengths}`);
+            logger.debug(`Translation Cache | Get stats | Total:${stats.total} | Source total length:${stats.sourceTextLengths} | Translation total length:${stats.translatedTextLengths}`);
             return stats;
         } catch (error) {
-            logger.error(`翻译缓存 | 获取统计失败 | 错误:${error.message}`);
+            logger.error(`Translation Cache | Get stats failed | Error:${error.message}`);
             return { total: 0, sourceTextLengths: 0, translatedTextLengths: 0 };
         }
     }
