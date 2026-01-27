@@ -1,6 +1,6 @@
 /**
- * 规则配置管理器
- * 负责管理规则规则配置弹窗和相关功能
+ * Rules Configuration Manager
+ * Manages the rules configuration dialog and related features
  */
 
 import { app } from "../../../../scripts/app.js";
@@ -22,23 +22,23 @@ import { APIService } from "../services/api.js";
 class RulesConfigManager {
     constructor() {
         this.systemPrompts = null;
-        // ---存储规则列表数据---
+        // --- Store rule list data ---
         this.expandPrompts = [];
         this.zhVisionPrompts = [];
         this.enVisionPrompts = [];
         this.videoPrompts = [];
-        // ---当前激活的规则ID---
+        // --- Currently active rule IDs ---
         this.activeExpandPromptId = null;
         this.activeZhVisionPromptId = null;
         this.activeEnVisionPromptId = null;
         this.activeVideoPromptId = null;
 
         this.isDirty = false;
-        this.initialState = null; // 用于存储状态备份
+        this.initialState = null; // Used for state backup
     }
 
     /**
-     * 备份当前状态
+     * Backup current state
      */
     _backupState() {
         this.initialState = {
@@ -53,7 +53,7 @@ class RulesConfigManager {
             activeVideoPromptId: this.activeVideoPromptId,
         };
         this.isDirty = false;
-        // 标记表单未修改
+        // Mark form as unmodified
         const form = document.querySelector('.rules-config-dialog .rules-config-form');
         if (form && form.elements.modified_marker) {
             form.elements.modified_marker.value = 'initial';
@@ -61,7 +61,7 @@ class RulesConfigManager {
     }
 
     /**
-     * 从备份恢复状态
+     * Restore state from backup
      */
     _restoreState() {
         if (this.initialState) {
@@ -80,11 +80,11 @@ class RulesConfigManager {
 
 
     /**
-     * 标记配置已修改
+     * Mark configuration as modified
      */
     _setDirty() {
         this.isDirty = true;
-        // 触发表单修改，以便通用对话框检测到未保存的更改
+        // Trigger form modification so the generic dialog can detect unsaved changes
         const form = document.querySelector('.rules-config-dialog .rules-config-form');
         if (form && form.elements.modified_marker) {
             form.elements.modified_marker.value = 'modified_' + Date.now();
@@ -93,14 +93,14 @@ class RulesConfigManager {
     }
 
     /**
-     * 显示规则配置弹窗
+     * Show rules configuration dialog
      */
     showRulesConfigModal() {
         try {
-            logger.debug('打开规则配置弹窗');
+            logger.debug('Opening rules configuration dialog');
 
             createSettingsDialog({
-                title: '<i class="pi pi-list" style="margin-right: 8px;"></i>规则管理器',
+                title: '<i class="pi pi-list" style="margin-right: 8px;"></i>Rules Manager',
                 dialogClassName: 'rules-config-dialog',
                 disableBackdropAndCloseOnClickOutside: true,
                 renderContent: (container) => {
@@ -110,90 +110,90 @@ class RulesConfigManager {
                     if (this.isDirty) {
                         try {
                             await this._saveConfigToServer();
-                            this._backupState(); // 保存成功后更新备份
+                            this._backupState(); // Update backup after successful save
                             app.extensionManager.toast.add({
                                 severity: "success",
-                                summary: "配置已保存",
-                                detail: "所有更改已成功保存到服务器",
+                                summary: "Configuration saved",
+                                detail: "All changes have been successfully saved to the server",
                                 life: 3000
                             });
                         } catch (error) {
-                            // 错误提示已在 _saveConfigToServer 中处理
-                            return false; // 保存失败时阻止关闭对话框
+                            // Error notification already handled in _saveConfigToServer
+                            return false; // Prevent closing dialog on save failure
                         }
                     } else {
                         app.extensionManager.toast.add({
                             severity: "info",
-                            summary: "无更改",
-                            detail: "配置没有未保存的更改",
+                            summary: "No changes",
+                            detail: "Configuration has no unsaved changes",
                             life: 3000
                         });
                     }
-                    return true; // 关闭对话框
+                    return true; // Close dialog
                 },
                 onCancel: () => {
-                    // createSettingsDialog 的通用逻辑会处理确认
-                    // 如果用户确认取消，我们在这里恢复状态
+                    // createSettingsDialog's generic logic handles confirmation
+                    // If user confirms cancel, restore state here
                     if (this.isDirty) {
                         this._restoreState();
-                        this._renderPromptLists(); // 重新渲染以显示恢复后的状态
+                        this._renderPromptLists(); // Re-render to show restored state
                     }
-                    return true; // 允许关闭
+                    return true; // Allow closing
                 }
             });
         } catch (error) {
-            logger.error(`打开规则配置弹窗失败: ${error.message}`);
+            logger.error(`Failed to open rules configuration dialog: ${error.message}`);
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: "打开配置失败",
-                detail: error.message || "打开配置弹窗过程中发生错误",
+                summary: "Failed to open configuration",
+                detail: error.message || "An error occurred while opening the configuration dialog",
                 life: 3000
             });
         }
     }
 
     /**
-     * 创建规则配置UI
-     * @param {HTMLElement} container 容器元素
+     * Create rules configuration UI
+     * @param {HTMLElement} container Container element
      */
     _createRulesConfigUI(container) {
         const form = document.createElement('form');
         form.onsubmit = (e) => e.preventDefault();
         form.className = 'rules-config-form';
 
-        // 添加一个隐藏输入，用于脏检查
+        // Add hidden input for dirty checking
         const hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'modified_marker';
         hiddenInput.value = 'initial';
         form.appendChild(hiddenInput);
 
-        // ---创建标签页容器---
+        // --- Create tab container ---
         const tabContainer = document.createElement('div');
         tabContainer.className = 'rules-config-tabs';
 
-        // ---创建标签页头部包装容器（包含标签按钮和添加按钮）---
+        // --- Create tab header wrapper (contains tab buttons and add button) ---
         const tabHeaderWrapper = document.createElement('div');
         tabHeaderWrapper.className = 'tab-header-wrapper';
 
-        // ---创建标签页头部---
+        // --- Create tab header ---
         const tabHeader = document.createElement('div');
         tabHeader.className = 'tab-header';
 
-        // ---创建添加按钮容器---
+        // --- Create add button container ---
         const addButtonContainer = document.createElement('div');
         addButtonContainer.className = 'tab-header-actions';
 
-        // 定义标签页配置（包含是否有添加按钮）
+        // Define tab configurations (including whether they have add buttons)
         const tabs = [
-            { id: 'expand', title: '提示词优化规则', subtitle: '提示词优化润色提示词', addLabel: '添加提示词优化规则' },
-            { id: 'zhVision', title: '中文反推', subtitle: '图像反推中文提示词', addLabel: '添加中文反推规则' },
-            { id: 'enVision', title: '英文反推', subtitle: '图像反推英文提示词', addLabel: '添加英文反推规则' },
-            { id: 'video', title: '视频反推', subtitle: '将视频反推提示词', addLabel: '添加视频反推规则' },
-            { id: 'translate', title: '翻译规则', subtitle: '大模型翻译规则', addLabel: null }
+            { id: 'expand', title: 'Prompt Optimization Rules', subtitle: 'Prompt optimization and refinement', addLabel: 'Add Prompt Optimization Rule' },
+            { id: 'zhVision', title: 'Chinese Captioning', subtitle: 'Image captioning in Chinese', addLabel: 'Add Chinese Captioning Rule' },
+            { id: 'enVision', title: 'English Captioning', subtitle: 'Image captioning in English', addLabel: 'Add English Captioning Rule' },
+            { id: 'video', title: 'Video Captioning', subtitle: 'Video to prompt captioning', addLabel: 'Add Video Captioning Rule' },
+            { id: 'translate', title: 'Translation Rules', subtitle: 'LLM translation rules', addLabel: null }
         ];
 
-        // 创建标签按钮
+        // Create tab buttons
         tabs.forEach((tab, index) => {
             const button = this._createRuleTabButton(tab.id, tab.title, tab.subtitle);
             if (index === 0) {
@@ -202,7 +202,7 @@ class RulesConfigManager {
             tabHeader.appendChild(button);
         });
 
-        // 创建各标签页对应的添加按钮（初始只显示第一个）
+        // Create add buttons for each tab (initially only show first one)
         tabs.forEach((tab, index) => {
             if (tab.addLabel) {
                 const addButton = document.createElement('button');
@@ -213,7 +213,7 @@ class RulesConfigManager {
                 addButton.onclick = () => {
                     this._showPromptEditDialog(tab.id, null);
                 };
-                // 只显示第一个标签页的按钮
+                // Only show the first tab's button
                 addButton.style.display = index === 0 ? 'inline-flex' : 'none';
                 addButtonContainer.appendChild(addButton);
             }
@@ -223,14 +223,14 @@ class RulesConfigManager {
         tabHeaderWrapper.appendChild(addButtonContainer);
         tabContainer.appendChild(tabHeaderWrapper);
 
-        // ---创建标签页内容容器---
+        // --- Create tab content container ---
         const tabContent = document.createElement('div');
         tabContent.className = 'tab-content';
 
-        // 创建各个标签页内容
+        // Create content for each tab
         const expandPane = this._createExpandTabPane();
-        const zhVisionPane = this._createVisionTabPane('zhVision', '中文反推规则');
-        const enVisionPane = this._createVisionTabPane('enVision', '英文反推规则');
+        const zhVisionPane = this._createVisionTabPane('zhVision', 'Chinese Captioning Rules');
+        const enVisionPane = this._createVisionTabPane('enVision', 'English Captioning Rules');
         const videoPane = this._createVideoTabPane();
         const translatePane = this._createTranslateTabPane();
 
@@ -244,19 +244,19 @@ class RulesConfigManager {
         form.appendChild(tabContainer);
         container.appendChild(form);
 
-        // 默认显示第一个标签页
+        // Show first tab by default
         this._switchRuleTab('expand', tabHeader, tabContent);
 
-        // 加载系统规则配置
+        // Load system rules configuration
         this._loadSystemPrompts();
     }
 
     /**
-     * 创建规则标签按钮
-     * @param {string} tabId 标签ID
-     * @param {string} title 标签标题
-     * @param {string} subtitle 标签副标题
-     * @returns {HTMLElement} 标签按钮元素
+     * Create rule tab button
+     * @param {string} tabId Tab ID
+     * @param {string} title Tab title
+     * @param {string} subtitle Tab subtitle
+     * @returns {HTMLElement} Tab button element
      */
     _createRuleTabButton(tabId, title, subtitle) {
         const button = document.createElement('button');
@@ -276,10 +276,10 @@ class RulesConfigManager {
             button.appendChild(subtitleEl);
         }
 
-        // 点击切换标签
+        // Click to switch tab
         button.addEventListener('click', () => {
             const tabHeader = button.parentElement;
-            // tabHeader 在 tab-header-wrapper 内，tabContent 是 wrapper 的下一个兄弟元素
+            // tabHeader is inside tab-header-wrapper, tabContent is the next sibling of wrapper
             const tabHeaderWrapper = tabHeader.parentElement;
             const tabContent = tabHeaderWrapper.nextElementSibling;
             this._switchRuleTab(tabId, tabHeader, tabContent);
@@ -289,13 +289,13 @@ class RulesConfigManager {
     }
 
     /**
-     * 切换规则标签页
-     * @param {string} tabId 标签ID
-     * @param {HTMLElement} header 标签头部容器
-     * @param {HTMLElement} contentContainer 内容容器
+     * Switch rule tab
+     * @param {string} tabId Tab ID
+     * @param {HTMLElement} header Tab header container
+     * @param {HTMLElement} contentContainer Content container
      */
     _switchRuleTab(tabId, header, contentContainer) {
-        // 更新标签按钮状态
+        // Update tab button state
         header.querySelectorAll('.tab-button').forEach(btn => {
             if (btn.dataset.tab === tabId) {
                 btn.classList.add('active');
@@ -304,12 +304,12 @@ class RulesConfigManager {
             }
         });
 
-        // 显示对应内容
+        // Show corresponding content
         contentContainer.querySelectorAll('.tab-pane').forEach(pane => {
             pane.style.display = pane.dataset.tab === tabId ? 'block' : 'none';
         });
 
-        // 切换添加按钮的显示状态
+        // Toggle add button visibility
         const actionsContainer = header.parentElement?.querySelector('.tab-header-actions');
         if (actionsContainer) {
             actionsContainer.querySelectorAll('.tab-add-button').forEach(btn => {
@@ -319,8 +319,8 @@ class RulesConfigManager {
     }
 
     /**
-     * 创建扩写规则标签页内容
-     * @returns {HTMLElement} 标签页内容元素
+     * Create expand rules tab pane content
+     * @returns {HTMLElement} Tab pane content element
      */
     _createExpandTabPane() {
         const pane = document.createElement('div');
@@ -329,17 +329,17 @@ class RulesConfigManager {
         pane.style.display = 'none';
         pane.style.padding = '16px';
 
-        // 创建规则列表容器
+        // Create rule list container
         const listContainer = document.createElement('div');
         listContainer.className = 'prompt-list-container';
 
         const listHeader = document.createElement('div');
         listHeader.className = 'prompt-list-header';
         listHeader.innerHTML = `
-            <div class="prompt-list-cell status-cell">状态</div>
-            <div class="prompt-list-cell name-cell">规则名称</div>
-            <div class="prompt-list-cell content-cell">规则内容</div>
-            <div class="prompt-list-cell action-cell">操作</div>
+            <div class="prompt-list-cell status-cell">Status</div>
+            <div class="prompt-list-cell name-cell">Rule Name</div>
+            <div class="prompt-list-cell content-cell">Rule Content</div>
+            <div class="prompt-list-cell action-cell">Actions</div>
         `;
         this._addHeaderResizers(listHeader);
 
@@ -350,15 +350,15 @@ class RulesConfigManager {
         listContainer.appendChild(scrollList);
         pane.appendChild(listContainer);
 
-        // 存储列表引用
+        // Store list reference
         this.expandScrollList = scrollList;
 
         return pane;
     }
 
     /**
-     * 创建翻译规则标签页内容（只读编辑模式）
-     * @returns {HTMLElement} 标签页内容元素
+     * Create translation rules tab pane content (read-only edit mode)
+     * @returns {HTMLElement} Tab pane content element
      */
     _createTranslateTabPane() {
         const pane = document.createElement('div');
@@ -369,16 +369,16 @@ class RulesConfigManager {
 
 
 
-        // 创建翻译规则列表容器
+        // Create translation rule list container
         const listContainer = document.createElement('div');
         listContainer.className = 'prompt-list-container';
 
         const listHeader = document.createElement('div');
         listHeader.className = 'prompt-list-header';
         listHeader.innerHTML = `
-            <div class="prompt-list-cell name-cell">规则名称</div>
-            <div class="prompt-list-cell content-cell">规则内容</div>
-            <div class="prompt-list-cell action-cell">操作</div>
+            <div class="prompt-list-cell name-cell">Rule Name</div>
+            <div class="prompt-list-cell content-cell">Rule Content</div>
+            <div class="prompt-list-cell action-cell">Actions</div>
         `;
         this._addHeaderResizers(listHeader);
 
@@ -388,23 +388,23 @@ class RulesConfigManager {
         listContainer.appendChild(listHeader);
         listContainer.appendChild(scrollList);
         pane.appendChild(listContainer);
-        // 创建提示信息
+        // Create notice message
         const notice = document.createElement('div');
         notice.className = 'rule-pane-notice';
-        notice.innerHTML = '<i class="pi pi-info-circle"></i> 翻译规则仅支持编辑，不支持新增和删除';
+        notice.innerHTML = '<i class="pi pi-info-circle"></i> Translation rules only support editing, not adding or deleting';
         pane.appendChild(notice);
 
-        // 存储列表引用
+        // Store list reference
         this.translateScrollList = scrollList;
 
         return pane;
     }
 
     /**
-     * 创建反推规则标签页内容
-     * @param {string} type 类型 (zhVision/enVision)
-     * @param {string} title 标题
-     * @returns {HTMLElement} 标签页内容元素
+     * Create vision captioning rules tab pane content
+     * @param {string} type Type (zhVision/enVision)
+     * @param {string} title Title
+     * @returns {HTMLElement} Tab pane content element
      */
     _createVisionTabPane(type, title) {
         const pane = document.createElement('div');
@@ -413,17 +413,17 @@ class RulesConfigManager {
         pane.style.display = 'none';
         pane.style.padding = '16px';
 
-        // 创建规则列表容器
+        // Create rule list container
         const listContainer = document.createElement('div');
         listContainer.className = 'prompt-list-container vision-prompt-list-container';
 
         const listHeader = document.createElement('div');
         listHeader.className = 'prompt-list-header';
         listHeader.innerHTML = `
-            <div class="prompt-list-cell status-cell">状态</div>
-            <div class="prompt-list-cell name-cell">规则名称</div>
-            <div class="prompt-list-cell content-cell">规则内容</div>
-            <div class="prompt-list-cell action-cell">操作</div>
+            <div class="prompt-list-cell status-cell">Status</div>
+            <div class="prompt-list-cell name-cell">Rule Name</div>
+            <div class="prompt-list-cell content-cell">Rule Content</div>
+            <div class="prompt-list-cell action-cell">Actions</div>
         `;
         this._addHeaderResizers(listHeader);
 
@@ -434,7 +434,7 @@ class RulesConfigManager {
         listContainer.appendChild(scrollList);
         pane.appendChild(listContainer);
 
-        // 存储列表引用
+        // Store list reference
         if (type === 'zhVision') {
             this.zhVisionScrollList = scrollList;
         } else {
@@ -445,8 +445,8 @@ class RulesConfigManager {
     }
 
     /**
-     * 创建视频反推规则标签页内容
-     * @returns {HTMLElement} 标签页内容元素
+     * Create video captioning rules tab pane content
+     * @returns {HTMLElement} Tab pane content element
      */
     _createVideoTabPane() {
         const pane = document.createElement('div');
@@ -455,17 +455,17 @@ class RulesConfigManager {
         pane.style.display = 'none';
         pane.style.padding = '16px';
 
-        // 创建规则列表容器
+        // Create rule list container
         const listContainer = document.createElement('div');
         listContainer.className = 'prompt-list-container video-prompt-list-container';
 
         const listHeader = document.createElement('div');
         listHeader.className = 'prompt-list-header';
         listHeader.innerHTML = `
-            <div class="prompt-list-cell status-cell">状态</div>
-            <div class="prompt-list-cell name-cell">规则名称</div>
-            <div class="prompt-list-cell content-cell">规则内容</div>
-            <div class="prompt-list-cell action-cell">操作</div>
+            <div class="prompt-list-cell status-cell">Status</div>
+            <div class="prompt-list-cell name-cell">Rule Name</div>
+            <div class="prompt-list-cell content-cell">Rule Content</div>
+            <div class="prompt-list-cell action-cell">Actions</div>
         `;
         this._addHeaderResizers(listHeader);
 
@@ -476,57 +476,57 @@ class RulesConfigManager {
         listContainer.appendChild(scrollList);
         pane.appendChild(listContainer);
 
-        // 存储列表引用
+        // Store list reference
         this.videoScrollList = scrollList;
 
         return pane;
     }
 
     /**
-     * 加载系统规则配置
+     * Load system rules configuration
      */
     async _loadSystemPrompts() {
         try {
             const response = await fetch(APIService.getApiUrl('/config/system_prompts'));
             if (!response.ok) {
-                throw new Error(`加载系统规则配置失败: ${response.status} ${response.statusText}`);
+                throw new Error(`Failed to load system rules configuration: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
             this.systemPrompts = data;
 
-            // 获取激活的规则ID
+            // Get active rule IDs
             const activePrompts = data.active_prompts || {};
             const activeExpandId = activePrompts.expand;
             const activeZhVisionId = activePrompts.vision_zh;
             const activeEnVisionId = activePrompts.vision_en;
 
-            // 输出加载的激活ID
-            logger.debug(`加载的激活规则ID | expand:${activeExpandId || '无'} | vision_zh:${activeZhVisionId || '无'} | vision_en:${activeEnVisionId || '无'}`);
+            // Output loaded active IDs
+            logger.debug(`Loaded active rule IDs | expand:${activeExpandId || 'none'} | vision_zh:${activeZhVisionId || 'none'} | vision_en:${activeEnVisionId || 'none'}`);
 
-            // 转换扩写规则数据
+            // Convert expand rule data
             this.expandPrompts = [];
             if (data.expand_prompts) {
-                // 保存原始顺序，以便在保存时恢复
+                // Save original order for restoration when saving
                 this.originalExpandOrder = Object.keys(data.expand_prompts);
 
-                // 使用原始顺序遍历键
+                // Iterate keys using original order
                 this.originalExpandOrder.forEach(key => {
                     const prompt = data.expand_prompts[key];
-                    // 使用配置中的键作为ID，而不是生成新的ID
+                    // Use the configuration key as ID instead of generating a new one
                     this.expandPrompts.push({
                         id: key,
-                        name: prompt.name || key, // 如果没有名称，使用键作为名称
+                        name: prompt.name || key, // If no name, use key as name
                         tags: prompt.tags || [],
                         category: prompt.category || '',
                         showIn: prompt.showIn || ['frontend', 'node'],
                         content: prompt.content,
-                        isActive: key === activeExpandId, // 根据active_prompts判断是否激活
-                        order: this.originalExpandOrder.indexOf(key) // 保存原始顺序
+                        isActive: key === activeExpandId, // Determine active state based on active_prompts
+                        order: this.originalExpandOrder.indexOf(key) // Save original order
                     });
                 });
 
-                // 如果没有找到激活的规则，则激活第一个
+                // If no active rule found, activate the first one
                 if (!activeExpandId && this.expandPrompts.length > 0) {
                     this.expandPrompts[0].isActive = true;
                     this.activeExpandPromptId = this.expandPrompts[0].id;
@@ -534,25 +534,25 @@ class RulesConfigManager {
                     this.activeExpandPromptId = activeExpandId;
                 }
 
-                // 按原始顺序排序
+                // Sort by original order
                 this.expandPrompts.sort((a, b) => a.order - b.order);
             }
 
-            // 转换反推规则数据
+            // Convert vision captioning rule data
             this.zhVisionPrompts = [];
             this.enVisionPrompts = [];
             if (data.vision_prompts) {
-                // 保存原始顺序
+                // Save original order
                 this.originalVisionOrder = Object.keys(data.vision_prompts);
 
-                // 分别存储中文和英文规则的键
+                // Store Chinese and English rule keys separately
                 const zhKeys = [];
                 const enKeys = [];
 
-                // 先分类所有键
+                // Classify all keys first
                 this.originalVisionOrder.forEach(key => {
                     const prompt = data.vision_prompts[key];
-                    // 根据ID或内容判断是中文还是英文
+                    // Determine Chinese or English based on ID or content
                     const isChinese = key.includes('zh') || /[\u4e00-\u9fa5]/.test(prompt.content);
 
                     if (isChinese) {
@@ -562,7 +562,7 @@ class RulesConfigManager {
                     }
                 });
 
-                // 处理中文规则
+                // Process Chinese rules
                 zhKeys.forEach((key, index) => {
                     const prompt = data.vision_prompts[key];
                     this.zhVisionPrompts.push({
@@ -573,11 +573,11 @@ class RulesConfigManager {
                         showIn: prompt.showIn || ['frontend', 'node'],
                         content: prompt.content,
                         isActive: key === activeZhVisionId,
-                        order: this.originalVisionOrder.indexOf(key) // 保存原始顺序
+                        order: this.originalVisionOrder.indexOf(key) // Save original order
                     });
                 });
 
-                // 处理英文规则
+                // Process English rules
                 enKeys.forEach((key, index) => {
                     const prompt = data.vision_prompts[key];
                     this.enVisionPrompts.push({
@@ -588,15 +588,15 @@ class RulesConfigManager {
                         showIn: prompt.showIn || ['frontend', 'node'],
                         content: prompt.content,
                         isActive: key === activeEnVisionId,
-                        order: this.originalVisionOrder.indexOf(key) // 保存原始顺序
+                        order: this.originalVisionOrder.indexOf(key) // Save original order
                     });
                 });
 
-                // 按原始顺序排序
+                // Sort by original order
                 this.zhVisionPrompts.sort((a, b) => a.order - b.order);
                 this.enVisionPrompts.sort((a, b) => a.order - b.order);
 
-                // 如果没有找到激活的中文规则，则激活第一个
+                // If no active Chinese rule found, activate the first one
                 if (!activeZhVisionId && this.zhVisionPrompts.length > 0) {
                     this.zhVisionPrompts[0].isActive = true;
                     this.activeZhVisionPromptId = this.zhVisionPrompts[0].id;
@@ -604,7 +604,7 @@ class RulesConfigManager {
                     this.activeZhVisionPromptId = activeZhVisionId;
                 }
 
-                // 如果没有找到激活的英文规则，则激活第一个
+                // If no active English rule found, activate the first one
                 if (!activeEnVisionId && this.enVisionPrompts.length > 0) {
                     this.enVisionPrompts[0].isActive = true;
                     this.activeEnVisionPromptId = this.enVisionPrompts[0].id;
@@ -613,22 +613,22 @@ class RulesConfigManager {
                 }
             }
 
-            // 转换翻译规则数据（只读编辑模式）
+            // Convert translation rule data (read-only edit mode)
             this.translatePrompts = [];
             if (data.translate_prompts) {
                 Object.keys(data.translate_prompts).forEach(key => {
                     const prompt = data.translate_prompts[key];
                     this.translatePrompts.push({
                         id: key,
-                        name: key, // 使用键作为名称
+                        name: key, // Use key as name
                         content: prompt.content,
                         role: prompt.role || 'system',
-                        isReadOnly: true // 标记为只读（不可增删）
+                        isReadOnly: true // Mark as read-only (cannot add or delete)
                     });
                 });
             }
 
-            // 转换视频反推规则数据
+            // Convert video captioning rule data
             this.videoPrompts = [];
             const activeVideoId = activePrompts.video;
             if (data.video_prompts) {
@@ -647,7 +647,7 @@ class RulesConfigManager {
                     });
                 });
 
-                // 如果没有找到激活的视频反推规则，则激活第一个
+                // If no active video captioning rule found, activate the first one
                 if (!activeVideoId && this.videoPrompts.length > 0) {
                     this.videoPrompts[0].isActive = true;
                     this.activeVideoPromptId = this.videoPrompts[0].id;
@@ -656,71 +656,71 @@ class RulesConfigManager {
                 }
             }
 
-            // 备份初始状态
+            // Backup initial state
             this._backupState();
 
-            // 渲染列表
+            // Render lists
             this._renderPromptLists();
 
         } catch (error) {
-            logger.error("加载系统规则配置失败:", error);
+            logger.error("Failed to load system rules configuration:", error);
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: "加载失败",
-                detail: error.message || "加载系统规则配置过程中发生错误",
+                summary: "Load failed",
+                detail: error.message || "An error occurred while loading system rules configuration",
                 life: 3000
             });
         }
     }
 
     /**
-     * 渲染规则列表
+     * Render rule lists
      */
     _renderPromptLists() {
-        logger.debug(`开始渲染规则列表 | 提示词优化规则:${this.expandPrompts.length}个 | 翻译规则:${this.translatePrompts?.length || 0}个 | 中文反推:${this.zhVisionPrompts.length}个 | 英文反推:${this.enVisionPrompts.length}个`);
+        logger.debug(`Starting to render rule lists | Prompt optimization rules:${this.expandPrompts.length} | Translation rules:${this.translatePrompts?.length || 0} | Chinese captioning:${this.zhVisionPrompts.length} | English captioning:${this.enVisionPrompts.length}`);
 
-        // 渲染扩写规则列表
+        // Render expand rules list
         if (this.expandScrollList) {
             this._renderPromptList(this.expandScrollList, this.expandPrompts, 'expand');
-            logger.debug(`渲染提示词优化规则列表完成`);
+            logger.debug(`Prompt optimization rules list rendered`);
         } else {
-            logger.error(`提示词优化规则列表容器不存在`);
+            logger.error(`Prompt optimization rules list container does not exist`);
         }
 
-        // 渲染翻译规则列表（只读编辑模式）
+        // Render translation rules list (read-only edit mode)
         if (this.translateScrollList) {
             this._renderTranslateList(this.translateScrollList, this.translatePrompts || []);
-            logger.debug(`渲染翻译规则列表完成`);
+            logger.debug(`Translation rules list rendered`);
         }
 
-        // 渲染中文反推规则列表
+        // Render Chinese captioning rules list
         if (this.zhVisionScrollList) {
             this._renderPromptList(this.zhVisionScrollList, this.zhVisionPrompts, 'zhVision');
-            logger.debug(`渲染中文反推规则列表完成`);
+            logger.debug(`Chinese captioning rules list rendered`);
         } else {
-            logger.error(`中文反推规则列表容器不存在`);
+            logger.error(`Chinese captioning rules list container does not exist`);
         }
 
-        // 渲染英文反推规则列表
+        // Render English captioning rules list
         if (this.enVisionScrollList) {
             this._renderPromptList(this.enVisionScrollList, this.enVisionPrompts, 'enVision');
-            logger.debug(`渲染英文反推规则列表完成`);
+            logger.debug(`English captioning rules list rendered`);
         } else {
-            logger.error(`英文反推规则列表容器不存在`);
+            logger.error(`English captioning rules list container does not exist`);
         }
 
-        // 渲染视频反推规则列表
+        // Render video captioning rules list
         if (this.videoScrollList) {
             this._renderPromptList(this.videoScrollList, this.videoPrompts || [], 'video');
-            logger.debug(`渲染视频反推规则列表完成`);
+            logger.debug(`Video captioning rules list rendered`);
         }
     }
 
 
     /**
-     * 渲染翻译规则列表（只读编辑模式）
-     * @param {HTMLElement} container 列表容器
-     * @param {Array} prompts 翻译规则数组
+     * Render translation rules list (read-only edit mode)
+     * @param {HTMLElement} container List container
+     * @param {Array} prompts Translation rules array
      */
     _renderTranslateList(container, prompts) {
         container.innerHTML = '';
@@ -731,26 +731,26 @@ class RulesConfigManager {
             row.dataset.promptId = prompt.id;
             row.dataset.type = 'translate';
 
-            // 名称列
+            // Name column
             const nameCell = document.createElement('div');
             nameCell.className = 'prompt-list-cell name-cell';
             nameCell.textContent = prompt.name;
             nameCell.title = prompt.name;
 
-            // 内容列
+            // Content column
             const contentCell = document.createElement('div');
             contentCell.className = 'prompt-list-cell content-cell';
             contentCell.textContent = prompt.content;
             contentCell.title = prompt.content;
 
-            // 操作列（只有编辑按钮）
+            // Actions column (edit button only)
             const actionCell = document.createElement('div');
             actionCell.className = 'prompt-list-cell action-cell';
 
             const editBtn = document.createElement('button');
             editBtn.className = 'prompt-action-btn edit-btn';
             editBtn.innerHTML = '<span class="pi pi-pencil"></span>';
-            editBtn.title = '编辑翻译规则';
+            editBtn.title = 'Edit translation rule';
             editBtn.onclick = (e) => {
                 e.stopPropagation();
                 this._showTranslateEditDialog(prompt.id);
@@ -767,18 +767,18 @@ class RulesConfigManager {
     }
 
     /**
-     * 显示翻译规则编辑对话框
-     * @param {string} promptId 翻译规则ID
+     * Show translation rule edit dialog
+     * @param {string} promptId Translation rule ID
      */
     _showTranslateEditDialog(promptId) {
         const prompt = (this.translatePrompts || []).find(p => p.id === promptId);
         if (!prompt) {
-            logger.error(`找不到翻译规则: ${promptId}`);
+            logger.error(`Translation rule not found: ${promptId}`);
             return;
         }
 
         createSettingsDialog({
-            title: '<i class="pi pi-pencil" style="margin-right: 8px;"></i>编辑翻译规则',
+            title: '<i class="pi pi-pencil" style="margin-right: 8px;"></i>Edit Translation Rule',
             isConfirmDialog: true,
             dialogClassName: 'translate-edit-dialog',
             renderContent: (content) => {
@@ -788,19 +788,19 @@ class RulesConfigManager {
                 content.style.flexDirection = 'column';
                 content.style.flex = '1';
 
-                // 显示规则名称（只读）
+                // Display rule name (read-only)
                 const nameGroup = document.createElement('div');
                 nameGroup.className = 'settings-form-group-item';
                 nameGroup.innerHTML = `
-                    <label class="settings-form-label">规则名称</label>
+                    <label class="settings-form-label">Rule Name</label>
                     <div class="settings-input-wrapper">
                         <input type="text" class="settings-input" value="${prompt.name}" disabled style="opacity: 0.7;" />
                     </div>
                 `;
                 nameGroup.style.marginBottom = '10px';
 
-                // 创建内容编辑区
-                const contentTextarea = createTextareaGroup('规则内容', '请输入翻译规则内容', 10);
+                // Create content editing area
+                const contentTextarea = createTextareaGroup('Rule Content', 'Enter translation rule content', 10);
                 contentTextarea.group.style.flex = '1';
                 contentTextarea.group.style.display = 'flex';
                 contentTextarea.group.style.flexDirection = 'column';
@@ -817,20 +817,20 @@ class RulesConfigManager {
                 if (!newContent) {
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: "编辑失败",
-                        detail: "规则内容不能为空",
+                        summary: "Edit failed",
+                        detail: "Rule content cannot be empty",
                         life: 3000
                     });
                     return false;
                 }
 
-                // 更新翻译规则内容
+                // Update translation rule content
                 prompt.content = newContent;
 
-                // 标记为已修改
+                // Mark as modified
                 this._setDirty();
 
-                // 重新渲染列表
+                // Re-render lists
                 this._renderPromptLists();
 
                 return true;
@@ -839,10 +839,10 @@ class RulesConfigManager {
     }
 
     /**
-     * 渲染单个规则列表
-     * @param {HTMLElement} container 列表容器
-     * @param {Array} prompts 规则数组
-     * @param {string} type 类型
+     * Render a single rule list
+     * @param {HTMLElement} container List container
+     * @param {Array} prompts Rules array
+     * @param {string} type Type
      */
     _renderPromptList(container, prompts, type) {
         container.innerHTML = '';
@@ -852,34 +852,34 @@ class RulesConfigManager {
             row.className = 'prompt-list-row';
             row.dataset.promptId = prompt.id;
             row.dataset.type = type;
-            row.dataset.order = prompt.order; // 添加顺序属性到DOM元素，方便调试
+            row.dataset.order = prompt.order; // Add order attribute to DOM element for debugging
 
-            // 状态列 - 可点击切换状态
+            // Status column - clickable to toggle state
             const statusCell = document.createElement('div');
             statusCell.className = 'prompt-list-cell status-cell';
             const statusIcon = document.createElement('span');
             statusIcon.className = prompt.isActive ? 'pi pi-check-circle active-status' : 'pi pi-circle-off inactive-status';
-            statusIcon.title = prompt.isActive ? '当前使用中，点击取消激活' : '未激活，点击激活';
+            statusIcon.title = prompt.isActive ? 'Currently active, click to deactivate' : 'Inactive, click to activate';
             statusCell.appendChild(statusIcon);
             statusCell.onclick = (e) => {
                 e.stopPropagation();
                 this._togglePromptActive(type, prompt.id);
             };
 
-            // 名称列
+            // Name column
             const nameCell = document.createElement('div');
             nameCell.className = 'prompt-list-cell name-cell';
-            // 使用name属性显示名称，而不是id
+            // Display name using name attribute instead of id
             nameCell.textContent = prompt.name;
             nameCell.title = prompt.name;
 
-            // 添加列宽调整手柄
+            // Add column width resize handle
             const nameResizer = document.createElement('div');
             nameResizer.className = 'column-resizer';
             nameCell.appendChild(nameResizer);
             this._addColumnResizer(nameResizer, nameCell);
 
-            // 内容列
+            // Content column
             const contentCell = document.createElement('div');
             contentCell.className = 'prompt-list-cell content-cell';
             const contentPreview = prompt.content.length > 50 ?
@@ -887,31 +887,31 @@ class RulesConfigManager {
             contentCell.textContent = contentPreview;
             contentCell.title = prompt.content;
 
-            // 添加列宽调整手柄
+            // Add column width resize handle
             const contentResizer = document.createElement('div');
             contentResizer.className = 'column-resizer';
             contentCell.appendChild(contentResizer);
             this._addColumnResizer(contentResizer, contentCell);
 
-            // 操作列
+            // Actions column
             const actionCell = document.createElement('div');
             actionCell.className = 'prompt-list-cell action-cell';
 
-            // 编辑按钮
+            // Edit button
             const editButton = document.createElement('button');
             editButton.className = 'prompt-action-btn edit-btn';
             editButton.innerHTML = '<span class="pi pi-pencil"></span>';
-            editButton.title = '编辑';
+            editButton.title = 'Edit';
             editButton.onclick = (e) => {
                 e.stopPropagation();
                 this._showPromptEditDialog(type, prompt.id);
             };
 
-            // 删除按钮
+            // Delete button
             const deleteButton = document.createElement('button');
             deleteButton.className = 'prompt-action-btn delete-btn';
             deleteButton.innerHTML = '<span class="pi pi-trash"></span>';
-            deleteButton.title = '删除';
+            deleteButton.title = 'Delete';
             deleteButton.onclick = (e) => {
                 e.stopPropagation();
                 this._deletePrompt(type, prompt.id);
@@ -928,19 +928,19 @@ class RulesConfigManager {
             container.appendChild(row);
         });
 
-        // 初始化拖拽排序
+        // Initialize drag-and-drop sorting
         this._initSortable(container, type);
     }
 
     /**
-     * 获取已存在的分类列表
-     * 从所有规则类型中提取已使用的分类
-     * @returns {Array<{value: string, text: string}>} 分类选项列表
+     * Get existing category list
+     * Extracts used categories from all rule types
+     * @returns {Array<{value: string, text: string}>} Category options list
      */
     _getExistingCategories() {
         const categories = new Set();
 
-        // 从所有规则类型中提取分类
+        // Extract categories from all rule types
         const allPrompts = [
             ...this.expandPrompts,
             ...this.zhVisionPrompts,
@@ -954,16 +954,16 @@ class RulesConfigManager {
             }
         });
 
-        // 转换为下拉选项格式
+        // Convert to dropdown option format
         return Array.from(categories)
-            .sort() // 按字母顺序排序
+            .sort() // Sort alphabetically
             .map(cat => ({ value: cat, text: cat }));
     }
 
     /**
-     * 显示规则编辑对话框
-     * @param {string} type 类型
-     * @param {string|null} promptId 规则ID，null表示新建
+     * Show rule edit dialog
+     * @param {string} type Type
+     * @param {string|null} promptId Rule ID, null for creating new
      */
     _showPromptEditDialog(type, promptId) {
         this._showPromptConfigDialog(type, promptId);
@@ -972,15 +972,15 @@ class RulesConfigManager {
 
 
     /**
-     * 显示通用的规则配置弹窗
-     * @param {string} defaultType 默认类型
-     * @param {string|null} promptId 规则ID，null表示新建
+     * Show generic rule configuration dialog
+     * @param {string} defaultType Default type
+     * @param {string|null} promptId Rule ID, null for creating new
      */
     _showPromptConfigDialog(defaultType = 'expand', promptId = null) {
         const isEdit = !!promptId;
         let editData = null;
 
-        // 如果是编辑模式，查找对应的数据
+        // If in edit mode, find the corresponding data
         if (isEdit) {
             if (defaultType === 'expand') {
                 editData = this.expandPrompts.find(p => p.id === promptId);
@@ -994,53 +994,53 @@ class RulesConfigManager {
         }
 
         createSettingsDialog({
-            title: isEdit ? '编辑规则' : '添加规则',
+            title: isEdit ? 'Edit Rule' : 'Add Rule',
             isConfirmDialog: true,
             dialogClassName: 'prompt-edit-dialog',
             disableBackdropAndCloseOnClickOutside: true,
-            saveButtonText: isEdit ? '保存' : '添加',
-            cancelButtonText: '取消',
+            saveButtonText: isEdit ? 'Save' : 'Add',
+            cancelButtonText: 'Cancel',
             renderContent: (content) => {
                 content.className += ' dialog-form-content';
-                content.style.padding = '10px 40px'; // 增加两侧留白
+                content.style.padding = '10px 40px'; // Increase side padding
                 content.style.display = 'flex';
                 content.style.flexDirection = 'column';
                 content.style.flex = '1';
-                content.style.overflow = 'hidden'; // 整体不滚动，内部 textarea 滚动
+                content.style.overflow = 'hidden'; // No overall scrolling, internal textarea scrolls
 
-                // 创建规则名称输入框
-                const nameInput = createInputGroup('规则名称', '请输入规则名称');
+                // Create rule name input
+                const nameInput = createInputGroup('Rule Name', 'Enter rule name');
                 nameInput.group.style.marginBottom = '10px';
                 if (isEdit && editData) {
                     nameInput.input.value = editData.name || '';
                 }
 
-                // 创建规则类型下拉框
+                // Create rule type dropdown
                 const typeOptions = [
-                    { value: 'expand', text: '提示词优化' },
-                    { value: 'zhVision', text: '反推（中文）' },
-                    { value: 'enVision', text: '反推（英文）' },
-                    { value: 'video', text: '视频反推' }
+                    { value: 'expand', text: 'Prompt Optimization' },
+                    { value: 'zhVision', text: 'Captioning (Chinese)' },
+                    { value: 'enVision', text: 'Captioning (English)' },
+                    { value: 'video', text: 'Video Captioning' }
                 ];
-                const typeSelect = createSelectGroup('规则类型', typeOptions, defaultType);
+                const typeSelect = createSelectGroup('Rule Type', typeOptions, defaultType);
                 typeSelect.group.style.marginBottom = '10px';
 
-                // 创建分类选择框（可输入）
+                // Create category select box (with input)
                 const categoryOptions = this._getExistingCategories();
                 const initialCategory = (isEdit && editData) ? (editData.category || '') : '';
-                const categoryComboBox = createComboBoxGroup('分类', categoryOptions, initialCategory, {
-                    placeholder: '输入或选择分类（可留空）',
-                    emptyText: '暂无分类'
+                const categoryComboBox = createComboBoxGroup('Category', categoryOptions, initialCategory, {
+                    placeholder: 'Type or select a category (optional)',
+                    emptyText: 'No categories'
                 });
                 categoryComboBox.group.style.flex = '1';
                 categoryComboBox.group.style.marginBottom = '0';
 
-                // 创建显示位置选择组件
+                // Create display location selection component
                 const showInOptions = [
-                    { value: 'frontend', label: '小助手上显示' },
-                    { value: 'node', label: '节点上显示' }
+                    { value: 'frontend', label: 'Show in Assistant' },
+                    { value: 'node', label: 'Show in Node' }
                 ];
-                // 获取初始值：编辑时从规则数据读取，新建时默认都选中
+                // Get initial value: read from rule data when editing, default to both selected when creating
                 const initialShowIn = (isEdit && editData && editData.showIn)
                     ? editData.showIn
                     : ['frontend', 'node'];
@@ -1051,7 +1051,7 @@ class RulesConfigManager {
                 });
                 showInSelectButton.group.style.marginBottom = '0';
 
-                // 创建行容器放置分类和显示位置组件
+                // Create row container for category and display location components
                 const categoryRow = document.createElement('div');
                 categoryRow.style.display = 'flex';
                 categoryRow.style.flexDirection = 'row';
@@ -1061,14 +1061,14 @@ class RulesConfigManager {
                 categoryRow.appendChild(categoryComboBox.group);
                 categoryRow.appendChild(showInSelectButton.group);
 
-                // 创建规则内容多行输入框
-                const contentTextarea = createTextareaGroup('规则内容', '请输入规则内容');
+                // Create rule content multi-line input
+                const contentTextarea = createTextareaGroup('Rule Content', 'Enter rule content');
                 contentTextarea.group.style.marginBottom = '0';
                 contentTextarea.group.style.flex = '1';
                 contentTextarea.group.style.display = 'flex';
                 contentTextarea.group.style.flexDirection = 'column';
 
-                // 确保 textarea 填充容器
+                // Ensure textarea fills container
                 const textareaContainer = contentTextarea.group.querySelector('.float-label-container');
                 if (textareaContainer) {
                     textareaContainer.style.flex = '1';
@@ -1092,7 +1092,7 @@ class RulesConfigManager {
                 content.showInSelectButton = showInSelectButton;
                 content.contentTextarea = contentTextarea.textarea;
 
-                // 聚焦名称输入框
+                // Focus name input
                 setTimeout(() => {
                     nameInput.input.focus();
                 }, 100);
@@ -1107,14 +1107,14 @@ class RulesConfigManager {
                 if (!name || !promptContent) {
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: isEdit ? "编辑失败" : "添加失败",
-                        detail: "规则名称和内容不能为空",
+                        summary: isEdit ? "Edit failed" : "Add failed",
+                        detail: "Rule name and content cannot be empty",
                         life: 3000
                     });
                     return;
                 }
 
-                // 根据类型获取对应的数组
+                // Get corresponding array based on type
                 let targetArray;
                 if (type === 'expand') {
                     targetArray = this.expandPrompts;
@@ -1125,11 +1125,11 @@ class RulesConfigManager {
                 } else if (type === 'video') {
                     targetArray = this.videoPrompts;
                 } else {
-                    logger.error(`未知的规则类型: ${type}`);
+                    logger.error(`Unknown rule type: ${type}`);
                     return;
                 }
 
-                // 检查名称是否重复（排除编辑时的自身）
+                // Check for duplicate names (exclude self when editing)
                 const isDuplicate = targetArray.some(p =>
                     (p.name === name || p.id === name) && (!isEdit || p.id !== promptId)
                 );
@@ -1137,19 +1137,19 @@ class RulesConfigManager {
                 if (isDuplicate) {
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: isEdit ? "编辑失败" : "添加失败",
-                        detail: `规则名称"${name}"已存在`,
+                        summary: isEdit ? "Edit failed" : "Add failed",
+                        detail: `Rule name "${name}" already exists`,
                         life: 3000
                     });
                     return;
                 }
 
                 if (isEdit) {
-                    // 编辑模式：更新现有数据
+                    // Edit mode: update existing data
                     if (editData) {
-                        // 如果类型发生变化，需要从原数组中移除，添加到新数组
+                        // If type changed, remove from original array and add to new array
                         if (type !== defaultType) {
-                            // 从原数组中移除
+                            // Remove from original array
                             let originalArray;
                             if (defaultType === 'expand') {
                                 originalArray = this.expandPrompts;
@@ -1163,8 +1163,8 @@ class RulesConfigManager {
                                 originalArray.splice(index, 1);
                             }
 
-                            // 添加到新数组
-                            // 为不同类型的规则设置不同的ID前缀
+                            // Add to new array
+                            // Set different ID prefixes for different rule types
                             let newId;
                             if (type === 'expand') {
                                 newId = 'expand_' + name.replace(/\s+/g, '_');
@@ -1183,24 +1183,24 @@ class RulesConfigManager {
                                 showIn: showIn,
                                 content: promptContent,
                                 isActive: false,
-                                order: targetArray.length // 设置顺序为当前数组长度
+                                order: targetArray.length // Set order to current array length
                             };
                             targetArray.push(newPrompt);
-                            logger.debug(`跨类型编辑规则 | 原类型:${defaultType} | 新类型:${type} | 新ID:${newId}`);
+                            logger.debug(`Cross-type rule edit | Original type:${defaultType} | New type:${type} | New ID:${newId}`);
                         } else {
-                            // 同类型编辑，直接更新
+                            // Same type edit, update directly
                             const oldName = editData.name;
                             editData.name = name;
                             editData.category = category;
                             editData.showIn = showIn;
                             editData.content = promptContent;
 
-                            // 如果名称发生了变化，则更新ID
+                            // If name changed, update ID
                             if (oldName !== name) {
                                 const oldId = editData.id;
                                 let newId;
 
-                                // 根据类型设置不同的ID前缀
+                                // Set different ID prefixes based on type
                                 if (type === 'expand') {
                                     newId = 'expand_' + name.replace(/\s+/g, '_');
                                 } else if (type === 'zhVision') {
@@ -1214,13 +1214,13 @@ class RulesConfigManager {
                                 }
 
                                 editData.id = newId;
-                                logger.debug(`更新规则ID | 类型:${type} | 旧ID:${oldId} | 新ID:${newId}`);
+                                logger.debug(`Updated rule ID | Type:${type} | Old ID:${oldId} | New ID:${newId}`);
                             }
                         }
                     }
                 } else {
-                    // 添加模式：创建新数据
-                    // 根据类型设置不同的ID前缀
+                    // Add mode: create new data
+                    // Set different ID prefixes based on type
                     let newId;
                     if (type === 'expand') {
                         newId = 'expand_' + name.replace(/\s+/g, '_');
@@ -1240,19 +1240,19 @@ class RulesConfigManager {
                         category: category,
                         showIn: showIn,
                         content: promptContent,
-                        isActive: false, // 默认不激活
-                        order: targetArray.length // 设置顺序为当前数组长度，确保添加到末尾
+                        isActive: false, // Not active by default
+                        order: targetArray.length // Set order to current array length to ensure appended at end
                     };
                     targetArray.push(newPrompt);
 
-                    // 输出调试信息
-                    logger.debug(`添加新规则 | 类型:${type} | ID:${newId} | 顺序:${newPrompt.order} | 数组长度:${targetArray.length}`);
+                    // Output debug info
+                    logger.debug(`Added new rule | Type:${type} | ID:${newId} | Order:${newPrompt.order} | Array length:${targetArray.length}`);
                 }
 
-                // 标记为已修改
+                // Mark as modified
                 this._setDirty();
 
-                // 重新渲染对应的列表
+                // Re-render corresponding list
                 this._renderPromptLists();
 
                 return true;
@@ -1261,32 +1261,32 @@ class RulesConfigManager {
     }
 
     /**
-     * 生成唯一ID
-     * @returns {string} 唯一ID
+     * Generate unique ID
+     * @returns {string} Unique ID
      */
     _generateId() {
         return 'prompt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
     /**
-     * 刷新所有规则列表
-     * 注意：为了保持一致性，建议直接使用_renderPromptLists方法
+     * Refresh all rule lists
+     * Note: For consistency, it is recommended to use _renderPromptLists directly
      */
     _refreshPromptLists() {
-        // 直接调用_renderPromptLists方法，确保一致性
+        // Call _renderPromptLists directly to ensure consistency
         this._renderPromptLists();
     }
 
     /**
-     * 切换规则激活状态
-     * @param {string} type 类型
-     * @param {string} promptId 规则ID
+     * Toggle rule active state
+     * @param {string} type Type
+     * @param {string} promptId Rule ID
      */
     _togglePromptActive(type, promptId) {
-        // 获取对应的数据数组
+        // Get corresponding data array
         let dataArray;
         let activeIdProperty;
-        let configKey; // 用于保存到配置中的键名
+        let configKey; // Key name for saving to configuration
 
         switch (type) {
             case 'expand':
@@ -1314,54 +1314,54 @@ class RulesConfigManager {
         }
 
 
-        // 找到目标规则
+        // Find target rule
         const targetPrompt = dataArray.find(p => p.id === promptId);
         if (!targetPrompt) return;
 
-        // 记录之前的激活状态
+        // Record previous active state
         const oldActiveId = this[activeIdProperty];
         const wasActive = targetPrompt.isActive;
 
-        // 如果当前规则已激活，则取消激活
+        // If current rule is active, deactivate it
         if (targetPrompt.isActive) {
             targetPrompt.isActive = false;
             this[activeIdProperty] = null;
-            logger.debug(`取消激活规则 | 类型:${type} | ID:${promptId} | 配置键:${configKey}`);
+            logger.debug(`Deactivated rule | Type:${type} | ID:${promptId} | Config key:${configKey}`);
         } else {
-            // 取消其他规则的激活状态
+            // Deactivate other rules
             dataArray.forEach(p => p.isActive = false);
-            // 激活当前规则
+            // Activate current rule
             targetPrompt.isActive = true;
             this[activeIdProperty] = promptId;
-            logger.debug(`激活规则 | 类型:${type} | ID:${promptId} | 配置键:${configKey} | 旧ID:${oldActiveId}`);
+            logger.debug(`Activated rule | Type:${type} | ID:${promptId} | Config key:${configKey} | Old ID:${oldActiveId}`);
         }
 
-        // 标记为已修改
+        // Mark as modified
         this._setDirty();
 
-        // 重新渲染列表
+        // Re-render lists
         this._renderPromptLists();
 
-        // 输出激活状态变化
-        logger.debug(`激活状态变化 | 类型:${type} | 规则:${targetPrompt.name} | ID:${promptId} | 旧状态:${wasActive} | 新状态:${targetPrompt.isActive} | 实例属性:${this[activeIdProperty]}`);
+        // Output active state change
+        logger.debug(`Active state changed | Type:${type} | Rule:${targetPrompt.name} | ID:${promptId} | Old state:${wasActive} | New state:${targetPrompt.isActive} | Instance property:${this[activeIdProperty]}`);
 
-        // 如果系统规则对象存在，直接更新其中的active_prompts
+        // If system prompts object exists, update active_prompts directly
         if (this.systemPrompts && this.systemPrompts.active_prompts) {
             const oldValue = this.systemPrompts.active_prompts[configKey];
             this.systemPrompts.active_prompts[configKey] = targetPrompt.isActive ? promptId : null;
-            logger.debug(`更新系统规则对象 | 配置键:${configKey} | 旧值:${oldValue} | 新值:${this.systemPrompts.active_prompts[configKey]}`);
+            logger.debug(`Updated system prompts object | Config key:${configKey} | Old value:${oldValue} | New value:${this.systemPrompts.active_prompts[configKey]}`);
         }
 
-        logger.debug(`${type} 规则状态切换: ${promptId} -> ${targetPrompt.isActive ? '激活' : '取消激活'}`);
+        logger.debug(`${type} rule state toggled: ${promptId} -> ${targetPrompt.isActive ? 'activated' : 'deactivated'}`);
     }
 
     /**
-     * 删除规则
-     * @param {string} type 类型
-     * @param {string} promptId 规则ID
+     * Delete rule
+     * @param {string} type Type
+     * @param {string} promptId Rule ID
      */
     _deletePrompt(type, promptId) {
-        // 获取对应的数据数组
+        // Get corresponding data array
         let dataArray;
         switch (type) {
             case 'expand':
@@ -1380,42 +1380,42 @@ class RulesConfigManager {
                 return;
         }
 
-        // 找到要删除的规则索引
+        // Find the index of the rule to delete
         const index = dataArray.findIndex(p => p.id === promptId);
         if (index === -1) return;
 
-        // 获取规则名称用于提示
+        // Get rule name for display
         const promptName = dataArray[index].name;
 
-        // 创建确认对话框（使用危险按钮样式）
+        // Create confirmation dialog (using danger button style)
         createSettingsDialog({
-            title: '<i class="pi pi-exclamation-triangle" style="margin-right: 8px; color: var(--p-orange-500);"></i>确认删除',
+            title: '<i class="pi pi-exclamation-triangle" style="margin-right: 8px; color: var(--p-orange-500);"></i>Confirm Delete',
             isConfirmDialog: true,
             dialogClassName: 'confirm-dialog',
             disableBackdropAndCloseOnClickOutside: true,
-            saveButtonText: '删除',
+            saveButtonText: 'Delete',
             saveButtonIcon: 'pi-trash',
             isDangerButton: true,
-            cancelButtonText: '取消',
+            cancelButtonText: 'Cancel',
             renderContent: (content) => {
                 content.style.textAlign = 'center';
                 content.style.padding = '1rem';
 
                 const confirmMessage = document.createElement('p');
-                confirmMessage.textContent = `确定要删除规则"${promptName}"吗？`;
+                confirmMessage.textContent = `Are you sure you want to delete rule "${promptName}"?`;
                 confirmMessage.style.margin = '0';
                 confirmMessage.style.fontSize = '1rem';
 
                 content.appendChild(confirmMessage);
             },
             onSave: () => {
-                // 从数组中删除规则
+                // Delete rule from array
                 dataArray.splice(index, 1);
 
-                // 标记为已修改
+                // Mark as modified
                 this._setDirty();
 
-                // 重新渲染列表
+                // Re-render lists
                 this._renderPromptLists();
 
                 return true;
@@ -1425,15 +1425,15 @@ class RulesConfigManager {
 
 
     /**
-     * 将当前配置保存到服务器
-     * @returns {Promise} 保存操作的Promise
+     * Save current configuration to server
+     * @returns {Promise} Promise for the save operation
      */
     async _saveConfigToServer() {
         try {
-            // 获取原始版本号（从加载时保存的 systemPrompts 获取）
+            // Get original version number (from systemPrompts loaded earlier)
             const configVersion = this.systemPrompts?.__config_version || '2.0';
 
-            // 构建系统规则配置（保留版本号）
+            // Build system rules configuration (preserve version number)
             const systemPrompts = {
                 __config_version: configVersion,
                 expand_prompts: {},
@@ -1448,7 +1448,7 @@ class RulesConfigManager {
                 }
             };
 
-            // 添加翻译规则（从 this.translatePrompts 动态构建）
+            // Add translation rules (dynamically built from this.translatePrompts)
             (this.translatePrompts || []).forEach(prompt => {
                 systemPrompts.translate_prompts[prompt.id] = {
                     role: prompt.role || 'system',
@@ -1457,10 +1457,10 @@ class RulesConfigManager {
             });
 
 
-            // 创建一个有序的规则列表
+            // Create an ordered rule list
             const orderedExpandPrompts = [...this.expandPrompts].sort((a, b) => a.order - b.order);
 
-            // 添加扩写规则，并记录激活的规则ID
+            // Add expand rules and record active rule ID
             orderedExpandPrompts.forEach(prompt => {
                 systemPrompts.expand_prompts[prompt.id] = {
                     name: prompt.name,
@@ -1471,24 +1471,24 @@ class RulesConfigManager {
                     content: prompt.content
                 };
 
-                // 记录激活的规则ID
+                // Record active rule ID
                 if (prompt.isActive) {
                     systemPrompts.active_prompts.expand = prompt.id;
-                    logger.debug(`保存激活的提示词优化规则ID: ${prompt.id}`);
+                    logger.debug(`Saving active prompt optimization rule ID: ${prompt.id}`);
                 }
             });
 
-            // 如果没有找到激活的扩写规则，使用实例属性中保存的ID
+            // If no active expand rule found, use the ID saved in instance property
             if (!systemPrompts.active_prompts.expand && this.activeExpandPromptId) {
                 systemPrompts.active_prompts.expand = this.activeExpandPromptId;
-                logger.debug(`使用实例属性中的提示词优化规则ID: ${this.activeExpandPromptId}`);
+                logger.debug(`Using instance property prompt optimization rule ID: ${this.activeExpandPromptId}`);
             }
 
-            // 创建有序的中文和英文反推规则列表
+            // Create ordered Chinese and English captioning rule lists
             const orderedZhVisionPrompts = [...this.zhVisionPrompts].sort((a, b) => a.order - b.order);
             const orderedEnVisionPrompts = [...this.enVisionPrompts].sort((a, b) => a.order - b.order);
 
-            // 添加中文反推规则
+            // Add Chinese captioning rules
             orderedZhVisionPrompts.forEach(prompt => {
                 systemPrompts.vision_prompts[prompt.id] = {
                     name: prompt.name,
@@ -1499,20 +1499,20 @@ class RulesConfigManager {
                     content: prompt.content
                 };
 
-                // 记录激活的规则ID
+                // Record active rule ID
                 if (prompt.isActive) {
                     systemPrompts.active_prompts.vision_zh = prompt.id;
-                    logger.debug(`保存激活的中文反推规则ID: ${prompt.id}`);
+                    logger.debug(`Saving active Chinese captioning rule ID: ${prompt.id}`);
                 }
             });
 
-            // 如果没有找到激活的中文反推规则，使用实例属性中保存的ID
+            // If no active Chinese captioning rule found, use the ID saved in instance property
             if (!systemPrompts.active_prompts.vision_zh && this.activeZhVisionPromptId) {
                 systemPrompts.active_prompts.vision_zh = this.activeZhVisionPromptId;
-                logger.debug(`使用实例属性中的中文反推规则ID: ${this.activeZhVisionPromptId}`);
+                logger.debug(`Using instance property Chinese captioning rule ID: ${this.activeZhVisionPromptId}`);
             }
 
-            // 添加英文反推规则
+            // Add English captioning rules
             orderedEnVisionPrompts.forEach(prompt => {
                 systemPrompts.vision_prompts[prompt.id] = {
                     name: prompt.name,
@@ -1523,20 +1523,20 @@ class RulesConfigManager {
                     content: prompt.content
                 };
 
-                // 记录激活的规则ID
+                // Record active rule ID
                 if (prompt.isActive) {
                     systemPrompts.active_prompts.vision_en = prompt.id;
-                    logger.debug(`保存激活的英文反推规则ID: ${prompt.id}`);
+                    logger.debug(`Saving active English captioning rule ID: ${prompt.id}`);
                 }
             });
 
-            // 如果没有找到激活的英文反推规则，使用实例属性中保存的ID
+            // If no active English captioning rule found, use the ID saved in instance property
             if (!systemPrompts.active_prompts.vision_en && this.activeEnVisionPromptId) {
                 systemPrompts.active_prompts.vision_en = this.activeEnVisionPromptId;
-                logger.debug(`使用实例属性中的英文反推规则ID: ${this.activeEnVisionPromptId}`);
+                logger.debug(`Using instance property English captioning rule ID: ${this.activeEnVisionPromptId}`);
             }
 
-            // 添加视频反推规则
+            // Add video captioning rules
             const orderedVideoPrompts = [...(this.videoPrompts || [])].sort((a, b) => a.order - b.order);
             orderedVideoPrompts.forEach(prompt => {
                 systemPrompts.video_prompts[prompt.id] = {
@@ -1548,21 +1548,21 @@ class RulesConfigManager {
                     content: prompt.content
                 };
 
-                // 记录激活的规则ID
+                // Record active rule ID
                 if (prompt.isActive) {
                     systemPrompts.active_prompts.video = prompt.id;
-                    logger.debug(`保存激活的视频反推规则ID: ${prompt.id}`);
+                    logger.debug(`Saving active video captioning rule ID: ${prompt.id}`);
                 }
             });
 
-            // 如果没有找到激活的视频反推规则，使用实例属性中保存的ID
+            // If no active video captioning rule found, use the ID saved in instance property
             if (!systemPrompts.active_prompts.video && this.activeVideoPromptId) {
                 systemPrompts.active_prompts.video = this.activeVideoPromptId;
-                logger.debug(`使用实例属性中的视频反推规则ID: ${this.activeVideoPromptId}`);
+                logger.debug(`Using instance property video captioning rule ID: ${this.activeVideoPromptId}`);
             }
 
-            // 输出最终的激活状态
-            logger.debug(`最终激活的规则ID: expand=${systemPrompts.active_prompts.expand}, vision_zh=${systemPrompts.active_prompts.vision_zh}, vision_en=${systemPrompts.active_prompts.vision_en}, video=${systemPrompts.active_prompts.video}`);
+            // Output final active state
+            logger.debug(`Final active rule IDs: expand=${systemPrompts.active_prompts.expand}, vision_zh=${systemPrompts.active_prompts.vision_zh}, vision_en=${systemPrompts.active_prompts.vision_en}, video=${systemPrompts.active_prompts.video}`);
 
 
             const response = await fetch(APIService.getApiUrl('/config/system_prompts'), {
@@ -1572,24 +1572,24 @@ class RulesConfigManager {
             });
 
             if (!response.ok) {
-                throw new Error(`保存失败: ${response.status} ${response.statusText}`);
+                throw new Error(`Save failed: ${response.status} ${response.statusText}`);
             }
 
-            logger.debug('配置已成功保存到服务器');
+            logger.debug('Configuration successfully saved to server');
             return true;
         } catch (error) {
-            logger.error(`保存系统规则配置失败: ${error.message}`);
+            logger.error(`Failed to save system rules configuration: ${error.message}`);
             throw error;
         }
     }
 
     /**
-     * 为头部单元格添加列宽调整手柄
-     * @param {HTMLElement} headerRow 头部行元素
+     * Add column width resize handles to header cells
+     * @param {HTMLElement} headerRow Header row element
      */
     _addHeaderResizers(headerRow) {
         const cells = headerRow.querySelectorAll('.prompt-list-cell');
-        // 为前三列添加调整手柄（最后一列操作列不需要）
+        // Add resize handles to first three columns (last action column doesn't need it)
         for (let i = 0; i < cells.length - 1; i++) {
             const cell = cells[i];
             const resizer = document.createElement('div');
@@ -1600,9 +1600,9 @@ class RulesConfigManager {
     }
 
     /**
-     * 添加列宽调整功能
-     * @param {HTMLElement} resizer 调整手柄元素
-     * @param {HTMLElement} column 列元素
+     * Add column width resize functionality
+     * @param {HTMLElement} resizer Resize handle element
+     * @param {HTMLElement} column Column element
      */
     _addColumnResizer(resizer, column) {
         let isResizing = false;
@@ -1614,11 +1614,11 @@ class RulesConfigManager {
             startX = e.clientX;
             startWidth = parseInt(document.defaultView.getComputedStyle(column).width, 10);
 
-            // 添加拖拽状态样式
+            // Add drag state styles
             resizer.classList.add('resizing');
             document.body.classList.add('column-resizing');
 
-            // 添加事件监听器
+            // Add event listeners
             document.addEventListener('mousemove', handleMouseMove, { capture: true });
             document.addEventListener('mouseup', handleMouseUp, { capture: true });
 
@@ -1635,18 +1635,18 @@ class RulesConfigManager {
             const deltaX = e.clientX - startX;
             const newWidth = startWidth + deltaX;
 
-            // 设置最小和最大宽度限制
+            // Set minimum and maximum width limits
             const minWidth = 80;
             const maxWidth = 500;
 
             if (newWidth >= minWidth && newWidth <= maxWidth) {
-                // 获取列的类名以确定是哪一列
+                // Get column class name to determine which column it is
                 const columnClass = Array.from(column.classList).find(cls =>
                     cls.includes('-cell') && cls !== 'prompt-list-cell'
                 );
 
                 if (columnClass) {
-                    // 同时调整所有相同类型的列
+                    // Adjust all columns of the same type simultaneously
                     const allColumns = document.querySelectorAll(`.${columnClass}`);
                     allColumns.forEach(col => {
                         col.style.width = newWidth + 'px';
@@ -1655,7 +1655,7 @@ class RulesConfigManager {
                         col.style.flexBasis = newWidth + 'px';
                     });
                 } else {
-                    // 如果没有找到特定类名，只调整当前列
+                    // If no specific class name found, only adjust current column
                     column.style.width = newWidth + 'px';
                     column.style.flexShrink = '0';
                     column.style.flexGrow = '0';
@@ -1669,12 +1669,12 @@ class RulesConfigManager {
 
             isResizing = false;
 
-            // 获取列的类名以确定是哪一列
+            // Get column class name to determine which column it is
             const columnClass = Array.from(column.classList).find(cls =>
                 cls.includes('-cell') && cls !== 'prompt-list-cell'
             );
 
-            // 重置 flex 属性，允许下次调整
+            // Reset flex properties to allow next resize
             if (columnClass) {
                 const allColumns = document.querySelectorAll(`.${columnClass}`);
                 allColumns.forEach(col => {
@@ -1688,11 +1688,11 @@ class RulesConfigManager {
                 column.style.flexBasis = '';
             }
 
-            // 移除拖拽状态样式
+            // Remove drag state styles
             resizer.classList.remove('resizing');
             document.body.classList.remove('column-resizing');
 
-            // 移除事件监听器
+            // Remove event listeners
             document.removeEventListener('mousemove', handleMouseMove, { capture: true });
             document.removeEventListener('mouseup', handleMouseUp, { capture: true });
 
@@ -1700,7 +1700,7 @@ class RulesConfigManager {
             e.stopPropagation();
         };
 
-        // 添加鼠标进入和离开事件以增强视觉反馈
+        // Add mouse enter and leave events for enhanced visual feedback
         resizer.addEventListener('mouseenter', () => {
             if (!isResizing) {
                 resizer.style.opacity = '0.6';
@@ -1715,17 +1715,17 @@ class RulesConfigManager {
     }
 
     /**
-     * 初始化拖拽排序功能
-     * @param {HTMLElement} container 列表容器
-     * @param {string} type 类型
+     * Initialize drag-and-drop sorting functionality
+     * @param {HTMLElement} container List container
+     * @param {string} type Type
      */
     _initSortable(container, type) {
-        // 检查是否已加载Sortable库
+        // Check if Sortable library is loaded
         if (typeof Sortable === 'undefined') {
             this._loadSortableLibrary().then(() => {
                 this._createSortableInstance(container, type);
             }).catch(error => {
-                logger.error('加载Sortable库失败:', error);
+                logger.error('Failed to load Sortable library:', error);
             });
         } else {
             this._createSortableInstance(container, type);
@@ -1733,7 +1733,7 @@ class RulesConfigManager {
     }
 
     /**
-     * 加载Sortable库
+     * Load Sortable library
      * @returns {Promise}
      */
     _loadSortableLibrary() {
@@ -1752,9 +1752,9 @@ class RulesConfigManager {
     }
 
     /**
-     * 创建Sortable实例
-     * @param {HTMLElement} container 列表容器
-     * @param {string} type 类型
+     * Create Sortable instance
+     * @param {HTMLElement} container List container
+     * @param {string} type Type
      */
     _createSortableInstance(container, type) {
         new Sortable(container, {
@@ -1763,29 +1763,29 @@ class RulesConfigManager {
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             handle: '.prompt-list-row',
-            // 排除状态列和操作列，只允许从名称和内容列拖拽
+            // Exclude status and action columns, only allow dragging from name and content columns
             filter: '.status-cell, .action-cell',
             preventOnFilter: true,
             onStart: (evt) => {
-                logger.debug(`开始拖拽: 类型=${type}, 索引=${evt.oldIndex}`);
+                logger.debug(`Drag started: type=${type}, index=${evt.oldIndex}`);
             },
             onEnd: (evt) => {
-                logger.debug(`结束拖拽: 类型=${type}, 旧索引=${evt.oldIndex}, 新索引=${evt.newIndex}`);
+                logger.debug(`Drag ended: type=${type}, oldIndex=${evt.oldIndex}, newIndex=${evt.newIndex}`);
                 this._handleSortEnd(evt, type);
             }
         });
     }
 
     /**
-     * 处理拖拽排序结束事件
-     * @param {Event} evt 排序事件
-     * @param {string} type 类型
+     * Handle drag-and-drop sort end event
+     * @param {Event} evt Sort event
+     * @param {string} type Type
      */
     _handleSortEnd(evt, type) {
         const { oldIndex, newIndex } = evt;
         if (oldIndex === newIndex) return;
 
-        // 获取对应的数据数组
+        // Get corresponding data array
         let dataArray;
         switch (type) {
             case 'expand':
@@ -1804,26 +1804,26 @@ class RulesConfigManager {
                 return;
         }
 
-        // 输出排序前的顺序信息
-        logger.debug(`排序前数据: ${JSON.stringify(dataArray.map(item => ({ id: item.id, order: item.order })))}`);
+        // Output pre-sort order info
+        logger.debug(`Pre-sort data: ${JSON.stringify(dataArray.map(item => ({ id: item.id, order: item.order })))}`);
 
-        // 重新排序数据
+        // Reorder data
         const movedItem = dataArray.splice(oldIndex, 1)[0];
         dataArray.splice(newIndex, 0, movedItem);
 
-        // 更新所有项目的顺序属性
+        // Update order property for all items
         dataArray.forEach((item, index) => {
             item.order = index;
         });
 
-        // 输出排序后的顺序信息
-        logger.debug(`排序后数据: ${JSON.stringify(dataArray.map(item => ({ id: item.id, order: item.order })))}`);
-        logger.debug(`${type} 列表排序已更新: ${oldIndex} -> ${newIndex} | 移动项ID: ${movedItem.id}`);
+        // Output post-sort order info
+        logger.debug(`Post-sort data: ${JSON.stringify(dataArray.map(item => ({ id: item.id, order: item.order })))}`);
+        logger.debug(`${type} list sort updated: ${oldIndex} -> ${newIndex} | Moved item ID: ${movedItem.id}`);
 
-        // 标记为已修改
+        // Mark as modified
         this._setDirty();
     }
 }
 
-// 导出规则配置管理器实例
+// Export rules configuration manager instance
 export const rulesConfigManager = new RulesConfigManager();

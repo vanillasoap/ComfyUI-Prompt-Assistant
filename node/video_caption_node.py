@@ -519,7 +519,7 @@ class VideoCaptionNode(VLMNodeBase):
             # Optimized reading: only read needed frames
             frames = []
            
-            # imageio的get_data(index)支持随机访问
+            # imageio's get_data(index) supports random access
             for idx in indices_to_read:
                 try:
                     frame = reader.get_data(idx)

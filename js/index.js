@@ -106,25 +106,25 @@ app.registerExtension({
                 nodeHelpTranslator
             });
 
-            // 然后再自动注册服务功能
+            // Then auto-register service features
             if (window.FEATURES.enabled) {
                 await promptAssistant.toggleGlobalFeature(true, true);
-                // 避免重复初始化，只在必要时启用图像小助手功能
+                // Avoid duplicate initialization, only enable image assistant when necessary
                 if (window.FEATURES.imageCaption) {
                     await imageCaption.toggleGlobalFeature(true, false);
                 }
-                // 初始化节点帮助翻译模块（根据功能开关）
+                // Initialize node help translation module (based on feature toggle)
                 if (window.FEATURES.nodeHelpTranslator) {
                     nodeHelpTranslator.initialize();
                 }
             }
 
-            logger.debug("扩展初始化完成");
+            logger.debug("Extension initialization complete");
         } catch (error) {
-            logger.error(`扩展初始化失败: ${error.message}`);
+            logger.error(`Extension initialization failed: ${error.message}`);
         }
 
-        // 延迟hook Note/MarkdownNote/PreviewAny节点类型
+        // Delayed hook for Note/MarkdownNote/PreviewAny node types
         setTimeout(() => {
             try {
                 const NoteNodeType = LiteGraph.registered_node_types['Note'];
@@ -137,50 +137,50 @@ app.registerExtension({
                 if (PreviewAnyNodeType) this._hookNoteNodeType(PreviewAnyNodeType, 'PreviewAny');
                 if (PreviewTextNodeType) this._hookNoteNodeType(PreviewTextNodeType, 'PreviewTextNode');
 
-                // 可能的其他名称变体
+                // Possible alternative name variants
                 const altNames = ['PreviewText', 'Preview as Text', 'Markdown Preview'];
                 altNames.forEach(name => {
                     const nodeType = LiteGraph.registered_node_types[name];
                     if (nodeType) {
                         this._hookNoteNodeType(nodeType, name);
-                        logger.debug(`[setup] 注入Preview节点成功 | 类型: ${name}`);
+                        logger.debug(`[setup] Preview node injection successful | Type: ${name}`);
                     }
                 });
             } catch (error) {
-                logger.error(`[setup] Hook Note节点失败: ${error.message}`);
+                logger.error(`[setup] Hook Note node failed: ${error.message}`);
             }
         }, 50);
 
-        // ---全局节点监听---
+        // ---Global node listeners---
         this._bindGraphHooks(app.graph);
 
-        // ---子图进入/退出监听（Vue Node 2.0 自动创建支持）---
+        // ---Subgraph enter/exit listeners (Vue Node 2.0 auto-creation support)---
         this._setupGraphSwitchListener();
 
-        // 暴露 _injectUniversalHooks 供外部使用
+        // Expose _injectUniversalHooks for external use
         app.registerExtension._injectUniversalHooks = this._injectUniversalHooks.bind(this);
     },
 
     /**
-     * 设置画布 graph 切换监听器
-     * 检测进入/退出子图事件，自动创建模式下重新扫描节点
+     * Set up canvas graph switch listener
+     * Detects enter/exit subgraph events, rescans nodes in auto-creation mode
      */
     _setupGraphSwitchListener() {
         if (!app.canvas) return;
 
-        // 记录上一次的 graph 引用
+        // Record previous graph reference
         let lastGraph = app.canvas.graph;
         const self = this;
 
-        // 通过 Object.defineProperty hook app.canvas.graph 的 setter
-        // 当 graph 切换（进入/退出子图）时触发扫描
+        // Hook app.canvas.graph setter via Object.defineProperty
+        // Triggers scanning when graph switches (entering/exiting subgraph)
         const originalDescriptor = Object.getOwnPropertyDescriptor(app.canvas, 'graph') || {
             value: app.canvas.graph,
             writable: true,
             configurable: true
         };
 
-        // 保存原始值
+        // Save original value
         let _graphValue = app.canvas.graph;
 
         Object.defineProperty(app.canvas, 'graph', {
@@ -191,16 +191,16 @@ app.registerExtension({
                 const oldGraph = _graphValue;
                 _graphValue = newGraph;
 
-                // 如果有原始 setter，调用它
+                // If original setter exists, call it
                 if (originalDescriptor.set) {
                     originalDescriptor.set.call(this, newGraph);
                 }
 
-                // 检测 graph 切换
+                // Detect graph switch
                 if (newGraph && newGraph !== oldGraph) {
-                    logger.debug(`[graphSwitch] 检测到画布切换 | 旧Graph: ${oldGraph?._workflow_id || 'unknown'} -> 新Graph: ${newGraph?._workflow_id || 'unknown'}`);
+                    logger.debug(`[graphSwitch] Canvas switch detected | Old Graph: ${oldGraph?._workflow_id || 'unknown'} -> New Graph: ${newGraph?._workflow_id || 'unknown'}`);
 
-                    // 延迟执行，确保画布切换完成
+                    // Delay execution to ensure canvas switch completes
                     const isVueMode = typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true;
                     const delay = isVueMode ? 300 : 100;
 
@@ -213,32 +213,32 @@ app.registerExtension({
             enumerable: true
         });
 
-        logger.debug('[graphSwitch] 画布切换监听器已设置');
+        logger.debug('[graphSwitch] Canvas switch listener set up');
     },
 
     /**
-     * 画布切换后的处理逻辑
-     * 复用 _bindGraphHooks 的扫描逻辑，避免代码重复
-     * @param {object} graph - 新的 graph 对象
+     * Processing logic after canvas switch
+     * Reuses _bindGraphHooks scanning logic to avoid code duplication
+     * @param {object} graph - New graph object
      */
     _onGraphSwitch(graph) {
         if (!graph || !window.FEATURES.enabled) return;
 
-        // 调用已有的绑定钩子方法，并传入 resetFlags 选项以重置节点初始化标记
+        // Call existing bind hooks method with resetFlags option to reset node initialization flags
         this._bindGraphHooks(graph, { resetFlags: true });
     },
 
     /**
-     * 为指定 graph 绑定节点挂载钩子
-     * 支持主画布和子图内部
-     * @param {object} graph - graph 对象
-     * @param {object} options - 选项 { resetFlags: 是否重置节点初始化标记 }
+     * Bind node mount hooks for specified graph
+     * Supports main canvas and subgraph internals
+     * @param {object} graph - Graph object
+     * @param {object} options - Options { resetFlags: whether to reset node initialization flags }
      */
     _bindGraphHooks(graph, options = {}) {
         if (!graph) return;
         const { resetFlags = false } = options;
 
-        // 绑定钩子（只执行一次）
+        // Bind hooks (execute only once)
         if (!graph._promptAssistantHooksInjected) {
             graph._promptAssistantHooksInjected = true;
 
@@ -248,17 +248,17 @@ app.registerExtension({
 
                 if (!window.FEATURES.enabled || !node) return;
 
-                // 1. 动态注入 Hooks (onSelected, onRemoved)
+                // 1. Dynamically inject Hooks (onSelected, onRemoved)
                 this._injectUniversalHooks(node);
 
-                // 2. 自动挂载尝试
+                // 2. Auto mount attempt
                 this._handleNodeActive(node, { delay: true });
             };
 
-            // logger.log(`[graphHooks] 已绑定 graph 钩子 | ID: ${graph._workflow_id || graph.constructor?.name || 'unknown'}`);
+            // logger.log(`[graphHooks] Graph hooks bound | ID: ${graph._workflow_id || graph.constructor?.name || 'unknown'}`);
 
-            // 【关键】处理进入子图时已存在的节点
-            // Vue 模式需要更长延迟，确保 DOM 渲染完成
+            // [KEY] Handle existing nodes when entering subgraph
+            // Vue mode requires longer delay to ensure DOM rendering completes
             const isVueMode = typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true;
             const scanDelay = isVueMode ? 500 : 100;
 
@@ -268,9 +268,9 @@ app.registerExtension({
                 const creationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.CreationMode") || "auto";
                 const icCreationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.ImageCaptionCreationMode") || "auto";
 
-                // 只要任意一个模块开启了自动创建，就需要扫描现有节点
+                // As long as any module has auto-creation enabled, scan existing nodes
                 if (creationMode !== "auto" && icCreationMode !== "auto") {
-                    // logger.debugSample(() => `[graphHooks] 跳过初始扫描 | PA模式: ${creationMode} | IC模式: ${icCreationMode}`);
+                    // logger.debugSample(() => `[graphHooks] Skipping initial scan | PA mode: ${creationMode} | IC mode: ${icCreationMode}`);
                     return;
                 }
 
@@ -280,10 +280,10 @@ app.registerExtension({
                 nodes.forEach(node => {
                     if (!node || node.id === -1) return;
 
-                    // 1. 注入钩子 (确保 onSelected/onRemoved 等能正常工作)
+                    // 1. Inject hooks (ensure onSelected/onRemoved etc. work properly)
                     this._injectUniversalHooks(node);
 
-                    // 2. 统一分发到激活处理函数，它内部会根据各自的自动创建设置进行判断
+                    // 2. Dispatch to unified activation handler, which internally judges based on each module's auto-creation settings
                     this._handleNodeActive(node, { delay: false });
                 });
             };
@@ -291,7 +291,7 @@ app.registerExtension({
             setTimeout(scanExistingNodes, scanDelay);
         }
 
-        // 【新增】如果需要重置标记（子图切换场景），立即扫描现有节点
+        // [NEW] If flags need resetting (subgraph switch scenario), immediately scan existing nodes
         if (resetFlags) {
             const isVueMode = typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true;
             const delay = isVueMode ? 300 : 100;

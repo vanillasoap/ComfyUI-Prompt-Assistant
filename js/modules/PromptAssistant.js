@@ -1,6 +1,6 @@
 /**
- * 提示词小助手核心类
- * 统一管理小助手的生命周期、实例创建、UI交互等功能
+ * Prompt Assistant core class
+ * Unified management of assistant lifecycle, instance creation, UI interaction, etc.
  */
 
 import { app } from "../../../../scripts/app.js";
@@ -24,58 +24,58 @@ import { MarkdownNoteTranslate } from "../utils/markdownNoteTranslate.js";
 
 
 
-// ====================== 工具函数 ======================
+// ====================== Utility Functions ======================
 
 /**
- * 计算小助手UI的预设宽度
- * 根据当前启用的功能数量返回对应的固定宽度值
- * @returns {number} 宽度值（像素）
+ * Calculate the preset width of the assistant UI
+ * Returns the corresponding fixed width value based on the number of currently enabled features
+ * @returns {number} Width value (pixels)
  */
 function calculateAssistantWidth() {
-    // 统计启用的功能
+    // Count enabled features
     const hasHistory = window.FEATURES.history;
     const hasTag = window.FEATURES.tag;
     const hasExpand = window.FEATURES.expand;
     const hasTranslate = window.FEATURES.translate;
 
-    // 统计非历史功能的数量
+    // Count the number of non-history features
     const otherFeaturesCount = [hasTag, hasExpand, hasTranslate].filter(Boolean).length;
 
-    // 根据功能组合返回预设常量宽度
+    // Return preset constant width based on feature combination
     if (hasHistory && otherFeaturesCount === 3) {
-        return 143; // 所有功能全开 (历史3 + 分隔线1 + 其它3)
+        return 143; // All features enabled (history 3 + divider 1 + others 3)
     } else if (hasHistory && otherFeaturesCount === 2) {
-        return 121; // 历史 + 两个其它
+        return 121; // History + two others
     } else if (hasHistory && otherFeaturesCount === 1) {
-        return 99;  // 历史 + 一个其它
+        return 99;  // History + one other
     } else if (hasHistory && otherFeaturesCount === 0) {
-        return 77;  // 只有历史功能
+        return 77;  // History only
     } else if (!hasHistory && otherFeaturesCount === 3) {
-        return 72;  // 关闭历史的三个功能
+        return 72;  // Three features without history
     } else if (!hasHistory && otherFeaturesCount === 2) {
-        return 50;  // 只有两个按钮
+        return 50;  // Two buttons only
     } else if (!hasHistory && otherFeaturesCount === 1) {
-        return 28;  // 只有一个按钮
+        return 28;  // One button only
     }
 
-    return 28; // 默认
+    return 28; // Default
 }
 
 
 
 /**
- * 防抖函数
- * 限制函数调用频率，避免频繁触发导致性能问题
+ * Debounce function
+ * Limits function call frequency to avoid performance issues from frequent triggering
  */
 function debounce(func, wait = 100) {
     return EventManager.debounce(func, wait);
 }
 
 /**
- * 获取输入元素的内容
- * 支持普通textarea、Tiptap编辑器、ProseMirror编辑器等
- * @param {object} widget - 小助手widget对象
- * @returns {string} 输入内容
+ * Get the content of an input element
+ * Supports standard textarea, Tiptap editor, ProseMirror editor, etc.
+ * @param {object} widget - Assistant widget object
+ * @returns {string} Input content
  */
 function getInputValue(widget, options = {}) {
     if (!widget || !widget.inputEl) {
@@ -85,18 +85,18 @@ function getInputValue(widget, options = {}) {
     const inputEl = widget.inputEl;
     const returnHtml = options.html === true;
 
-    // 标准textarea
+    // Standard textarea
     if (inputEl.tagName === 'TEXTAREA' && inputEl.value !== undefined) {
         return inputEl.value;
     }
 
-    // Tiptap/ProseMirror/comfy-markdown编辑器
+    // Tiptap/ProseMirror/comfy-markdown editor
     if (inputEl.classList.contains('tiptap') ||
         inputEl.classList.contains('ProseMirror') ||
         inputEl.classList.contains('comfy-markdown')) {
 
         let targetEl = inputEl;
-        // 对于comfy-markdown，查找内部编辑器元素
+        // For comfy-markdown, find inner editor element
         if (inputEl.classList.contains('comfy-markdown')) {
             const editorEl = inputEl.querySelector('.tiptap, .ProseMirror');
             if (editorEl) {
@@ -113,12 +113,12 @@ function getInputValue(widget, options = {}) {
             return textContent;
         }
 
-        // 从widget.value获取
+        // Get from widget.value
         if (widget.value !== undefined) {
             return widget.value;
         }
 
-        // 从node.widgets找到对应的widget.value
+        // Find matching widget.value from node.widgets
         if (widget.node && widget.node.widgets) {
             const matchingWidget = widget.node.widgets.find(w =>
                 w.name === widget.inputId || w.name === 'text'
@@ -129,7 +129,7 @@ function getInputValue(widget, options = {}) {
         }
     }
 
-    // contenteditable元素
+    // contenteditable element
     if (inputEl.isContentEditable || inputEl.getAttribute('contenteditable') === 'true') {
         if (returnHtml) {
             return inputEl.innerHTML || '';
@@ -151,14 +151,14 @@ function getInputValue(widget, options = {}) {
 }
 
 /**
- * 设置输入元素的内容
- * 支持普通textarea、Tiptap编辑器、ProseMirror编辑器等
- * @param {object} widget - 小助手widget对象
- * @param {string} content - 要设置的内容
- * @param {object} options - 配置选项
- * @param {boolean} options.html - 是否作为 HTML 内容设置
- * @param {boolean} options.silent - 是否静默更新（不触发事件，用于流式输出）
- * @returns {boolean} 是否设置成功
+ * Set the content of an input element
+ * Supports standard textarea, Tiptap editor, ProseMirror editor, etc.
+ * @param {object} widget - Assistant widget object
+ * @param {string} content - Content to set
+ * @param {object} options - Configuration options
+ * @param {boolean} options.html - Whether to set as HTML content
+ * @param {boolean} options.silent - Whether to update silently (without triggering events, for streaming output)
+ * @returns {boolean} Whether the operation was successful
  */
 function setInputValue(widget, content, options = {}) {
     if (!widget || !widget.inputEl) {
@@ -167,15 +167,15 @@ function setInputValue(widget, content, options = {}) {
 
     const inputEl = widget.inputEl;
     const useHtml = options.html === true;
-    const silent = options.silent === true;  // 流式更新时不触发事件
+    const silent = options.silent === true;  // Don't trigger events during streaming updates
 
     try {
-        // 标准textarea
+        // Standard textarea
         if (inputEl.tagName === 'TEXTAREA' && inputEl.value !== undefined) {
             inputEl.value = content;
 
-            // 关键修复：即使是 silent 模式，也需要同步 widget.value 和 node.widgets[].value
-            // 否则后续 getInputValue 会读取到旧值
+            // Critical fix: Even in silent mode, widget.value and node.widgets[].value need to be synced
+            // Otherwise subsequent getInputValue calls will read stale values
             if (widget.value !== undefined) {
                 widget.value = content;
             }
@@ -195,12 +195,12 @@ function setInputValue(widget, content, options = {}) {
             return true;
         }
 
-        // comfy-markdown或Tiptap/ProseMirror编辑器
+        // comfy-markdown or Tiptap/ProseMirror editor
         if (inputEl.classList.contains('comfy-markdown') ||
             inputEl.classList.contains('tiptap') ||
             inputEl.classList.contains('ProseMirror')) {
 
-            // 对于comfy-markdown，找到内部编辑器
+            // For comfy-markdown, find inner editor
             let targetEl = inputEl;
             if (inputEl.classList.contains('comfy-markdown')) {
                 const editorEl = inputEl.querySelector('.tiptap, .ProseMirror');
@@ -209,7 +209,7 @@ function setInputValue(widget, content, options = {}) {
                 }
             }
 
-            // 设置textContent/innerHTML
+            // Set textContent/innerHTML
             if (targetEl.isContentEditable || targetEl.getAttribute('contenteditable') === 'true') {
                 if (useHtml) {
                     targetEl.innerHTML = content;
@@ -220,18 +220,18 @@ function setInputValue(widget, content, options = {}) {
                 targetEl.innerHTML = content;
             }
 
-            // 触发输入事件（静默模式下跳过）
+            // Trigger input event (skip in silent mode)
             if (!silent) {
                 targetEl.dispatchEvent(new Event('input', { bubbles: true }));
                 targetEl.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            // 同时更新widget.value（无论是否 silent 都需要同步）
+            // Also update widget.value (needs sync regardless of silent mode)
             if (widget.value !== undefined) {
                 widget.value = content;
             }
 
-            // 同时更新node.widgets[].value（无论是否 silent 都需要同步）
+            // Also update node.widgets[].value (needs sync regardless of silent mode)
             if (widget.node && widget.node.widgets) {
                 const matchingWidget = widget.node.widgets.find(w =>
                     w.name === widget.inputId || w.name === 'text'
@@ -244,7 +244,7 @@ function setInputValue(widget, content, options = {}) {
             return true;
         }
 
-        // contenteditable元素
+        // contenteditable element
         if (inputEl.isContentEditable || inputEl.getAttribute('contenteditable') === 'true') {
             if (useHtml) {
                 inputEl.innerHTML = content;
@@ -252,7 +252,7 @@ function setInputValue(widget, content, options = {}) {
                 inputEl.textContent = content;
             }
 
-            // 关键修复：同步 widget.value 和 node.widgets[].value
+            // Critical fix: sync widget.value and node.widgets[].value
             if (widget.value !== undefined) {
                 widget.value = content;
             }
@@ -280,101 +280,101 @@ function setInputValue(widget, content, options = {}) {
 
         return false;
     } catch (error) {
-        logger.error(`[setInputValue] 设置失败 | 错误: ${error.message}`);
+        logger.error(`[setInputValue] Set failed | Error: ${error.message}`);
         return false;
     }
 }
 
-// ====================== 主类实现 ======================
+// ====================== Main Class Implementation ======================
 
 /**
- * 提示词小助手主类
- * 统一管理小助手的生命周期、实例和资源
+ * Prompt Assistant main class
+ * Unified management of assistant lifecycle, instances, and resources
  */
 class PromptAssistant {
-    /** 存储所有小助手实例的Map集合 */
+    /** Map collection storing all assistant instances */
     static instances = new Map();
 
     constructor() {
         this.initialized = false;
     }
 
-    // ---生命周期管理功能---
+    // ---Lifecycle Management---
     /**
-     * 判断功能是否被禁用
+     * Check if features are disabled
      */
     areAllFeaturesDisabled() {
         return !window.FEATURES.enabled;
     }
 
     /**
-     * 初始化提示词小助手
+     * Initialize Prompt Assistant
      */
     initialize() {
         if (this.initialized) return;
 
         try {
-            // 检查版本号
+            // Check version number
             if (!window.PromptAssistant_Version) {
-                logger.error("初始化时未找到版本号！这可能导致UI显示异常");
+                logger.error("Version number not found during initialization! This may cause UI display issues");
             } else {
-                logger.debug(`初始化时检测到版本号: ${window.PromptAssistant_Version}`);
+                logger.debug(`Version number detected during initialization: ${window.PromptAssistant_Version}`);
             }
 
-            // 初始化事件管理器
+            // Initialize event manager
             EventManager.init();
 
-            // 从配置加载所有功能开关状态
+            // Load all feature toggle states from config
             FEATURES.loadSettings();
-            // 同步到 window.FEATURES 以兼容旧代码
+            // Sync to window.FEATURES for backward compatibility
             window.FEATURES.enabled = FEATURES.enabled;
 
-            // 记录总开关状态（改为调试级别）
-            logger.debug(`初始化时检测总开关状态 | 状态:${FEATURES.enabled ? "启用" : "禁用"}`);
+            // Log master switch state (changed to debug level)
+            logger.debug(`Master switch state detected during initialization | Status: ${FEATURES.enabled ? "Enabled" : "Disabled"}`);
 
-            // 初始化资源管理器
+            // Initialize resource manager
             ResourceManager.init();
 
-            // 只有在总开关打开时才做完整初始化
+            // Only perform full initialization when master switch is on
             if (window.FEATURES.enabled) {
 
             }
 
             this.initialized = true;
-            logger.log("初始化完成 | 小助手已完全启动");
+            logger.log("Initialization complete | Assistant fully started");
         } catch (error) {
-            logger.error(`初始化失败 | 错误: ${error.message}`);
-            // 重置状态
+            logger.error(`Initialization failed | Error: ${error.message}`);
+            // Reset state
             this.initialized = false;
             window.FEATURES.enabled = false;
-            // 确保清理
+            // Ensure cleanup
             this.cleanup();
         }
     }
 
     /**
-     * 统一控制总开关功能
-     * 集中管理所有受总开关控制的服务功能
+     * Unified control of the master switch feature
+     * Centrally manage all service features controlled by the master switch
      */
     async toggleGlobalFeature(enable, force = false) {
-        // 更新状态
+        // Update state
         const oldValue = window.FEATURES.enabled;
         window.FEATURES.enabled = enable;
 
-        // 状态未变化时不执行操作，除非force为true
+        // Don't execute when state unchanged, unless force is true
         if (!force && oldValue === enable) {
             return;
         }
 
-        // 仅当状态真正变化或强制执行时才记录日志
+        // Only log when state actually changes or force is true
         if (oldValue !== enable || force === true) {
-            logger.log(`总开关 | 动作:${enable ? "启用" : "禁用"}`);
+            logger.log(`Master switch | Action: ${enable ? "Enable" : "Disable"}`);
         }
 
         try {
             if (enable) {
-                // === 启用所有服务 ===
-                // 确保管理器已初始化
+                // === Enable all services ===
+                // Ensure managers are initialized
                 if (!EventManager.initialized) {
                     EventManager.init();
                 }
@@ -383,7 +383,7 @@ class PromptAssistant {
                     ResourceManager.init();
                 }
 
-                // 1. 重置节点初始化标记，准备重新检测
+                // 1. Reset node initialization flags, prepare for re-detection
                 if (app.canvas && app.canvas.graph) {
                     const nodes = app.canvas.graph._nodes || [];
                     nodes.forEach(node => {
@@ -393,12 +393,12 @@ class PromptAssistant {
                     });
                 }
 
-                // 2. 设置或恢复节点选择事件监听
+                // 2. Set up or restore node selection event listener
                 if (app.canvas) {
-                    // 避免重复设置监听器
+                    // Avoid setting up duplicate listeners
                     if (!app.canvas._promptAssistantSelectionHandler) {
                         app.canvas._promptAssistantSelectionHandler = function (selected_nodes) {
-                            // 当总开关关闭时，跳过所有节点处理
+                            // Skip all node processing when master switch is off
                             if (!window.FEATURES.enabled) {
                                 return;
                             }
@@ -408,7 +408,7 @@ class PromptAssistant {
                                     const node = app.canvas.graph.getNodeById(nodeId);
                                     if (!node) return;
 
-                                    // 初始化未初始化的节点
+                                    // Initialize uninitialized nodes
                                     if (!node._promptAssistantInitialized) {
                                         node._promptAssistantInitialized = true;
                                         this.checkAndSetupNode(node);
@@ -418,20 +418,20 @@ class PromptAssistant {
                         }.bind(this);
                     }
 
-                    // 保存当前监听器并设置新的
+                    // Save current listener and set up new one
                     if (app.canvas.onSelectionChange && app.canvas.onSelectionChange !== app.canvas._promptAssistantSelectionHandler) {
                         app.canvas._originalSelectionChange = app.canvas.onSelectionChange;
                     }
 
                     app.canvas.onSelectionChange = app.canvas._promptAssistantSelectionHandler;
 
-                    // 3. 如果开启了自动创建，立即扫描所有有效节点
+                    // 3. If auto-creation is enabled, immediately scan all valid nodes
                     const creationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.CreationMode") || "auto";
                     if (creationMode === "auto") {
                         const nodes = app.canvas.graph._nodes || [];
                         nodes.forEach(node => {
                             if (node && !node._promptAssistantInitialized) {
-                                // 避免在扫描过程中重复处理
+                                // Avoid duplicate processing during scan
                                 node._promptAssistantInitialized = true;
                                 this.checkAndSetupNode(node);
                             }
@@ -439,13 +439,13 @@ class PromptAssistant {
                     }
                 }
             } else {
-                // === 禁用所有服务 ===
+                // === Disable all services ===
 
-                // 1. 计数并清理所有实例
+                // 1. Count and clean up all instances
                 const instanceCount = PromptAssistant.instances.size;
                 this.cleanup(null, true);
 
-                // 2. 恢复原始节点选择事件监听
+                // 2. Restore original node selection event listener
                 if (app.canvas) {
                     if (app.canvas._originalSelectionChange) {
                         app.canvas.onSelectionChange = app.canvas._originalSelectionChange;
@@ -455,27 +455,27 @@ class PromptAssistant {
                 }
             }
 
-            // 按钮可见性更新在features中单独处理
+            // Button visibility updates are handled separately in features
             window.FEATURES.updateButtonsVisibility();
 
 
         } catch (error) {
-            logger.error(`总开关操作失败 | 错误: ${error.message}`);
-            // 恢复原始状态
+            logger.error(`Master switch operation failed | Error: ${error.message}`);
+            // Restore original state
             window.FEATURES.enabled = oldValue;
         }
     }
 
-    // ---资源管理功能---
+    // ---Resource Management---
     /**
-     * 清理所有资源
+     * Clean up all resources
      */
     cleanup(nodeId = null, silent = false) {
-        // 如果正在切换工作流，则只清理UI实例，不删除缓存
+        // If workflow is switching, only clean up UI instances, don't delete cache
         if (window.PROMPT_ASSISTANT_WORKFLOW_SWITCHING) {
-            // 简化日志：工作流切换期间不逐条打印节点清理日志，避免高频刷屏
-            // 如需排查问题，可将下行改回 debug 单条输出
-            // if (nodeId !== null) { logger.debug(`[清理跳过] 正在切换工作流，仅清理提示词小助手UI，节点ID: ${nodeId}`); }
+            // Simplified logging: Don't print node cleanup logs one by one during workflow switching to avoid log flooding
+            // For debugging, change the line below back to debug single output
+            // if (nodeId !== null) { logger.debug(`[Cleanup skipped] Workflow switching, only cleaning up Prompt Assistant UI, Node ID: ${nodeId}`); }
 
             const keysToDelete = Array.from(PromptAssistant.instances.keys())
                 .filter(key => nodeId === null || key.startsWith(`${String(nodeId)}_`));
@@ -483,39 +483,39 @@ class PromptAssistant {
             keysToDelete.forEach(key => {
                 const instance = PromptAssistant.getInstance(key);
                 if (instance) {
-                    this._cleanupInstance(instance, key, false); // false表示从实例集合中移除
+                    this._cleanupInstance(instance, key, false); // false means remove from instance collection
                 }
             });
 
-            // 如果是全局清理，清空实例集合
+            // If global cleanup, clear instance collection
             if (nodeId === null) {
                 PromptAssistant.instances.clear();
             }
             return;
         }
 
-        // 检查nodeId是否有效
+        // Check if nodeId is valid
         if (nodeId !== null && nodeId !== undefined) {
-            // 确保nodeId是字符串类型，便于后续比较
+            // Ensure nodeId is string type for subsequent comparison
             const nodeIdStr = String(nodeId);
 
-            // 获取当前节点的所有实例键
+            // Get all instance keys for the current node
             const keysToDelete = Array.from(PromptAssistant.instances.keys())
                 .filter(key => key === nodeIdStr || key.startsWith(`${nodeIdStr}_`));
 
-            // 如果有实例需要清理
+            // If there are instances to clean up
             if (keysToDelete.length > 0) {
                 let historyCount = 0;
                 let tagCount = 0;
                 let instanceNames = [];
 
                 try {
-                    // 统计并清理历史记录
+                    // Count and clean up history records
                     const allHistory = HistoryCacheService.getAllHistory();
                     historyCount = allHistory.filter(item => item.node_id === nodeId).length;
                     HistoryCacheService.clearNodeHistory(nodeId);
 
-                    // 统计并清理标签缓存
+                    // Count and clean up tag cache
                     keysToDelete.forEach(key => {
                         const instance = PromptAssistant.getInstance(key);
                         if (instance && instance.inputId) {
@@ -526,7 +526,7 @@ class PromptAssistant {
                         }
                     });
 
-                    // 清理实例
+                    // Clean up instances
                     keysToDelete.forEach(key => {
                         const instance = PromptAssistant.getInstance(key);
                         if (instance) {
@@ -536,23 +536,23 @@ class PromptAssistant {
                     });
 
                     if (!silent) {
-                        // 获取当前剩余的统计信息
+                        // Get remaining statistics
                         const remainingInstances = PromptAssistant.instances.size;
-                        // 获取标签缓存统计
+                        // Get tag cache statistics
                         const tagStats = TagCacheService.getTagStats();
                         const remainingTags = tagStats.total;
                         const remainingHistory = HistoryCacheService.getAllHistory().length;
 
-                        logger.log(`[清理汇总] 节点ID: ${nodeId} | 清理实例: ${instanceNames.join(', ')} | 历史记录清理: ${historyCount}条 | 标签缓存清理: ${tagCount}个`);
+                        logger.log(`[Cleanup summary] Node ID: ${nodeId} | Cleaned instances: ${instanceNames.join(', ')} | History records cleaned: ${historyCount} | Tag cache cleaned: ${tagCount}`);
                     }
                 } catch (error) {
-                    logger.error(`[节点清理] 失败 | 节点ID: ${nodeId} | 错误: ${error.message}`);
+                    logger.error(`[Node cleanup] Failed | Node ID: ${nodeId} | Error: ${error.message}`);
                 }
             }
             return;
         }
 
-        // 清理所有实例和历史
+        // Clean up all instances and history
         const beforeCleanupSize = PromptAssistant.instances.size;
         if (beforeCleanupSize > 0) {
             let totalHistoryCount = 0;
@@ -560,19 +560,19 @@ class PromptAssistant {
             let allInstanceNames = [];
 
             try {
-                // 统计并清理所有历史记录
+                // Count and clean up all history records
                 const allHistory = HistoryCacheService.getAllHistory();
                 totalHistoryCount = allHistory.length;
                 HistoryCacheService.clearAllHistory();
 
-                // 统计标签缓存
+                // Count tag cache
                 const tagStats = TagCacheService.getTagStats();
                 totalTagCount = tagStats.total;
 
-                // 清理所有标签缓存
+                // Clean up all tag cache
                 TagCacheService.clearAllTagCache();
 
-                // 清理所有实例
+                // Clean up all instances
                 for (const [key, instance] of PromptAssistant.instances) {
                     if (instance) {
                         allInstanceNames.push(instance.inputId || key);
@@ -580,25 +580,25 @@ class PromptAssistant {
                     }
                 }
 
-                // 清空实例集合
+                // Clear instance collection
                 PromptAssistant.instances.clear();
 
                 if (!silent) {
-                    logger.log(`[全局清理] 实例: ${allInstanceNames.join(', ')} | 历史: ${totalHistoryCount}条 | 标签: ${totalTagCount}个`);
-                    logger.log(`[剩余统计] 小助手实例: 0个 | 标签缓存: 0个 | 节点历史缓存: 0条`);
+                    logger.log(`[Global cleanup] Instances: ${allInstanceNames.join(', ')} | History: ${totalHistoryCount} | Tags: ${totalTagCount}`);
+                    logger.log(`[Remaining stats] Assistant instances: 0 | Tag cache: 0 | Node history cache: 0`);
                 }
             } catch (error) {
-                logger.error(`[全局清理] 失败 | 错误: ${error.message}`);
+                logger.error(`[Global cleanup] Failed | Error: ${error.message}`);
             }
         }
     }
 
-    // ---节点类型检测工具---
+    // ---Node Type Detection Tools---
 
     /**
-     * 检查节点是否为使用comfy-markdown的节点
-     * 包括 Note、MarkdownNote、PreviewTextNode 等
-     * @param {object} node - 节点对象
+     * Check if a node uses comfy-markdown
+     * Including Note, MarkdownNote, PreviewTextNode, etc.
+     * @param {object} node - Node object
      * @returns {boolean}
      */
     _isMarkdownNode(node) {
@@ -610,25 +610,25 @@ class PromptAssistant {
         const typeLower = node.type.toLowerCase();
         return typeLower.includes('markdown') ||
             (typeLower.includes('preview') && typeLower.includes('text')) ||
-            typeLower.includes('subgraph'); // 增加对子图的基础判定支持
+            typeLower.includes('subgraph'); // Added basic subgraph detection support
     }
 
     /**
-     * 检查节点是否为子图节点 (Subgraph)
-     * 子图节点的类型名为 UUID 格式
-     * @param {object} node - 节点对象
+     * Check if a node is a subgraph node (Subgraph)
+     * Subgraph node type names are in UUID format
+     * @param {object} node - Node object
      * @returns {boolean}
      */
     _isSubgraphNode(node) {
         if (!node || !node.type) return false;
-        // UUID 格式：8-4-4-4-12 字符
+        // UUID format: 8-4-4-4-12 characters
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(node.type);
     }
 
-    // ---实例管理功能---
+    // ---Instance Management---
     /**
-     * 检查节点是否有效
-     * Vue mode下Note/MarkdownNote/Subgraph节点需要特殊处理
+     * Check if a node is valid
+     * Note/MarkdownNote/Subgraph nodes need special handling in Vue mode
      */
     static isValidNode(node) {
         if (!node || typeof node.id === 'undefined' || node.id === -1) {
@@ -639,34 +639,34 @@ class PromptAssistant {
             return false;
         }
 
-        // Vue mode下的特殊节点类型（可能没有标准widgets属性）
+        // Special node types in Vue mode (may not have standard widgets property)
         const isVueMode = typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true;
         const vueSpecialNodeTypes = ['Note', 'MarkdownNote', 'PreviewAny', 'PreviewTextNode'];
 
-        // 检查是否为markdown类型节点
+        // Check if it's a markdown type node
         const isMarkdownNode = vueSpecialNodeTypes.includes(node.type) ||
             (node.type && node.type.toLowerCase().includes('markdown')) ||
             (node.type && node.type.toLowerCase().includes('preview') && node.type.toLowerCase().includes('text'));
 
-        // 检查是否为子图节点
-        // 1. UUID 格式类型名 (Node 2.0 动态创建)
+        // Check if it's a subgraph node
+        // 1. UUID format type name (Node 2.0 dynamically created)
         const isUUIDType = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(node.type);
-        // 2. 原生 Subgraph 关键字或 workflow/ 前缀
+        // 2. Native Subgraph keyword or workflow/ prefix
         const isSubgraphType = node.type === 'Subgraph' ||
             node.type.startsWith('workflow/') ||
             (node.constructor && node.constructor.name === 'Subgraph');
 
         if (isVueMode && (isMarkdownNode || isUUIDType || isSubgraphType)) {
-            // Vue mode下这些节点类型直接视为有效
+            // These node types are considered valid directly in Vue mode
             return true;
         }
 
-        // 标准检查：需要有widgets属性
+        // Standard check: must have widgets property
         return !!node.widgets;
     }
 
     /**
-     * 添加实例到管理器
+     * Add instance to manager
      */
     static addInstance(nodeId, widget) {
         if (nodeId != null && widget != null) {

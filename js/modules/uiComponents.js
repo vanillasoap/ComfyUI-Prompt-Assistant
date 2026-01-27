@@ -784,30 +784,30 @@ export function createSelectGroup(label, options, initialValue = null, config = 
         // Calculate dropdown position relative to viewport
         const rect = dropdownContainer.getBoundingClientRect();
 
-        // 设置面板样式
+        // Set panel styles
         dropdownPanel.style.position = 'fixed';
         dropdownPanel.style.display = 'block';
         dropdownPanel.style.top = rect.bottom + 'px';
         dropdownPanel.style.left = rect.left + 'px';
         dropdownPanel.style.width = rect.width + 'px';
-        // 动态计算 z-index，确保在 ComfyUI 弹窗之上
+        // Dynamically calculate z-index to ensure it's above ComfyUI dialogs
         dropdownPanel.style.zIndex = getComfyUIDialogZIndex() + 15;
 
         dropdownPanel.classList.remove('p-hidden');
-        // 强制重排，确保动画生效
+        // Force reflow to ensure animation takes effect
         dropdownPanel.offsetHeight;
         dropdownPanel.classList.add('p-enter-active');
         dropdownContainer.classList.add('p-dropdown-open', 'p-focus');
 
         document.addEventListener('click', handleOutsideClick, true);
 
-        // 添加窗口大小变化和滚动事件监听器，以便重新定位面板
+        // Add window resize and scroll event listeners to reposition the panel
         window.addEventListener('resize', updatePanelPosition);
         window.addEventListener('scroll', updatePanelPosition, true);
     };
 
     const handleOutsideClick = (e) => {
-        // 如果点击的是下拉框本身，切换状态
+        // If clicking the dropdown itself, toggle state
         if (dropdownContainer.contains(e.target)) {
             e.stopPropagation();
             if (isOpen) {
@@ -817,11 +817,11 @@ export function createSelectGroup(label, options, initialValue = null, config = 
             }
             return;
         }
-        // 如果点击的是其他区域，关闭面板
+        // If clicking other areas, close the panel
         closePanel();
     };
 
-    // 初始化面板状态
+    // Initialize panel state
     dropdownPanel.classList.add('p-hidden');
     dropdownContainer.addEventListener('click', handleOutsideClick);
 
@@ -844,16 +844,16 @@ export function createSelectGroup(label, options, initialValue = null, config = 
 }
 
 /**
- * 创建可输入下拉框组（Combo Box）
- * 支持从下拉列表选择或自定义输入
- * @param {string} label 标签文本
- * @param {Array<{value: string, text: string}>} options 选项列表（动态传入）
- * @param {string} [initialValue=''] 初始值
- * @param {Object} [config={}] 配置选项
- * @param {string} [config.placeholder=''] 输入框占位符
- * @param {string} [config.emptyText='No options available'] 无选项时的提示文本
- * @param {boolean} [config.showLabel=true] 是否显示浮动标签
- * @returns {Object} 包含 group, input, setValue, getValue, updateOptions 的对象
+ * Create an editable combo box group (Combo Box)
+ * Supports selecting from dropdown list or custom input
+ * @param {string} label Label text
+ * @param {Array<{value: string, text: string}>} options Options list (dynamically provided)
+ * @param {string} [initialValue=''] Initial value
+ * @param {Object} [config={}] Configuration options
+ * @param {string} [config.placeholder=''] Input placeholder
+ * @param {string} [config.emptyText='No options available'] Text shown when no options available
+ * @param {boolean} [config.showLabel=true] Whether to show floating label
+ * @returns {Object} Object containing group, input, setValue, getValue, updateOptions
  */
 export function createComboBoxGroup(label, options = [], initialValue = '', config = {}) {
     const {
@@ -865,28 +865,28 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
     const group = document.createElement('div');
     group.className = 'settings-form-group';
 
-    // 创建浮动标签容器
+    // Create floating label container
     const floatContainer = document.createElement('div');
     floatContainer.className = 'float-label-container';
 
-    // ---主容器---
+    // --- Main container ---
     const comboContainer = document.createElement('div');
     comboContainer.className = 'pa-combobox pa-dropdown p-dropdown p-component w-full';
     comboContainer.style.position = 'relative';
 
-    // ---输入框（可见且可编辑）---
+    // --- Input field (visible and editable) ---
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'pa-combobox-input pa-dropdown-label p-dropdown-label p-inputtext';
     input.placeholder = placeholder || ' ';
     input.value = initialValue;
 
-    // ---下拉触发器（箭头图标）---
+    // --- Dropdown trigger (arrow icon) ---
     const dropdownTrigger = document.createElement('div');
     dropdownTrigger.className = 'pa-dropdown-trigger p-dropdown-trigger';
     dropdownTrigger.innerHTML = '<span class="p-dropdown-trigger-icon pi pi-chevron-down"></span>';
 
-    // ---下拉面板---
+    // --- Dropdown panel ---
     const dropdownPanel = document.createElement('div');
     dropdownPanel.className = 'pa-dropdown-panel pa-combobox-panel p-dropdown-panel p-component settings-modal-dropdown-panel';
     dropdownPanel.style.display = 'none';
@@ -898,16 +898,16 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
     dropdownList.className = 'p-dropdown-items';
     dropdownList.setAttribute('role', 'listbox');
 
-    // ---状态变量---
+    // --- State variables ---
     let isOpen = false;
     let currentOptions = [...options];
 
-    // ---渲染选项列表---
+    // --- Render options list ---
     const renderOptions = (optionsList) => {
         dropdownList.innerHTML = '';
 
         if (optionsList.length === 0) {
-            // 显示空状态提示
+            // Show empty state hint
             const emptyItem = document.createElement('li');
             emptyItem.className = 'p-dropdown-item pa-combobox-empty';
             emptyItem.textContent = emptyText;
@@ -925,21 +925,21 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
             itemEl.dataset.value = opt.value;
             itemEl.setAttribute('role', 'option');
 
-            // 高亮当前选中项
+            // Highlight current selected item
             if (input.value === opt.value) {
                 itemEl.classList.add('p-highlight');
             }
 
             itemEl.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // 更新输入框值
+                // Update input value
                 input.value = opt.value;
-                // 更新高亮
+                // Update highlight
                 dropdownList.querySelectorAll('.p-dropdown-item').forEach(el => el.classList.remove('p-highlight'));
                 itemEl.classList.add('p-highlight');
-                // 关闭面板
+                // Close panel
                 closePanel();
-                // 触发 change 事件
+                // Trigger change event
                 input.dispatchEvent(new Event('change', { bubbles: true }));
                 input.dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -948,18 +948,18 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         });
     };
 
-    // 初始渲染
+    // Initial render
     renderOptions(currentOptions);
 
-    // ---组装下拉面板---
+    // --- Assemble dropdown panel ---
     dropdownItemsWrapper.appendChild(dropdownList);
     dropdownPanel.appendChild(dropdownItemsWrapper);
 
-    // ---组装主容器---
+    // --- Assemble main container ---
     comboContainer.appendChild(input);
     comboContainer.appendChild(dropdownTrigger);
 
-    // ---根据 showLabel 决定是否创建浮动标签---
+    // --- Decide whether to create floating label based on showLabel ---
     if (showLabel) {
         const floatLabel = document.createElement('label');
         floatLabel.textContent = label;
@@ -971,7 +971,7 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
 
     group.appendChild(floatContainer);
 
-    // ---更新面板位置---
+    // --- Update panel position ---
     const updatePanelPosition = () => {
         if (!isOpen) return;
         const rect = comboContainer.getBoundingClientRect();
@@ -980,7 +980,7 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         dropdownPanel.style.width = rect.width + 'px';
     };
 
-    // ---关闭面板---
+    // --- Close panel ---
     const closePanel = () => {
         if (!isOpen) return;
         isOpen = false;
@@ -1000,7 +1000,7 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         }, 120);
     };
 
-    // ---打开面板---
+    // --- Open panel ---
     const openPanel = () => {
         if (isOpen) return;
         isOpen = true;
@@ -1013,11 +1013,11 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         dropdownPanel.style.top = rect.bottom + 'px';
         dropdownPanel.style.left = rect.left + 'px';
         dropdownPanel.style.width = rect.width + 'px';
-        // 动态计算 z-index，确保在 ComfyUI 弹窗之上
+        // Dynamically calculate z-index to ensure it's above ComfyUI dialogs
         dropdownPanel.style.zIndex = getComfyUIDialogZIndex() + 15;
 
         dropdownPanel.classList.remove('p-hidden');
-        dropdownPanel.offsetHeight; // 强制重排
+        dropdownPanel.offsetHeight; // Force reflow
         dropdownPanel.classList.add('p-enter-active');
         comboContainer.classList.add('p-dropdown-open', 'p-focus');
 
@@ -1025,7 +1025,7 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         window.addEventListener('resize', updatePanelPosition);
         window.addEventListener('scroll', updatePanelPosition, true);
 
-        // 更新高亮状态
+        // Update highlight state
         dropdownList.querySelectorAll('.p-dropdown-item').forEach(el => {
             if (el.dataset.value === input.value) {
                 el.classList.add('p-highlight');
@@ -1035,27 +1035,27 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         });
     };
 
-    // ---处理外部点击---
+    // --- Handle outside click ---
     const handleOutsideClick = (e) => {
-        // 点击面板内部不关闭
+        // Don't close when clicking inside the panel
         if (dropdownPanel.contains(e.target)) {
             return;
         }
-        // 点击输入框或触发器时切换状态
+        // When clicking input or trigger, handled by their own events
         if (comboContainer.contains(e.target)) {
-            return; // 由输入框或触发器的事件处理
+            return; // Handled by input or trigger event handlers
         }
         closePanel();
     };
 
-    // ---输入框事件---
+    // --- Input field events ---
     input.addEventListener('focus', () => {
         openPanel();
         comboContainer.classList.add('p-focus');
     });
 
     input.addEventListener('blur', () => {
-        // 延迟关闭，允许点击选项
+        // Delay closing to allow clicking options
         setTimeout(() => {
             if (!dropdownPanel.contains(document.activeElement)) {
                 comboContainer.classList.remove('p-focus');
@@ -1063,7 +1063,7 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         }, 150);
     });
 
-    // ---触发器点击事件---
+    // --- Trigger click event ---
     dropdownTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         if (isOpen) {
@@ -1074,13 +1074,13 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
         }
     });
 
-    // ---初始化面板状态---
+    // --- Initialize panel state ---
     dropdownPanel.classList.add('p-hidden');
 
-    // ---公开方法---
+    // --- Public methods ---
     const setValue = (value) => {
         input.value = value;
-        // 更新高亮
+        // Update highlight
         dropdownList.querySelectorAll('.p-dropdown-item').forEach(el => {
             if (el.dataset.value === value) {
                 el.classList.add('p-highlight');
@@ -1103,9 +1103,9 @@ export function createComboBoxGroup(label, options = [], initialValue = '', conf
 }
 
 /**
- * 创建水平布局的表单组
- * @param {Array<{label: string, element: HTMLElement}>} items 表单项数组
- * @returns {HTMLElement} 水平布局的表单组
+ * Create a horizontal layout form group
+ * @param {Array<{label: string, element: HTMLElement}>} items Form items array
+ * @returns {HTMLElement} Horizontal layout form group
  */
 export function createHorizontalFormGroup(items) {
     const group = document.createElement('div');
@@ -1128,34 +1128,34 @@ export function createHorizontalFormGroup(items) {
 }
 
 /**
- * 创建多行文本输入框组 (PrimeVue FloatLabel variant="on" 风格)
- * @param {string} label 标签文本
- * @param {string} placeholder 占位符文本（未使用，保留参数以兼容旧代码）
- * @param {number} rows 默认行数
- * @returns {Object} 包含 group 和 textarea 的对象
+ * Create a multi-line textarea group (PrimeVue FloatLabel variant="on" style)
+ * @param {string} label Label text
+ * @param {string} placeholder Placeholder text (unused, kept for backward compatibility)
+ * @param {number} rows Default number of rows
+ * @returns {Object} Object containing group and textarea
  */
 export function createTextareaGroup(label, placeholder, rows = 8) {
     const group = document.createElement('div');
     group.className = 'settings-form-group';
 
-    // 创建浮动标签容器
+    // Create floating label container
     const floatContainer = document.createElement('div');
     floatContainer.className = 'float-label-container';
 
-    // 创建文本域
+    // Create textarea
     const textarea = document.createElement('textarea');
     textarea.className = 'p-inputtext p-component settings-form-textarea';
-    // 使用空格作为 placeholder 以触发 :not(:placeholder-shown) 选择器
+    // Use space as placeholder to trigger :not(:placeholder-shown) selector
     textarea.placeholder = ' ';
     textarea.rows = rows;
     textarea.style.resize = 'vertical';
     textarea.style.minHeight = '150px';
 
-    // 创建浮动标签
+    // Create floating label
     const floatLabel = document.createElement('label');
     floatLabel.textContent = label;
 
-    // 组装结构: textarea 在前, label 在后 (使用 ~ 选择器)
+    // Assemble structure: textarea first, label after (using ~ selector)
     floatContainer.appendChild(textarea);
     floatContainer.appendChild(floatLabel);
 
@@ -1165,12 +1165,12 @@ export function createTextareaGroup(label, placeholder, rows = 8) {
 }
 
 /**
- * 创建开关控制组件
- * @param {string} label 标签文本
- * @param {string} description 描述文本
- * @param {boolean} defaultChecked 默认选中状态
- * @param {Function} onChange 变化回调函数
- * @returns {HTMLElement} 开关容器元素
+ * Create a switch control component
+ * @param {string} label Label text
+ * @param {string} description Description text
+ * @param {boolean} defaultChecked Default checked state
+ * @param {Function} onChange Change callback function
+ * @returns {HTMLElement} Switch container element
  */
 export function createSwitchControl(label, description, defaultChecked, onChange) {
     const container = document.createElement('div');
@@ -1193,7 +1193,7 @@ export function createSwitchControl(label, description, defaultChecked, onChange
 
     container.appendChild(textContainer);
 
-    // 创建开关
+    // Create switch
     const switchWrapper = document.createElement('label');
     switchWrapper.className = 'switch-wrapper';
 
@@ -1230,48 +1230,48 @@ export function createSwitchControl(label, description, defaultChecked, onChange
 }
 
 /**
- * 创建加载按钮
- * @param {string} text 按钮文本
- * @param {Function} onClick 点击回调函数
- * @param {boolean} showSuccessToast 是否显示成功提示
- * @returns {HTMLElement} 按钮元素
+ * Create a loading button
+ * @param {string} text Button text
+ * @param {Function} onClick Click callback function
+ * @param {boolean} showSuccessToast Whether to show success toast
+ * @returns {HTMLElement} Button element
  */
 export function createLoadingButton(text, onClick, showSuccessToast = true) {
     const button = document.createElement('button');
     button.className = 'p-button p-component p-button-primary';
-    button.style.width = '208px'; // 相当于w-52
+    button.style.width = '208px'; // Equivalent to w-52
     button.innerHTML = `<span class="p-button-label">${text}</span>`;
 
     button.addEventListener('click', async () => {
         if (button.disabled) return;
 
-        // 开始加载状态
+        // Start loading state
         button.disabled = true;
         button.classList.add('p-disabled');
 
         try {
             await onClick();
 
-            // 只有在 showSuccessToast 为 true 时才显示成功提示
+            // Only show success toast when showSuccessToast is true
             if (showSuccessToast) {
                 app.extensionManager.toast.add({
                     severity: "success",
-                    summary: "清理已清理完成",
+                    summary: "Cleanup completed",
                     life: 3000
                 });
             }
 
         } catch (error) {
-            // 显示错误提示
+            // Show error toast
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: "操作失败",
-                detail: error.message || "操作过程中发生错误",
+                summary: "Operation failed",
+                detail: error.message || "An error occurred during operation",
                 life: 3000
             });
-            logger.error(`按钮操作失败: ${error.message}`);
+            logger.error(`Button operation failed: ${error.message}`);
         } finally {
-            // 恢复按钮状态
+            // Restore button state
             button.disabled = false;
             button.classList.remove('p-disabled');
         }
@@ -1281,20 +1281,20 @@ export function createLoadingButton(text, onClick, showSuccessToast = true) {
 }
 
 /**
- * 创建确认气泡框 (参考 PrimeVue ConfirmPopup)
- * @param {Object} options 配置选项
- * @param {HTMLElement} options.target 触发元素，气泡框的指针会指向它
- * @param {string} options.message 确认消息文本
- * @param {string} [options.icon] 消息图标类名（可选，默认为 'pi-info-circle'）
- * @param {Function} options.renderFormContent 渲染表单内容的函数（可选）
- * @param {Function} options.onConfirm 确认回调函数
- * @param {Function} [options.onCancel] 取消回调函数（可选）
- * @param {string} [options.confirmLabel='确认'] 确认按钮文本
- * @param {string} [options.cancelLabel='取消'] 取消按钮文本
- * @param {string} [options.position='bottom'] 气泡相对于触发元素的位置 ('top', 'bottom', 'left', 'right')
- * @param {boolean} [options.autoPosition=true] 是否自动计算最佳弹出位置（基于元素在窗口中的位置）
- * @param {boolean} [options.singleButton=false] 是否只显示单个确认按钮（适用于信息提示场景）
- * @returns {Object} 包含 popup 元素和 close 方法的对象
+ * Create a confirm popup (based on PrimeVue ConfirmPopup)
+ * @param {Object} options Configuration options
+ * @param {HTMLElement} options.target Trigger element, the popup arrow will point to it
+ * @param {string} options.message Confirmation message text
+ * @param {string} [options.icon] Message icon class name (optional, defaults to 'pi-info-circle')
+ * @param {Function} options.renderFormContent Function to render form content (optional)
+ * @param {Function} options.onConfirm Confirm callback function
+ * @param {Function} [options.onCancel] Cancel callback function (optional)
+ * @param {string} [options.confirmLabel='Confirm'] Confirm button text
+ * @param {string} [options.cancelLabel='Cancel'] Cancel button text
+ * @param {string} [options.position='bottom'] Popup position relative to trigger ('top', 'bottom', 'left', 'right')
+ * @param {boolean} [options.autoPosition=true] Whether to auto-calculate best popup position (based on element position in window)
+ * @param {boolean} [options.singleButton=false] Whether to show only a single confirm button (for info prompt scenarios)
+ * @returns {Object} Object containing popup element and close method
  */
 export function createConfirmPopup(options) {
     const {
@@ -1305,23 +1305,23 @@ export function createConfirmPopup(options) {
         renderFormContent = null,
         onConfirm,
         onCancel = null,
-        confirmLabel = '确认',
-        cancelLabel = '取消',
+        confirmLabel = 'Confirm',
+        cancelLabel = 'Cancel',
         position = 'bottom',
         autoPosition = true,
         singleButton = false,
         confirmDanger = false
     } = options;
 
-    // 创建气泡框容器
+    // Create popup container
     const popup = document.createElement('div');
     popup.className = 'pa-confirm-popup';
 
-    // 创建气泡框内容
+    // Create popup content
     const content = document.createElement('div');
     content.className = 'pa-confirm-popup-content';
 
-    // 创建消息区域
+    // Create message area
     const messageContainer = document.createElement('div');
     messageContainer.className = 'pa-confirm-popup-message';
 
@@ -1338,13 +1338,13 @@ export function createConfirmPopup(options) {
 
     content.appendChild(messageContainer);
 
-    // 如果提供了表单渲染函数，创建表单区域
+    // If form render function is provided, create form area
     let formContainer = null;
     if (renderFormContent) {
-        // 调整消息区域的下边距
+        // Adjust message area bottom margin
         messageContainer.style.marginBottom = '12px';
 
-        // 添加分割线
+        // Add divider
         const divider = document.createElement('div');
         divider.className = 'pa-confirm-popup-divider';
         content.appendChild(divider);
@@ -1355,7 +1355,7 @@ export function createConfirmPopup(options) {
         content.appendChild(formContainer);
     }
 
-    // 创建按钮组
+    // Create button group
     const footer = document.createElement('div');
     footer.className = 'pa-confirm-popup-footer';
 

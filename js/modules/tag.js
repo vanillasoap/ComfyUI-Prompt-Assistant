@@ -1,6 +1,6 @@
 /**
- * 标签管理器
- * 负责管理标签的显示和操作
+ * Tag Manager
+ * Manages tag display and operations
  */
 
 import { logger } from '../utils/logger.js';
@@ -12,17 +12,17 @@ import { EventManager } from "../utils/eventManager.js";
 import { PromptFormatter } from "../utils/promptFormatter.js";
 import { createSettingsDialog, showContextMenu, createConfirmPopup } from "./uiComponents.js";
 /**
- * 标签管理器类
- * 管理标签弹窗和标签选择
+ * Tag Manager class
+ * Manages tag popup and tag selection
  */
 class TagManager {
-    // ---UI状态持久化配置---
-    static LAST_TAB_KEY = 'PromptAssistant_TagPopup_LastTab';           // 上次激活的标签页
-    static ACCORDION_STATE_KEY = 'PromptAssistant_TagPopup_AccordionState'; // 手风琴展开状态
-    static POPUP_SIZE_KEY = 'PromptAssistant_TagPopup_Size';            // 弹窗尺寸
+    // ---UI state persistence configuration---
+    static LAST_TAB_KEY = 'PromptAssistant_TagPopup_LastTab';           // Last active tab
+    static ACCORDION_STATE_KEY = 'PromptAssistant_TagPopup_AccordionState'; // Accordion expand state
+    static POPUP_SIZE_KEY = 'PromptAssistant_TagPopup_Size';            // Popup size
 
     /**
-     * 获取上次激活的标签页（分类名）
+     * Get the last active tab (category name)
      */
     static getLastActiveTab() {
         try {
@@ -33,7 +33,7 @@ class TagManager {
     }
 
     /**
-     * 记录本次激活的标签页（分类名）
+     * Record the current active tab (category name)
      */
     static setLastActiveTab(category) {
         try {
@@ -44,7 +44,7 @@ class TagManager {
     }
 
     /**
-     * 获取手风琴展开状态
+     * Get accordion expand state
      * @returns {Object} { tabName: { accordionPath: isExpanded } }
      */
     static getAccordionState() {
@@ -57,10 +57,10 @@ class TagManager {
     }
 
     /**
-     * 保存手风琴展开状态
-     * @param {string} tabName 标签页名称
-     * @param {string} accordionPath 手风琴路径（用分类名表示）
-     * @param {boolean} isExpanded 是否展开
+     * Save accordion expand state
+     * @param {string} tabName Tab name
+     * @param {string} accordionPath Accordion path (represented by category name)
+     * @param {boolean} isExpanded Whether expanded
      */
     static setAccordionState(tabName, accordionPath, isExpanded) {
         try {
@@ -71,12 +71,12 @@ class TagManager {
             state[tabName][accordionPath] = isExpanded;
             CacheService.set(this.ACCORDION_STATE_KEY, JSON.stringify(state));
         } catch (e) {
-            logger.error(`保存手风琴状态失败: ${e.message}`);
+            logger.error(`Failed to save accordion state: ${e.message}`);
         }
     }
 
     /**
-     * 获取保存的弹窗尺寸
+     * Get saved popup size
      * @returns {Object|null} { width: number, height: number }
      */
     static getPopupSize() {
@@ -89,31 +89,31 @@ class TagManager {
     }
 
     /**
-     * 保存弹窗尺寸
-     * @param {number} width 宽度
-     * @param {number} height 高度
+     * Save popup size
+     * @param {number} width Width
+     * @param {number} height Height
      */
     static setPopupSize(width, height) {
         try {
             const size = { width, height };
             CacheService.set(this.POPUP_SIZE_KEY, JSON.stringify(size));
         } catch (e) {
-            logger.error(`保存窗口大小失败: ${e.message}`);
+            logger.error(`Failed to save window size: ${e.message}`);
         }
     }
 
     /**
-     * 递归查找分类对象
-     * @param {Object} obj 数据对象
-     * @param {string} catName 分类名称
-     * @returns {Object|null} 找到的分类对象或 null
-     * @note 对于虚拟分类"标签"（仅在没有实际分类时使用），返回根对象本身
+     * Recursively find a category object
+     * @param {Object} obj Data object
+     * @param {string} catName Category name
+     * @returns {Object|null} Found category object or null
+     * @note For the virtual category "Tags" (only used when there are no actual categories), returns the root object itself
      */
     static _findCategoryRecursively(obj, catName) {
         if (!obj || typeof obj !== 'object') return null;
-        // 虚拟分类"标签"代表根级别，返回根对象本身
-        // 这个分类仅在 CSV 中没有任何实际分类，只有根标签时使用
-        if (catName === "" || catName === "标签") return obj;
+        // Virtual category "Tags" represents the root level, returns the root object itself
+        // This category is only used when the CSV has no actual categories, only root tags
+        if (catName === "" || catName === "Tags") return obj;
 
         for (const [key, value] of Object.entries(obj)) {
             if (key === catName && typeof value === 'object' && value !== null) {
@@ -128,11 +128,11 @@ class TagManager {
     }
 
     /**
-     * 递归查找标签及其父对象
-     * @param {Object} obj 数据对象
-     * @param {string} tagName 标签名称
-     * @param {string} tagValue 标签值
-     * @returns {Object|null} 包含 {parent, key} 的对象或 null
+     * Recursively find a tag and its parent object
+     * @param {Object} obj Data object
+     * @param {string} tagName Tag name
+     * @param {string} tagValue Tag value
+     * @returns {Object|null} Object containing {parent, key} or null
      */
     static _findTagRecursively(obj, tagName, tagValue) {
         if (!obj || typeof obj !== 'object') return null;
@@ -149,22 +149,22 @@ class TagManager {
         return null;
     }
     static popupInstance = null;
-    static onCloseCallback = null;  // 添加关闭回调存储
-    static eventCleanups = [];      // 事件清理函数数组
-    static searchTimeout = null;    // 搜索延迟定时器
+    static onCloseCallback = null;  // Close callback storage
+    static eventCleanups = [];      // Event cleanup function array
+    static searchTimeout = null;    // Search delay timer
     static currentNodeId = null;
     static currentInputId = null;
     static activeTooltip = null;
-    static usedTags = new Map();    // 存储已使用标签的Map: key为标签值，value为对应的DOM元素
-    static currentCsvFile = null;   // 当前选中的CSV文件
-    static favorites = {};          // 收藏列表缓存 {name: value}
-    static tagLookup = new Map();   // 标签值到名称的映射表
-    static Sortable = null;         // Sortable 库引用
-    static sortables = [];          // 存储 sortable 实例以供清理
-    static tagData = null;          // 当前CSV文件的标签数据
+    static usedTags = new Map();    // Map storing used tags: key is tag value, value is the corresponding DOM element
+    static currentCsvFile = null;   // Currently selected CSV file
+    static favorites = {};          // Favorites list cache {name: value}
+    static tagLookup = new Map();   // Tag value to name mapping table
+    static Sortable = null;         // Sortable library reference
+    static sortables = [];          // Store sortable instances for cleanup
+    static tagData = null;          // Tag data for the current CSV file
 
     /**
-     * 初始化 Sortable
+     * Initialize Sortable
      */
     static async _initSortable() {
         if (this.Sortable) return;
@@ -177,20 +177,20 @@ class TagManager {
 
 
     /**
-     * 检查标签是否已插入到输入框中
+     * Check if a tag is already inserted in the input field
      */
     static isTagUsed(tagValue, nodeId, inputId) {
         const mappingKey = `${nodeId}_${inputId}`;
         const mapping = window.PromptAssistantInputWidgetMap?.[mappingKey];
         if (!mapping || !mapping.inputEl) return false;
 
-        // 检查输入框内容是否包含标签的任一格式
+        // Check if the input content contains any format of the tag
         const inputValue = mapping.inputEl.value;
         return TagCacheService.isTagInInput(nodeId, inputId, tagValue, inputValue);
     }
 
     /**
-     * 更新标签状态
+     * Update tag state
      */
     static updateTagState(tagElement, isUsed) {
         if (isUsed) {
@@ -201,13 +201,13 @@ class TagManager {
     }
 
     /**
-     * 处理标签点击
+     * Handle tag click
      */
     static handleTagClick(tagElement, tagName, tagValue, e) {
-        // 阻止事件冒泡，确保弹窗不会关闭
+        // Stop event propagation to prevent popup from closing
         e.stopPropagation();
 
-        // 获取输入框信息
+        // Get input field info
         const mappingKey = `${this.currentNodeId}_${this.currentInputId}`;
         const mapping = window.PromptAssistantInputWidgetMap?.[mappingKey];
         if (!mapping || !mapping.inputEl) return;
@@ -215,49 +215,49 @@ class TagManager {
         const inputEl = mapping.inputEl;
         const inputValue = inputEl.value;
 
-        // 判断标签是否已使用
+        // Check if the tag is already used
         const isUsed = this.isTagUsed(tagValue, this.currentNodeId, this.currentInputId);
 
         try {
             if (isUsed) {
-                // 标签已使用，移除
-                // 确保移除tooltip
+                // Tag is used, remove it
+                // Make sure to remove tooltip
                 this._hideTooltip();
                 this.removeTag(tagValue, this.currentNodeId, this.currentInputId, true);
                 this.updateTagState(tagElement, false);
                 this.usedTags.delete(tagValue);
 
-                // 立即更新所有标签页中的标签状态
+                // Immediately update tag states across all tabs
                 this.updateAllTagsState(this.currentNodeId, this.currentInputId);
-                // 如果当前在搜索状态，也要更新搜索结果中的标签状态
+                // If currently in search mode, also update tag states in search results
                 const searchResultList = document.querySelector('.tag_search_result_list');
                 if (searchResultList) {
                     this.refreshSearchResultsState();
                 }
 
-                // logger.debug(`标签操作 | 动作:移除 | 标签:"${tagName}" | 原始值:"${tagValue}"`);
+                // logger.debug(`Tag operation | Action:remove | Tag:"${tagName}" | Raw value:"${tagValue}"`);
             } else {
-                // 标签未使用，插入
-                // 获取光标位置前后的文本
+                // Tag is not used, insert it
+                // Get text before and after cursor position
                 const cursorPos = inputEl.selectionStart;
                 const beforeText = inputValue.substring(0, cursorPos);
                 const afterText = inputValue.substring(cursorPos);
 
-                // 确定使用哪种格式
+                // Determine which format to use
                 const formatType = PromptFormatter.determineFormatType(beforeText, afterText);
 
-                // 获取或创建标签格式
+                // Get or create tag format
                 let formats;
                 const existingFormats = TagCacheService.getTagFormats(this.currentNodeId, this.currentInputId, tagValue);
                 if (existingFormats) {
-                    // 如果缓存中已有该标签的格式，直接使用缓存的格式
+                    // If the tag format already exists in cache, use the cached format
                     formats = existingFormats;
                 } else {
-                    // 如果缓存中没有，创建新的格式
+                    // If not in cache, create new format
                     formats = PromptFormatter.formatTag(tagValue);
                 }
 
-                // 根据formatType选择要插入的格式
+                // Select the format to insert based on formatType
                 let insertFormat;
                 switch (formatType) {
                     case 1:
@@ -273,25 +273,25 @@ class TagManager {
                         insertFormat = formats.format4;
                         break;
                     default:
-                        insertFormat = formats.format2; // 默认使用格式2
+                        insertFormat = formats.format2; // Default to format 2
                 }
 
-                // 如果是新创建的格式，添加到缓存
+                // If it's a newly created format, add to cache
                 if (!existingFormats) {
                     formats.insertedFormat = insertFormat;
                     TagCacheService.addTag(this.currentNodeId, this.currentInputId, tagValue, formats);
                 } else {
-                    // 如果是已存在的格式，更新insertedFormat
+                    // If the format already exists, update insertedFormat
                     TagCacheService.updateInsertedFormat(this.currentNodeId, this.currentInputId, tagValue, insertFormat);
                 }
 
-                // 插入到光标位置
+                // Insert at cursor position
                 UIToolkit.insertAtCursor(insertFormat, this.currentNodeId, this.currentInputId, {
                     highlight: true,
                     keepFocus: true
                 });
 
-                // 更新光标位置到插入内容之后
+                // Update cursor position to after inserted content
                 setTimeout(() => {
                     if (inputEl === document.activeElement) {
                         const newPos = cursorPos + insertFormat.length;
@@ -300,27 +300,27 @@ class TagManager {
                     }
                 }, 0);
 
-                // 更新标签状态
+                // Update tag state
                 this.updateTagState(tagElement, true);
                 this.usedTags.set(tagValue, tagElement);
 
-                // 立即更新所有标签页中的标签状态
+                // Immediately update tag states across all tabs
                 this.updateAllTagsState(this.currentNodeId, this.currentInputId);
-                // 如果当前在搜索状态，也要更新搜索结果中的标签状态
+                // If currently in search mode, also update tag states in search results
                 const searchResultList = document.querySelector('.tag_search_result_list');
                 if (searchResultList) {
                     this.refreshSearchResultsState();
                 }
 
-                // logger.debug(`标签操作 | 动作:插入 | 标签:"${tagName}" | 原始值:"${tagValue}" | 格式类型:${formatType} | 插入格式:"${insertFormat}"`);
+                // logger.debug(`Tag operation | Action:insert | Tag:"${tagName}" | Raw value:"${tagValue}" | Format type:${formatType} | Insert format:"${insertFormat}"`);
             }
         } catch (error) {
-            logger.error(`标签操作失败 | 标签:"${tagName}" | 错误:${error.message}`);
+            logger.error(`Tag operation failed | Tag:"${tagName}" | Error:${error.message}`);
         }
     }
 
     /**
-     * 从输入框中移除标签
+     * Remove tag from input field
      */
     static removeTag(tagValue, nodeId, inputId, keepFocus = true) {
         const mappingKey = `${nodeId}_${inputId}`;
@@ -330,22 +330,22 @@ class TagManager {
             const inputEl = mapping.inputEl;
             const currentValue = inputEl.value;
 
-            // 获取标签的所有格式
+            // Get all formats for the tag
             const formatInfo = TagCacheService.getTagFormats(nodeId, inputId, tagValue);
             if (!formatInfo) return false;
 
-            // 优先使用insertedFormat进行精确匹配
+            // Prioritize insertedFormat for exact matching
             if (formatInfo.insertedFormat) {
                 const tagIndex = currentValue.indexOf(formatInfo.insertedFormat);
                 if (tagIndex !== -1) {
-                    // 直接使用精确替换，不进行额外的清理
+                    // Use exact replacement, no additional cleanup
                     const newValue = currentValue.substring(0, tagIndex) +
                         currentValue.substring(tagIndex + formatInfo.insertedFormat.length);
 
-                    // 更新输入框值
+                    // Update input field value
                     inputEl.value = newValue;
 
-                    // 触发事件
+                    // Trigger events
                     inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                     inputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
@@ -822,7 +822,7 @@ class TagManager {
             }, 100);
 
             // 如果没有实际分类但有根标签，创建一个默认 Tab 来显示它们
-            const finalCategories = actualCategories.length > 0 ? actualCategories : (Object.keys(rootTags).length > 0 ? ["标签"] : []);
+            const finalCategories = actualCategories.length > 0 ? actualCategories : (Object.keys(rootTags).length > 0 ? ["Tags"] : []);
 
             // 为每个分类创建标签和内容
             finalCategories.forEach((category, index) => {
@@ -915,8 +915,8 @@ class TagManager {
                 }
 
                 // 获取该分类的数据
-                // 如果是"标签"虚拟分类（仅在没有实际分类时使用），使用根标签作为数据
-                const categoryData = category === "标签" ? rootTags : data[category];
+                // 如果是"Tags"虚拟分类（仅在没有实际分类时使用），使用根标签作为数据
+                const categoryData = category === "Tags" ? rootTags : data[category];
 
                 if (typeof categoryData === 'object' && categoryData !== null) {
                     // 使用 _createInnerAccordion，它已经支持混合内容（标签+子分类）
@@ -930,7 +930,7 @@ class TagManager {
             // ---在 Tab 栏末尾添加"新建分类"按钮---
             const addTabButton = document.createElement('div');
             addTabButton.className = 'popup_tab add_category_tab';
-            addTabButton.title = '新建分类';
+            addTabButton.title = 'New Category';
 
             const addTabIcon = document.createElement('span');
             addTabIcon.className = 'pi pi-plus';
@@ -989,7 +989,7 @@ class TagManager {
                     // 添加加号图标（创建新标签）
                     const addIconSpan = document.createElement('span');
                     addIconSpan.className = 'pi pi-plus accordion_add_icon';
-                    addIconSpan.title = '在此分类下创建新标签';
+                    addIconSpan.title = 'Create new tag in this category';
                     headerIcon.appendChild(addIconSpan);
 
                     // 添加箭头图标
@@ -1297,7 +1297,7 @@ class TagManager {
                                 logger.debug(`[标签移动(root)] 成功并排序 | 标签: ${tagName} | 到: ${toCategory}`);
                                 app.extensionManager.toast.add({
                                     severity: "success",
-                                    summary: "移动成功",
+                                    summary: "Move Successful",
                                     detail: `标签 "${tagName}" 已移动到 "${toCategory}"`,
                                     life: 2000
                                 });
@@ -1432,7 +1432,7 @@ class TagManager {
                 if (tabName !== 'favorites') {
                     const addIconSpan = document.createElement('span');
                     addIconSpan.className = 'pi pi-plus accordion_add_icon';
-                    addIconSpan.title = '在此分类下创建新标签';
+                    addIconSpan.title = 'Create new tag in this category';
                     headerIcon.appendChild(addIconSpan);
 
                     // 添加加号图标点击事件
@@ -1605,7 +1605,7 @@ class TagManager {
         if (level === '1' && tabName !== 'favorites') {
             const addSubCategoryBtn = document.createElement('div');
             addSubCategoryBtn.className = 'add_subcategory_button';
-            addSubCategoryBtn.title = '新建子分类';
+            addSubCategoryBtn.title = 'New Subcategory';
 
             const addSubCategoryIcon = document.createElement('span');
             addSubCategoryIcon.className = 'pi pi-plus';
@@ -1804,7 +1804,7 @@ class TagManager {
                             logger.debug(`[标签移动] 成功并排序 | 标签: ${tagName} | 到: ${toCategory}`);
                             app.extensionManager.toast.add({
                                 severity: "success",
-                                summary: "移动成功",
+                                summary: "Move Successful",
                                 detail: `标签 "${tagName}" 已移动到 "${toCategory}"`,
                                 life: 2000
                             });
@@ -1842,7 +1842,7 @@ class TagManager {
                     logger.debug(`[标签排序] 收藏排序已保存`);
                     app.extensionManager.toast.add({
                         severity: "success",
-                        summary: "排序保存成功",
+                        summary: "Sort Saved",
                         detail: "收藏标签顺序已更新",
                         life: 2000
                     });
@@ -1855,7 +1855,7 @@ class TagManager {
                         logger.debug(`[标签排序] CSV排序已保存 | 文件: ${TagManager.currentCsvFile}`);
                         app.extensionManager.toast.add({
                             severity: "success",
-                            summary: "排序保存成功",
+                            summary: "Sort Saved",
                             detail: "标签文件顺序已更新",
                             life: 2000
                         });
@@ -1866,7 +1866,7 @@ class TagManager {
             if (!success) {
                 app.extensionManager.toast.add({
                     severity: "error",
-                    summary: "保存失败",
+                    summary: "Save Failed",
                     detail: "排序未能保存到服务器",
                     life: 3000
                 });
@@ -1921,7 +1921,7 @@ class TagManager {
             if (targetCategory.hasOwnProperty(tagName)) {
                 app.extensionManager.toast.add({
                     severity: "warn",
-                    summary: "移动失败",
+                    summary: "Move Failed",
                     detail: `目标分类中已存在同名标签 "${tagName}"`,
                     life: 3000
                 });
@@ -1945,7 +1945,7 @@ class TagManager {
                 logger.debug(`[标签移动] 成功 | 标签: ${tagName} | 从: ${fromCategory} | 到: ${toCategory}`);
                 app.extensionManager.toast.add({
                     severity: "success",
-                    summary: "移动成功",
+                    summary: "Move Successful",
                     detail: `标签 "${tagName}" 已移动到 "${toCategory}"`,
                     life: 2000
                 });
@@ -1957,7 +1957,7 @@ class TagManager {
 
                 app.extensionManager.toast.add({
                     severity: "error",
-                    summary: "移动失败",
+                    summary: "Move Failed",
                     detail: "保存到服务器失败",
                     life: 3000
                 });
@@ -1967,7 +1967,7 @@ class TagManager {
             logger.error(`[标签移动] 出错: ${err.message}`);
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: "移动失败",
+                summary: "Move Failed",
                 detail: err.message,
                 life: 3000
             });
@@ -2264,7 +2264,7 @@ class TagManager {
             message: isTopLevel ? '创建新的标签页分类' : `在 "${parentTabName}" 下创建子分类`,
             icon: 'pi-plus',
             position: 'top',
-            confirmLabel: '创建',
+            confirmLabel: 'Create',
             renderFormContent: (container) => {
                 inputs = renderForm(container);
             },
@@ -2274,7 +2274,7 @@ class TagManager {
                 if (!categoryName) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "输入无效",
+                        summary: "Invalid Input",
                         detail: "分类名称不能为空",
                         life: 3000
                     });
@@ -2286,7 +2286,7 @@ class TagManager {
                 if (targetData && targetData.hasOwnProperty(categoryName)) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "创建失败",
+                        summary: "Creation Failed",
                         detail: `分类 "${categoryName}" 已存在`,
                         life: 3000
                     });
@@ -2311,12 +2311,12 @@ class TagManager {
             // 使用 loadTagsCsv 加载当前 CSV 文件的最新数据
             const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
             if (!filename) {
-                throw new Error("无法确定当前 CSV 文件");
+                throw new Error("Unable to determine current CSV file");
             }
 
             const data = await ResourceManager.loadTagsCsv(filename);
             if (!data) {
-                throw new Error("加载标签数据失败");
+                throw new Error("Failed to load tag data");
             }
 
             // 确定目标位置并添加新分类
@@ -2325,7 +2325,7 @@ class TagManager {
                 if (data.hasOwnProperty(categoryName)) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "分类已存在",
+                        summary: "Category Already Exists",
                         detail: `分类 "${categoryName}" 已存在`,
                         life: 3000
                     });
@@ -2343,7 +2343,7 @@ class TagManager {
                 if (parentData.hasOwnProperty(categoryName)) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "分类已存在",
+                        summary: "Category Already Exists",
                         detail: `分类 "${categoryName}" 已存在于 "${parentTabName}" 下`,
                         life: 3000
                     });
@@ -2429,7 +2429,7 @@ class TagManager {
 
             app.extensionManager.toast.add({
                 severity: "success",
-                summary: "创建成功",
+                summary: "Created Successfully",
                 detail: `分类 "${categoryName}" 已创建`,
                 life: 3000
             });
@@ -2439,7 +2439,7 @@ class TagManager {
                 logger.error(`创建分类失败: ${error.message}`);
                 app.extensionManager.toast.add({
                     severity: "error",
-                    summary: "创建失败",
+                    summary: "Creation Failed",
                     detail: error.message,
                     life: 3000
                 });
@@ -2456,7 +2456,7 @@ class TagManager {
      */
     static _showCategoryContextMenu(e, categoryName, isTopLevel, parentCategory = null) {
         // 特殊分类不允许修改或删除
-        const specialCategories = ['⭐️', 'favorites', '已插入', '标签'];
+        const specialCategories = ['⭐️', 'favorites', 'Inserted', '标签'];
         if (specialCategories.includes(categoryName)) {
             return;
         }
@@ -2551,7 +2551,7 @@ class TagManager {
             message: `修改分类名称`,
             icon: 'pi-pencil',
             position: 'bottom',
-            confirmLabel: '保存',
+            confirmLabel: 'Save',
             renderFormContent: (container) => {
                 inputs = renderForm(container);
             },
@@ -2561,7 +2561,7 @@ class TagManager {
                 if (!newName) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "输入无效",
+                        summary: "Invalid Input",
                         detail: "分类名称不能为空",
                         life: 3000
                     });
@@ -2584,12 +2584,12 @@ class TagManager {
         try {
             const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
             if (!filename) {
-                throw new Error("无法确定当前 CSV 文件");
+                throw new Error("Unable to determine current CSV file");
             }
 
             const data = await ResourceManager.loadTagsCsv(filename);
             if (!data) {
-                throw new Error("加载标签数据失败");
+                throw new Error("Failed to load tag data");
             }
 
             if (isTopLevel) {
@@ -2597,7 +2597,7 @@ class TagManager {
                 if (data.hasOwnProperty(newName)) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "名称已存在",
+                        summary: "Name Already Exists",
                         detail: `分类 "${newName}" 已存在`,
                         life: 3000
                     });
@@ -2617,7 +2617,7 @@ class TagManager {
                 if (parentData.hasOwnProperty(newName)) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "名称已存在",
+                        summary: "Name Already Exists",
                         detail: `分类 "${newName}" 已存在于 "${parentCategory}" 下`,
                         life: 3000
                     });
@@ -2658,7 +2658,7 @@ class TagManager {
 
             app.extensionManager.toast.add({
                 severity: "success",
-                summary: "修改成功",
+                summary: "Modified Successfully",
                 detail: `分类已重命名为 "${newName}"`,
                 life: 3000
             });
@@ -2668,7 +2668,7 @@ class TagManager {
                 logger.error(`修改分类失败: ${error.message}`);
                 app.extensionManager.toast.add({
                     severity: "error",
-                    summary: "修改失败",
+                    summary: "Modification Failed",
                     detail: error.message,
                     life: 3000
                 });
@@ -2687,19 +2687,19 @@ class TagManager {
             icon: 'pi-exclamation-triangle',
             iconColor: 'var(--p-orange-500)',
             position: 'bottom',
-            confirmLabel: '删除',
-            cancelLabel: '取消',
+            confirmLabel: 'Delete',
+            cancelLabel: 'Cancel',
             confirmDanger: true,
             onConfirm: async () => {
                 try {
                     const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
                     if (!filename) {
-                        throw new Error("无法确定当前 CSV 文件");
+                        throw new Error("Unable to determine current CSV file");
                     }
 
                     const data = await ResourceManager.loadTagsCsv(filename);
                     if (!data) {
-                        throw new Error("加载标签数据失败");
+                        throw new Error("Failed to load tag data");
                     }
 
                     if (isTopLevel) {
@@ -2747,7 +2747,7 @@ class TagManager {
 
                     app.extensionManager.toast.add({
                         severity: "success",
-                        summary: "删除成功",
+                        summary: "Deleted Successfully",
                         detail: `分类 "${categoryName}" 已删除`,
                         life: 3000
                     });
@@ -2756,7 +2756,7 @@ class TagManager {
                     logger.error(`删除分类失败: ${error.message}`);
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: "删除失败",
+                        summary: "Delete Failed",
                         detail: error.message,
                         life: 3000
                     });
@@ -2839,7 +2839,7 @@ class TagManager {
             message: `在 "${categoryKey}" 分类下创建新标签`,
             icon: 'pi-plus',
             position: 'left', // 创建按钮在右侧，气泡向左显示
-            confirmLabel: '保存',
+            confirmLabel: 'Save',
             renderFormContent: (container) => {
                 inputs = renderForm(container);
             },
@@ -2850,7 +2850,7 @@ class TagManager {
                 if (!newName || !newValue) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "输入无效",
+                        summary: "Invalid Input",
                         detail: "标签名称和内容不能为空",
                         life: 3000
                     });
@@ -2871,12 +2871,12 @@ class TagManager {
             // 使用 loadTagsCsv 加载当前 CSV 文件的最新数据
             const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
             if (!filename) {
-                throw new Error("无法确定当前 CSV 文件");
+                throw new Error("Unable to determine current CSV file");
             }
 
             const data = await ResourceManager.loadTagsCsv(filename);
             if (!data || Object.keys(data).length === 0) {
-                throw new Error("加载标签数据失败");
+                throw new Error("Failed to load tag data");
             }
 
             // 查找目标分类
@@ -2928,7 +2928,7 @@ class TagManager {
 
             app.extensionManager.toast.add({
                 severity: "success",
-                summary: "创建成功",
+                summary: "Created Successfully",
                 detail: `标签 "${tagName}" 已添加到 "${categoryKey}" 分类`,
                 life: 3000
             });
@@ -2939,7 +2939,7 @@ class TagManager {
                 logger.error(`创建标签失败: ${error.message}`);
                 app.extensionManager.toast.add({
                     severity: "error",
-                    summary: "创建失败",
+                    summary: "Creation Failed",
                     detail: error.message,
                     life: 3000
                 });
@@ -3016,7 +3016,7 @@ class TagManager {
             target: anchor,
             message: '编辑标签信息',
             icon: 'pi-pencil',
-            confirmLabel: '保存',
+            confirmLabel: 'Save',
             renderFormContent: (container) => {
                 inputs = renderForm(container);
             },
@@ -3028,7 +3028,7 @@ class TagManager {
                 if (!newName || !newValue) {
                     app.extensionManager.toast.add({
                         severity: "warn",
-                        summary: "输入无效",
+                        summary: "Invalid Input",
                         detail: "标签名称和内容不能为空",
                         life: 3000
                     });
@@ -3049,12 +3049,12 @@ class TagManager {
             // 使用 loadTagsCsv 加载当前 CSV 文件的最新数据
             const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
             if (!filename) {
-                throw new Error("无法确定当前 CSV 文件");
+                throw new Error("Unable to determine current CSV file");
             }
 
             const data = await ResourceManager.loadTagsCsv(filename);
             if (!data || Object.keys(data).length === 0) {
-                throw new Error("加载标签数据失败");
+                throw new Error("Failed to load tag data");
             }
 
             // 查找原始标签
@@ -3090,7 +3090,7 @@ class TagManager {
             // 保存到 CSV 文件
             const saveSuccess = await ResourceManager.saveTagsCsv(filename, data);
             if (!saveSuccess) {
-                throw new Error("保存文件失败");
+                throw new Error("Failed to save file");
             }
 
             // 重新加载并更新状态
@@ -3116,7 +3116,7 @@ class TagManager {
 
             app.extensionManager.toast.add({
                 severity: "success",
-                summary: "保存成功",
+                summary: "Save Successful",
                 detail: "标签已更新",
                 life: 3000
             });
@@ -3125,7 +3125,7 @@ class TagManager {
             logger.error(`保存编辑失败: ${error.message}`);
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: "保存失败",
+                summary: "Save Failed",
                 detail: error.message,
                 life: 3000
             });
@@ -3141,21 +3141,21 @@ class TagManager {
             message: `确定要删除标签 "${tagName}" 吗？`,
             icon: 'pi-exclamation-triangle',
             iconColor: 'var(--p-orange-500)',
-            confirmLabel: '删除',
-            cancelLabel: '取消',
+            confirmLabel: 'Delete',
+            cancelLabel: 'Cancel',
             confirmDanger: true,
             onConfirm: async () => {
                 try {
                     // 1. 获取当前 CSV 文件名
                     const filename = this.currentCsvFile || await ResourceManager.getSelectedTagFile();
                     if (!filename) {
-                        throw new Error("无法确定当前 CSV 文件");
+                        throw new Error("Unable to determine current CSV file");
                     }
 
                     // 2. 加载 CSV 数据
                     const data = await ResourceManager.loadTagsCsv(filename);
                     if (!data) {
-                        throw new Error("加载标签数据失败");
+                        throw new Error("Failed to load tag data");
                     }
 
                     // 3. 在数据中查找并删除标签
@@ -3187,7 +3187,7 @@ class TagManager {
                     // 4. 保存更改
                     const saveSuccess = await ResourceManager.saveTagsCsv(filename, data);
                     if (!saveSuccess) {
-                        throw new Error("保存文件失败");
+                        throw new Error("Failed to save file");
                     }
 
                     // 5. 刷新 UI
@@ -3212,7 +3212,7 @@ class TagManager {
 
                     app.extensionManager.toast.add({
                         severity: "success",
-                        summary: "删除成功",
+                        summary: "Deleted Successfully",
                         detail: `标签 "${tagName}" 已删除`,
                         life: 3000
                     });
@@ -3221,7 +3221,7 @@ class TagManager {
                     logger.error(`删除标签失败: ${error.message}`);
                     app.extensionManager.toast.add({
                         severity: "error",
-                        summary: "删除失败",
+                        summary: "Delete Failed",
                         detail: error.message,
                         life: 3000
                     });
@@ -3333,7 +3333,7 @@ class TagManager {
         // 1. 添加收藏夹分类
         categories.push({
             name: 'favorites',
-            displayName: '⭐️ 收藏',
+            displayName: '⭐️ Favorites',
             data: favorites,
             type: 'favorites'
         });
@@ -3367,8 +3367,8 @@ class TagManager {
 
         // 3. 添加已插入分类
         categories.push({
-            name: '已插入',
-            displayName: '📝 已插入',
+            name: 'Inserted',
+            displayName: '📝 Inserted',
             data: null,
             type: 'inserted'
         });
@@ -3378,7 +3378,7 @@ class TagManager {
         // 如果上次激活的是普通分类，但当前CSV中没有这个分类，则重置为第一个分类
         if (activeTabName &&
             activeTabName !== 'favorites' &&
-            activeTabName !== '已插入' &&
+            activeTabName !== 'Inserted' &&
             tagData && !tagData[activeTabName]) {
             activeTabName = null;
         }
@@ -3470,7 +3470,7 @@ class TagManager {
         // ---在 Tab 栏末尾添加"新建分类"按钮---
         const addTabButton = document.createElement('div');
         addTabButton.className = 'popup_tab add_category_tab';
-        addTabButton.title = '新建分类';
+        addTabButton.title = 'New Category';
 
         const addTabIcon = document.createElement('span');
         addTabIcon.className = 'pi pi-plus';
@@ -3926,14 +3926,14 @@ class TagManager {
             const searchInput = document.createElement('input');
             searchInput.className = 'popup_search_input';
             searchInput.type = 'text';
-            searchInput.placeholder = '搜索标签...';
+            searchInput.placeholder = 'Search tags...';
 
             // 创建清除按钮
             const clearBtn = document.createElement('button');
             clearBtn.className = 'popup_btn';
-            clearBtn.title = '清除搜索';
+            clearBtn.title = 'Clear search';
             clearBtn.style.display = 'none';
-            UIToolkit.addIconToButton(clearBtn, 'pi-times', '清除搜索');
+            UIToolkit.addIconToButton(clearBtn, 'pi-times', 'Clear search');
 
             // 添加清除按钮点击事件
             const clearBtnCleanup = EventManager.addDOMListener(clearBtn, 'click', (e) => {
@@ -3957,16 +3957,16 @@ class TagManager {
             // 添加刷新按钮
             const refreshBtn = document.createElement('button');
             refreshBtn.className = 'popup_btn';
-            refreshBtn.title = '刷新标签状态';
+            refreshBtn.title = 'Refresh tag status';
             const refreshIcon = document.createElement('span');
             refreshIcon.className = 'pi pi-refresh';
             refreshBtn.appendChild(refreshIcon);
-            refreshBtn.title = '刷新标签状态';
+            refreshBtn.title = 'Refresh tag status';
 
             // 添加关闭按钮
             const closeBtn = document.createElement('button');
             closeBtn.className = 'popup_btn';
-            UIToolkit.addIconToButton(closeBtn, 'pi-times', '关闭');
+            UIToolkit.addIconToButton(closeBtn, 'pi-times', 'Close');
 
             // 添加刷新事件
             const refreshCleanup = EventManager.addDOMListener(refreshBtn, 'click', async () => {
@@ -4376,7 +4376,7 @@ class TagManager {
 
         // 获取所有标签页，重新排序将"⭐️"放在最前面
         const normalTabs = Object.keys(tagData);
-        const allTabs = ['⭐️', ...normalTabs, '已插入'];
+        const allTabs = ['⭐️', ...normalTabs, 'Inserted'];
         // 记忆上次激活的标签页
         let activeTabIndex = 1; // 默认第二个标签（即tags.json的第一个类别）
         const lastCategory = this.getLastActiveTab();
@@ -4430,7 +4430,7 @@ class TagManager {
                     // 对于特殊标签页，每次点击都重新加载
                     if (contentId === '⭐️') {
                         this._loadCategoryContent(content, userTagData, 'favorites');
-                    } else if (contentId === '已插入') {
+                    } else if (contentId === 'Inserted') {
                         this._loadInsertedTagsContent(content);
                     }
                     // 对于普通标签页，仅在首次加载
@@ -4459,7 +4459,7 @@ class TagManager {
             this.eventCleanups.push(tabClickCleanup);
 
             // 添加右键菜单事件（特殊分类除外）
-            const specialCategories = ['⭐️', 'favorites', '已插入'];
+            const specialCategories = ['⭐️', 'favorites', 'Inserted'];
             if (!specialCategories.includes(category)) {
                 const tabContextMenuCleanup = EventManager.addDOMListener(tab, 'contextmenu', (e) => {
                     e.preventDefault();
@@ -4491,7 +4491,7 @@ class TagManager {
         // ---在 Tab 栏末尾添加"新建分类"按钮---
         const addTabButton = document.createElement('div');
         addTabButton.className = 'popup_tab add_category_tab';
-        addTabButton.title = '新建分类';
+        addTabButton.title = 'New Category';
 
         const addTabIcon = document.createElement('span');
         addTabIcon.className = 'pi pi-plus';
@@ -4525,7 +4525,7 @@ class TagManager {
                     // 按照新顺序重建数据对象
                     newOrder.forEach(category => {
                         // 特殊分类 (⭐️, 已插入) 不在 tagData 中，跳过
-                        if (category !== '⭐️' && category !== '已插入' && tagData[category]) {
+                        if (category !== '⭐️' && category !== 'Inserted' && tagData[category]) {
                             newTagData[category] = tagData[category];
                         }
                     });
@@ -4582,7 +4582,7 @@ class TagManager {
             TagManager.setLastActiveTab(firstCategory);
             if (firstCategory === '⭐️') {
                 this._loadCategoryContent(firstContent, userTagData, 'favorites');
-            } else if (firstCategory === '已插入') {
+            } else if (firstCategory === 'Inserted') {
                 this._loadInsertedTagsContent(firstContent);
             } else {
                 this._loadCategoryContent(firstContent, tagData[firstCategory], firstCategory);
@@ -4849,7 +4849,7 @@ class TagManager {
                     tagValue.toLowerCase().includes(searchText);
 
                 if (matches) {
-                    const tagElement = this._createSearchResultTag(tagName, tagValue, ['已插入']);
+                    const tagElement = this._createSearchResultTag(tagName, tagValue, ['Inserted']);
                     container.appendChild(tagElement);
                     matchCount++;
                 }

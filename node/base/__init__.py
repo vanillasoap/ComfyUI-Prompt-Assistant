@@ -1,6 +1,6 @@
 """
-节点基类模块
-提供所有节点的通用基础能力
+Node base class module
+Provides common base capabilities for all nodes
 """
 
 from .base_node import BaseNode

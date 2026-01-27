@@ -1,6 +1,6 @@
 /**
- * 图像节点小助手类
- * 用于检测和处理图像节点，提供图像反推功能
+ * Image node assistant class
+ * Detects and processes image nodes, provides image caption functionality
  */
 
 import { app } from "../../../../scripts/app.js";
@@ -19,7 +19,7 @@ import { PopupManager } from "../utils/popupManager.js";
 
 
 class ImageCaption {
-    /** 存储所有小助手实例的Map集合 */
+    /** Map collection storing all assistant instances */
     static instances = new Map();
 
     constructor() {
@@ -27,76 +27,76 @@ class ImageCaption {
     }
 
     /**
-     * 获取低画质渲染阈值
-     * 将此方法提取为类方法，确保所有地方使用相同的阈值计算逻辑
+     * Get low quality rendering threshold
+     * Extracted as a class method to ensure consistent threshold calculation logic everywhere
      */
     _getQualityThreshold() {
-        // 优先从系统设置获取
+        // Prefer getting from system settings
         if (app.ui?.settings) {
             try {
-                // 修复：不使用已弃用的defaultValue参数
+                // Fix: don't use deprecated defaultValue parameter
                 const settingValue = app.ui.settings.getSettingValue('Comfy.Graph.CanvasInfo');
                 if (typeof settingValue === 'number') {
                     return settingValue;
                 }
             } catch (e) {
-                // 忽略错误，使用默认值
+                // Ignore error, use default value
             }
         }
-        // 从canvas对象获取
+        // Get from canvas object
         return app.canvas?.low_quality_zoom_threshold || 0.6;
     }
 
     /**
-     * 检查节点类型是否是允许的图像节点类型（公开方法）
+     * Check if node type is an allowed image node type (public method)
      */
     isSupportedNode(node) {
         return this._isAllowedNodeType(node);
     }
 
     /**
-     * 检查节点类型是否是允许的图像节点类型
-     * @param {object} node - LiteGraph节点对象
-     * @param {boolean} debug - 是否打印调试日志
-     * @returns {boolean} 是否是允许的节点类型
+     * Check if node type is an allowed image node type
+     * @param {object} node - LiteGraph node object
+     * @param {boolean} debug - Whether to print debug logs
+     * @returns {boolean} Whether the node type is allowed
      */
     _isAllowedNodeType(node, debug = false) {
         if (!node || !node.type) return false;
 
-        // 允许的节点类型列表（可根据实际情况调整）
+        // Allowed node type list (can be adjusted as needed)
         const allowedTypes = [
-            // 加载图像节点
+            // Load image nodes
             'LoadImage',
             'LoadImageFromUrl',
 
-            // 预览图像节点
+            // Preview image nodes
             'PreviewImage',
             'ImagePreview',
 
-            // 保存图像节点
+            // Save image nodes
             'SaveImage',
             'SaveImages'
         ];
 
-        // 检查节点类型是否在允许列表中
-        // 使用部分匹配方式，以便兼容不同插件中的类似节点
+        // Check if node type is in the allowed list
+        // Uses partial matching to support similar nodes from different plugins
         const isAllowed = allowedTypes.some(type =>
             node.type.includes(type) ||
             (node.title && node.title.includes(type))
         );
 
-        // 开发阶段可打开调试日志
+        // Enable debug logs during development
         if (debug && !isAllowed) {
-            logger.debug(`[图像小助手] 节点类型不允许: ${node.type || '未知'} | 标题: ${node.title || '未知'}`);
+            logger.debug(`[Image Assistant] Node type not allowed: ${node.type || 'unknown'} | Title: ${node.title || 'unknown'}`);
         }
 
         return isAllowed;
     }
 
     /**
-     * 检查节点和画布状态是否适合显示小助手
-     * @param {object} node - LiteGraph节点对象
-     * @returns {object} 返回检测结果对象
+     * Check if node and canvas state are suitable for displaying the assistant
+     * @param {object} node - LiteGraph node object
+     * @returns {object} Returns detection result object
      */
     _checkNodeAndCanvasState(node) {
         const result = {
@@ -110,24 +110,24 @@ class ImageCaption {
             return result;
         }
 
-        // 检查节点是否是允许的图像节点类型
+        // Check if node is an allowed image node type
         if (!this._isAllowedNodeType(node)) {
             return result;
         }
 
-        // 检查节点是否被折叠
+        // Check if node is collapsed
         if (node.flags && node.flags.collapsed) {
             result.isCollapsed = true;
             return result;
         }
 
-        // 检查是否处于低质量渲染状态
+        // Check if in low quality rendering state
         if (app.canvas) {
-            // 获取低画质渲染阈值
+            // Get low quality rendering threshold
             const threshold = this._getQualityThreshold();
             const scale = app.canvas.ds.scale;
 
-            // 添加一个较大的容差值，解决浮点数比较和阈值应用延迟问题
+            // Add a larger tolerance value to handle floating point comparison and threshold application delay
             const epsilon = 0.001;
             if (scale <= threshold + epsilon) {
                 result.isLowQuality = true;
@@ -135,7 +135,7 @@ class ImageCaption {
             }
         }
 
-        // 检查节点是否有有效图像
+        // Check if node has a valid image
         if (node.imgs && Array.isArray(node.imgs) && node.imgs.length > 0) {
             const imageIndex = node.imageIndex || 0;
             if (imageIndex >= 0 && imageIndex < node.imgs.length && node.imgs[imageIndex]) {
@@ -148,35 +148,35 @@ class ImageCaption {
     }
 
     /**
-     * 检查节点是否有有效图像
-     * @param {object} node - LiteGraph节点对象
-     * @returns {boolean} 是否有有效图像
+     * Check if node has a valid image
+     * @param {object} node - LiteGraph node object
+     * @returns {boolean} Whether the node has a valid image
      */
     hasValidImage(node) {
         if (!node) return false;
 
-        // 检查节点类型是否允许
+        // Check if node type is allowed
         if (!this._isAllowedNodeType(node)) {
             return false;
         }
 
-        // 检查节点是否有imgs属性
+        // Check if node has imgs property
         if (!node.imgs || !Array.isArray(node.imgs) || node.imgs.length === 0) {
             return false;
         }
 
-        // 获取当前显示的图像
+        // Get currently displayed image
         const imageIndex = node.imageIndex || 0;
         return imageIndex >= 0 && imageIndex < node.imgs.length && node.imgs[imageIndex] != null;
     }
 
     /**
-     * 获取节点当前显示的图像对象
-     * @param {object} node - LiteGraph节点对象
-     * @returns {object|null} 返回图像对象或null
+     * Get the currently displayed image object of the node
+     * @param {object} node - LiteGraph node object
+     * @returns {object|null} Returns image object or null
      */
     getNodeImage(node) {
-        // 检查节点类型是否允许
+        // Check if node type is allowed
         if (!this._isAllowedNodeType(node)) {
             return null;
         }
@@ -187,127 +187,127 @@ class ImageCaption {
             return null;
         }
 
-        // 返回当前显示的图像
+        // Return the currently displayed image
         const imageIndex = node.imageIndex || 0;
         return node.imgs[imageIndex];
     }
 
     /**
-     * 初始化图像小助手
+     * Initialize the image assistant
      */
     async initialize() {
         if (this.initialized) return true;
 
         try {
-            // 检查总开关的初始状态
+            // Check the initial state of the master switch
             const initialEnabled = app.ui.settings.getSettingValue("PromptAssistant.Features.ImageCaption");
             window.FEATURES.imageCaption = initialEnabled !== undefined ? initialEnabled : true;
 
-            // 只在调试模式下记录初始化状态
-            logger.debug(`图像反推功能初始化 | 状态:${window.FEATURES.imageCaption ? "启用" : "禁用"}`);
+            // Only log initialization state in debug mode
+            logger.debug(`Image caption feature initialized | Status: ${window.FEATURES.imageCaption ? "enabled" : "disabled"}`);
 
-            // 注册节点选择监听器
+            // Register node selection listener
             this.registerNodeSelectionListener();
 
-            // 标记为已初始化
+            // Mark as initialized
             this.initialized = true;
-            logger.log("图像小助手初始化完成");
+            logger.log("Image assistant initialization complete");
             return true;
         } catch (error) {
-            logger.error(() => `图像小助手初始化失败 | 错误: ${error.message}`);
+            logger.error(() => `Image assistant initialization failed | Error: ${error.message}`);
             this.initialized = false;
             return false;
         }
     }
 
     /**
-     * 注册节点选择事件监听
+     * Register node selection event listener
      */
     registerNodeSelectionListener() {
         if (!app.canvas) {
-            logger.error("画布未初始化，无法注册节点选择事件监听器");
+            logger.error("Canvas not initialized, cannot register node selection event listener");
             return;
         }
 
-        // 如果已经注册过选择事件处理器，则不再重复注册
+        // If selection event handler is already registered, skip re-registration
         if (app.canvas._imageCaptionSelectionHandler) {
-            logger.debug("图像小助手节点选择监听器已存在，跳过注册");
+            logger.debug("Image assistant node selection listener already exists, skipping registration");
             return;
         }
 
-        // 创建选择事件处理器
+        // Create selection event handler
         const selectionHandler = (selected_nodes) => {
-            // 当总开关或图像反推功能关闭时，跳过所有节点处理
+            // When the master switch or image caption feature is disabled, skip all node processing
             if (!window.FEATURES || !window.FEATURES.enabled || !window.FEATURES.imageCaption) {
                 return;
             }
 
-            // 处理空选择情况
+            // Handle empty selection
             if (!selected_nodes || Object.keys(selected_nodes).length === 0) {
                 return;
             }
 
-            // 处理选中的节点
+            // Process selected nodes
             for (const nodeId in selected_nodes) {
                 const node = app.canvas.graph._nodes_by_id[nodeId];
                 if (!node || node.id === -1) continue;
 
-                // 移除初始化标记判断，每次选中都重新检测节点状态
+                // Remove initialization flag check, re-detect node state on every selection
                 this.checkAndSetupNode(node);
             }
         };
 
-        // 保存原始的选择事件处理器
+        // Save the original selection event handler
         if (app.canvas.onSelectionChange && app.canvas.onSelectionChange !== selectionHandler) {
             app.canvas._originalImageCaptionSelectionChange = app.canvas.onSelectionChange;
         }
 
-        // 设置新的选择事件处理器
+        // Set the new selection event handler
         app.canvas._imageCaptionSelectionHandler = selectionHandler;
 
-        // 添加到LiteGraph的事件系统
+        // Add to LiteGraph's event system
         if (app.canvas.graph) {
             app.canvas.graph._imageCaptionNodeSelectionChange = selectionHandler;
         }
 
-        logger.debug("图像小助手节点选择监听器注册成功");
+        logger.debug("Image assistant node selection listener registered successfully");
 
-        // 初始检查当前选中的节点
+        // Initial check of currently selected nodes
         if (app.canvas.selected_nodes && Object.keys(app.canvas.selected_nodes).length > 0) {
             selectionHandler(app.canvas.selected_nodes);
         }
     }
 
     /**
-     * 检查节点并设置小助手
+     * Check node and setup assistant
      */
     checkAndSetupNode(node) {
-        // 检查总开关和图像反推功能开关状态
+        // Check master switch and image caption feature switch state
         if (!window.FEATURES || !window.FEATURES.enabled || !window.FEATURES.imageCaption) {
             return;
         }
 
-        // 检查节点是否有效
+        // Check if node is valid
         if (!node) return;
 
-        // 检查节点类型是否允许
+        // Check if node type is allowed
         if (!this._isAllowedNodeType(node)) {
             return;
         }
 
-        // 检查节点是否已被删除（只有在删除时才清理实例）
+        // Check if node has been deleted (only clean up instance on deletion)
         if (!app.canvas || !app.canvas.graph || !app.canvas.graph._nodes_by_id[node.id]) {
-            // 节点已被删除，清理实例
+            // Node has been deleted, clean up instance
             if (ImageCaption.hasInstance(node.id)) {
                 this.cleanup(node.id);
             }
             return;
         }
 
-        // 检查节点和画布状态
+        // Check node and canvas state
         const nodeState = this._checkNodeAndCanvasState(node);
 
-        // 如果节点折叠或画布缩放过小，隐藏已存在的实例但不创建新实例
+        // If node is collapsed or canvas zoom is too small, hide existing instance but don't create new one
         if (nodeState.isCollapsed || nodeState.isLowQuality) {
             if (ImageCaption.hasInstance(node.id)) {
                 const instance = ImageCaption.getInstance(node.id);
@@ -318,35 +318,35 @@ class ImageCaption {
             return;
         }
 
-        // 验证现有实例是否有效
+        // Validate existing instance
         const existingInstance = ImageCaption.getInstance(node.id);
         if (existingInstance && existingInstance.element && document.body.contains(existingInstance.element)) {
-            // 实例有效，更新其显示状态（内部会处理图片检测）
+            // Instance is valid, update its display state (image detection handled internally)
             this.updateAssistantVisibility(existingInstance);
         } else {
-            // 实例无效或不存在，清理并强制创建（白名单机制）
+            // Instance is invalid or doesn't exist, clean up and force create (whitelist mechanism)
             if (existingInstance) {
                 this.cleanup(node.id);
             }
 
-            // 创建新的小助手实例
+            // Create new assistant instance
             const assistant = this.setupNodeAssistant(node);
             if (assistant) {
-                logger.debug(() => `[图像小助手] 预挂载成功 | ID: ${node.id} | 等待图像加载...`);
+                logger.debug(() => `[Image Assistant] Pre-mount successful | ID: ${node.id} | Waiting for image to load...`);
             }
         }
     }
 
     /**
-     * 为节点设置小助手
+     * Setup assistant for node
      */
     setupNodeAssistant(node) {
         if (!node) return null;
 
-        // 创建小助手实例
+        // Create assistant instance
         const assistant = this.createAssistant(node);
         if (assistant) {
-            // 初始化显示状态
+            // Initialize display state
             this.showAssistantUI(assistant);
             return assistant;
         }
@@ -354,23 +354,23 @@ class ImageCaption {
     }
 
     /**
-     * 创建小助手实例
+     * Create assistant instance
      */
     createAssistant(node) {
-        // 检查节点是否有效
+        // Check if node is valid
         if (!node || !node.id || node.id === -1) {
             return null;
         }
 
-        // 检查是否已存在实例
+        // Check if instance already exists
         if (ImageCaption.hasInstance(node.id)) {
             return ImageCaption.getInstance(node.id);
         }
 
-        // 保存 nodeId 用于动态获取节点
+        // Save nodeId for dynamic node retrieval
         const nodeId = node.id;
 
-        // 创建小助手对象
+        // Create assistant object
         const assistant = {
             nodeId: nodeId,
             buttons: {},
@@ -379,19 +379,19 @@ class ImageCaption {
             isDestroyed: false,
             _eventCleanupFunctions: [],
             _timers: {},
-            // 保存初始节点引用作为后备（Vue Node 2.0 子图切换场景）
+            // Save initial node reference as fallback (Vue Node 2.0 subgraph switching scenario)
             _initialNode: node
         };
 
-        // 动态获取节点的 getter，避免持有已删除节点的引用
-        // 【修复】优先从 graph 获取，失败时回退到初始引用（解决子图切换时画布未同步问题）
+        // Dynamic node getter to avoid holding references to deleted nodes
+        // [Fix] Prefer getting from graph, fall back to initial reference (fixes canvas not synced during subgraph switching)
         Object.defineProperty(assistant, 'node', {
             get() {
                 if (this.isDestroyed) return null;
-                // 优先从当前画布 graph 动态获取
+                // Prefer dynamically getting from current canvas graph
                 const graphNode = app.canvas?.graph?._nodes_by_id?.[this.nodeId];
                 if (graphNode) return graphNode;
-                // 回退：使用初始节点引用（如果仍有效）
+                // Fallback: use initial node reference (if still valid)
                 if (this._initialNode && this._initialNode.id === this.nodeId) {
                     return this._initialNode;
                 }
@@ -400,33 +400,33 @@ class ImageCaption {
             configurable: true
         });
 
-        // 创建UI
+        // Create UI
         this.createAssistantUI(assistant);
 
-        // 添加到实例集合
+        // Add to instance collection
         ImageCaption.addInstance(nodeId, assistant);
 
-        // 设置节点折叠状态监听
+        // Setup node collapse state listener
         this._setupNodeCollapseListener(assistant);
 
-        // 设置画布缩放监听
+        // Setup canvas scale listener
         this._setupCanvasScaleListener(assistant);
 
-        // 显示小助手
+        // Show assistant
         this.updateAssistantVisibility(assistant);
 
         return assistant;
     }
 
     /**
-     * 创建小助手UI
+     * Create assistant UI
      */
     createAssistantUI(assistant) {
-        // 【修复】使用 nodeId 作为有效性检查，避免因画布切换时 getter 返回 null 导致创建失败
+        // [Fix] Use nodeId for validity check, avoid creation failure when getter returns null during canvas switching
         if (!assistant?.nodeId) return null;
 
         try {
-            // 获取位置设置
+            // Get location setting
             const locationSetting = app.ui.settings.getSettingValue(
                 "ImageCaption.Location"
             );
@@ -481,65 +481,65 @@ class ImageCaption {
             // Restore order
             container.restoreOrder();
 
-            // 初始设置
-            // 注意：原始代码设置位置固定并追加到 body
-            // AssistantContainer 创建元素但不挂载。
-            // 原始代码：
+            // Initial setup
+            // Note: Original code sets position to fixed and appends to body
+            // AssistantContainer creates elements but does not mount them.
+            // Original code:
             // containerDiv.style.position = 'fixed';
             // document.body.appendChild(containerDiv);
 
-            // 我们遵循原始逻辑，将 Image Assistant 追加到 body
+            // We follow the original logic, appending the Image Assistant to body
             containerEl.style.position = 'fixed';
             containerEl.style.zIndex = '1';
             document.body.appendChild(containerEl);
 
-            // 延迟设置位置
-            // 优化：使用 requestAnimationFrame 确保在下一次重绘前更新位置
+            // Delay position setup
+            // Optimization: Use requestAnimationFrame to ensure position is updated before next repaint
             requestAnimationFrame(() => {
                 this._setupUIPosition(assistant);
                 if (container) container.updateDimensions();
             });
 
-            // 折叠/展开设置由 container 处理
-            // 移除手动事件设置
+            // Collapse/expand handling is delegated to container
+            // Remove manual event setup
 
             return containerEl;
 
         } catch (error) {
-            logger.error(`图像小助手UI创建失败 | ID: ${assistant.nodeId} | ${error.message}`);
+            logger.error(`Image assistant UI creation failed | ID: ${assistant.nodeId} | ${error.message}`);
             return null;
         }
     }
 
     /**
-     * 添加功能按钮
+     * Add function buttons
      */
     addFunctionButtons(assistant) {
         if (!assistant?.element) return;
 
-        // 创建反推按钮（中文）
+        // Create caption button (Chinese)
         const buttonZh = this.addButtonWithIcon(assistant, {
             id: 'caption_zh',
-            title: '反推提示词（中文）',
+            title: 'Caption Prompt (Chinese)',
             icon: 'icon-caption-zh',
             onClick: async (e, assistant) => {
                 e.preventDefault();
                 e.stopPropagation();
                 await this.handleImageAnalysis(assistant, 'zh');
             },
-            // 添加中文反推按钮的右键菜单
+            // Add context menu for Chinese caption button
             contextMenu: async (assistant) => {
-                // 获取服务列表和当前激活状态
+                // Get service list and current active state
                 let services = [];
                 let currentVLMService = null;
                 let currentVLMModel = null;
 
-                // 获取中文反推规则
+                // Get Chinese caption rules
                 let activePromptId = null;
                 let visionPrompts = [];
 
                 try {
-                    // 获取服务列表
+                    // Get service list
                     const servicesResp = await fetch(APIService.getApiUrl('/services'));
                     if (servicesResp.ok) {
                         const servicesData = await servicesResp.json();
@@ -548,7 +548,7 @@ class ImageCaption {
                         }
                     }
 
-                    // 获取当前激活的VLM服务和模型
+                    // Get currently active VLM service and model
                     const vlmResp = await fetch(APIService.getApiUrl('/config/vision'));
                     if (vlmResp.ok) {
                         const vlmConfig = await vlmResp.json();
@@ -556,7 +556,7 @@ class ImageCaption {
                         currentVLMModel = vlmConfig.model || null;
                     }
 
-                    // 获取中文反推规则
+                    // Get Chinese caption rules
                     const response = await fetch(APIService.getApiUrl('/config/system_prompts'));
                     if (response.ok) {
                         const data = await response.json();
@@ -569,7 +569,7 @@ class ImageCaption {
                                     const prompt = data.vision_prompts[key];
                                     const showIn = prompt.showIn || ['frontend', 'node'];
 
-                                    // 仅当配置包含 'frontend' 时才在前端菜单显示
+                                    // Only show in frontend menu when config includes 'frontend'
                                     if (showIn.includes('frontend')) {
                                         visionPrompts.push({
                                             id: key,
@@ -587,16 +587,16 @@ class ImageCaption {
                         }
                     }
                 } catch (error) {
-                    logger.error(() => `获取中文反推配置失败: ${error.message}`);
+                    logger.error(() => `Failed to get Chinese caption config: ${error.message}`);
                 }
 
-                // 创建服务菜单项(只显示有VLM模型的服务)
+                // Create service menu items (only show services with VLM models)
                 const serviceMenuItems = services
                     .filter(service => service.vlm_models && service.vlm_models.length > 0)
                     .map(service => {
                         const isCurrentService = currentVLMService === service.id;
 
-                        // 创建模型子菜单
+                        // Create model submenu
                         const modelChildren = (service.vlm_models || []).map(model => {
                             const isCurrentModel = isCurrentService && currentVLMModel === model.name;
                             return {
@@ -609,13 +609,13 @@ class ImageCaption {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ service_type: 'vlm', service_id: service.id, model_name: model.name })
                                         });
-                                        if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
+                                        if (!res.ok) throw new Error(`Server returned error: ${res.status}`);
                                         const modelLabel = model.display_name || model.name;
-                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name} - ${modelLabel}`);
-                                        logger.log(`视觉服务切换 | 服务: ${service.name} | 模型: ${modelLabel}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name} - ${modelLabel}`);
+                                        logger.log(`Vision service switched | Service: ${service.name} | Model: ${modelLabel}`);
                                     } catch (err) {
-                                        logger.error(`切换视觉模型失败: ${err.message}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                        logger.error(`Failed to switch vision model: ${err.message}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                     }
                                 }
                             };
@@ -631,22 +631,22 @@ class ImageCaption {
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ service_type: 'vlm', service_id: service.id })
                                     });
-                                    if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
-                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name}`);
-                                    logger.log(`视觉服务切换 | 服务: ${service.name}`);
+                                    if (!res.ok) throw new Error(`Server returned error: ${res.status}`);
+                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name}`);
+                                    logger.log(`Vision service switched | Service: ${service.name}`);
                                 } catch (err) {
-                                    logger.error(`切换视觉服务失败: ${err.message}`);
-                                    UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                    logger.error(`Failed to switch vision service: ${err.message}`);
+                                    UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                 }
                             },
                             children: modelChildren.length > 0 ? modelChildren : undefined
                         };
                     });
 
-                // ---创建规则菜单项（支持分类分组）---
+                // ---Create rule menu items (with category grouping support)---
                 const ruleMenuItems = [];
 
-                // 辅助函数：创建单个规则菜单项
+                // Helper function: create a single rule menu item
                 const createRuleMenuItem = (prompt) => ({
                     label: prompt.name,
                     icon: `<span class="pi ${prompt.isActive ? 'pi-check-circle active-status' : 'pi-circle-off inactive-status'}"></span>`,
@@ -658,30 +658,30 @@ class ImageCaption {
                                 body: JSON.stringify({ type: 'vision_zh', prompt_id: prompt.id })
                             });
                             if (response.ok) {
-                                UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${prompt.name}`);
+                                UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${prompt.name}`);
                             } else {
-                                throw new Error(`服务器返回错误: ${response.status}`);
+                                throw new Error(`Server returned error: ${response.status}`);
                             }
                         } catch (error) {
-                            logger.error(`切换中文反推提示词失败: ${error.message}`);
-                            UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${error.message}`);
+                            logger.error(`Failed to switch Chinese caption prompt: ${error.message}`);
+                            UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${error.message}`);
                         }
                     }
                 });
 
-                // 按分类分组规则
+                // Group rules by category
                 const uncategorizedPrompts = visionPrompts.filter(p => !p.category);
                 const categorizedPrompts = visionPrompts.filter(p => p.category);
 
-                // 收集所有分类并排序
+                // Collect all categories and sort
                 const categories = [...new Set(categorizedPrompts.map(p => p.category))].sort();
 
-                // 添加无分类的规则（放在顶层）
+                // Add uncategorized rules (at top level)
                 uncategorizedPrompts.forEach(prompt => {
                     ruleMenuItems.push(createRuleMenuItem(prompt));
                 });
 
-                // 添加分类分组（每个分类作为二级菜单）
+                // Add category groups (each category as a submenu)
                 categories.forEach(category => {
                     const promptsInCategory = categorizedPrompts.filter(p => p.category === category);
                     const hasActivePrompt = promptsInCategory.some(p => p.isActive);
@@ -695,10 +695,10 @@ class ImageCaption {
                 });
 
 
-                // 添加规则管理选项
+                // Add rule management option
                 ruleMenuItems.push({ type: 'separator' });
                 ruleMenuItems.push({
-                    label: '规则管理',
+                    label: 'Rule Management',
                     icon: '<span class="pi pi-pen-to-square"></span>',
                     onClick: () => {
                         rulesConfigManager.showRulesConfigModal();
@@ -709,7 +709,7 @@ class ImageCaption {
                     ...ruleMenuItems,
                     // { type: 'separator' },
                     {
-                        label: "选择服务",
+                        label: "Select Service",
                         icon: '<span class="pi pi-sparkles"></span>',
                         submenuAlign: 'bottom',
                         children: serviceMenuItems
@@ -718,29 +718,29 @@ class ImageCaption {
             }
         });
 
-        // 创建反推按钮（英文）
+        // Create caption button (English)
         const buttonEn = this.addButtonWithIcon(assistant, {
             id: 'caption_en',
-            title: '反推提示词（英文）',
+            title: 'Caption Prompt (English)',
             icon: 'icon-caption-en',
             onClick: async (e, assistant) => {
                 e.preventDefault();
                 e.stopPropagation();
                 await this.handleImageAnalysis(assistant, 'en');
             },
-            // 添加英文反推按钮的右键菜单
+            // Add context menu for English caption button
             contextMenu: async (assistant) => {
-                // 获取服务列表和当前激活状态
+                // Get service list and current active state
                 let services = [];
                 let currentVLMService = null;
                 let currentVLMModel = null;
 
-                // 获取英文反推规则
+                // Get English caption rules
                 let activePromptId = null;
                 let visionPrompts = [];
 
                 try {
-                    // 获取服务列表
+                    // Get service list
                     const servicesResp = await fetch(APIService.getApiUrl('/services'));
                     if (servicesResp.ok) {
                         const servicesData = await servicesResp.json();
@@ -749,7 +749,7 @@ class ImageCaption {
                         }
                     }
 
-                    // 获取当前激活的VLM服务和模型
+                    // Get currently active VLM service and model
                     const vlmResp = await fetch(APIService.getApiUrl('/config/vision'));
                     if (vlmResp.ok) {
                         const vlmConfig = await vlmResp.json();
@@ -757,7 +757,7 @@ class ImageCaption {
                         currentVLMModel = vlmConfig.model || null;
                     }
 
-                    // 获取英文反推规则
+                    // Get English caption rules
                     const response = await fetch(APIService.getApiUrl('/config/system_prompts'));
                     if (response.ok) {
                         const data = await response.json();
@@ -770,7 +770,7 @@ class ImageCaption {
                                     const prompt = data.vision_prompts[key];
                                     const showIn = prompt.showIn || ['frontend', 'node'];
 
-                                    // 仅当配置包含 'frontend' 时才在前端菜单显示
+                                    // Only show in frontend menu when config includes 'frontend'
                                     if (showIn.includes('frontend')) {
                                         visionPrompts.push({
                                             id: key,
@@ -788,16 +788,16 @@ class ImageCaption {
                         }
                     }
                 } catch (error) {
-                    logger.error(`获取英文反推配置失败: ${error.message}`);
+                    logger.error(`Failed to get English caption config: ${error.message}`);
                 }
 
-                // 创建服务菜单项(只显示有VLM模型的服务)
+                // Create service menu items (only show services with VLM models)
                 const serviceMenuItems = services
                     .filter(service => service.vlm_models && service.vlm_models.length > 0)
                     .map(service => {
                         const isCurrentService = currentVLMService === service.id;
 
-                        // 创建模型子菜单
+                        // Create model submenu
                         const modelChildren = (service.vlm_models || []).map(model => {
                             const isCurrentModel = isCurrentService && currentVLMModel === model.name;
                             return {
@@ -810,13 +810,13 @@ class ImageCaption {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ service_type: 'vlm', service_id: service.id, model_name: model.name })
                                         });
-                                        if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
+                                        if (!res.ok) throw new Error(`Server returned error: ${res.status}`);
                                         const modelLabel = model.display_name || model.name;
-                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name} - ${modelLabel}`);
-                                        logger.log(`视觉服务切换 | 服务: ${service.name} | 模型: ${modelLabel}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name} - ${modelLabel}`);
+                                        logger.log(`Vision service switched | Service: ${service.name} | Model: ${modelLabel}`);
                                     } catch (err) {
-                                        logger.error(`切换视觉模型失败: ${err.message}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                        logger.error(`Failed to switch vision model: ${err.message}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                     }
                                 }
                             };
@@ -832,22 +832,22 @@ class ImageCaption {
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ service_type: 'vlm', service_id: service.id })
                                     });
-                                    if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
-                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name}`);
-                                    logger.log(`视觉服务切换 | 服务: ${service.name}`);
+                                    if (!res.ok) throw new Error(`Server returned error: ${res.status}`);
+                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name}`);
+                                    logger.log(`Vision service switched | Service: ${service.name}`);
                                 } catch (err) {
-                                    logger.error(`切换视觉服务失败: ${err.message}`);
-                                    UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                    logger.error(`Failed to switch vision service: ${err.message}`);
+                                    UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                 }
                             },
                             children: modelChildren.length > 0 ? modelChildren : undefined
                         };
                     });
 
-                // ---创建规则菜单项（支持分类分组）---
+                // ---Create rule menu items (with category grouping support)---
                 const ruleMenuItems = [];
 
-                // 辅助函数：创建单个规则菜单项
+                // Helper function: create a single rule menu item
                 const createRuleMenuItem = (prompt) => ({
                     label: prompt.name,
                     icon: `<span class="pi ${prompt.isActive ? 'pi-check-circle active-status' : 'pi-circle-off inactive-status'}"></span>`,
@@ -859,30 +859,30 @@ class ImageCaption {
                                 body: JSON.stringify({ type: 'vision_en', prompt_id: prompt.id })
                             });
                             if (response.ok) {
-                                UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${prompt.name}`);
+                                UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${prompt.name}`);
                             } else {
-                                throw new Error(`服务器返回错误: ${response.status}`);
+                                throw new Error(`Server returned error: ${response.status}`);
                             }
                         } catch (error) {
-                            logger.error(`切换英文反推提示词失败: ${error.message}`);
-                            UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${error.message}`);
+                            logger.error(`Failed to switch English caption prompt: ${error.message}`);
+                            UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${error.message}`);
                         }
                     }
                 });
 
-                // 按分类分组规则
+                // Group rules by category
                 const uncategorizedPrompts = visionPrompts.filter(p => !p.category);
                 const categorizedPrompts = visionPrompts.filter(p => p.category);
 
-                // 收集所有分类并排序
+                // Collect all categories and sort
                 const categories = [...new Set(categorizedPrompts.map(p => p.category))].sort();
 
-                // 添加无分类的规则（放在顶层）
+                // Add uncategorized rules (at top level)
                 uncategorizedPrompts.forEach(prompt => {
                     ruleMenuItems.push(createRuleMenuItem(prompt));
                 });
 
-                // 添加分类分组（每个分类作为二级菜单）
+                // Add category groups (each category as a submenu)
                 categories.forEach(category => {
                     const promptsInCategory = categorizedPrompts.filter(p => p.category === category);
                     const hasActivePrompt = promptsInCategory.some(p => p.isActive);
@@ -896,10 +896,10 @@ class ImageCaption {
                 });
 
 
-                // 添加规则管理选项
+                // Add rule management option
                 ruleMenuItems.push({ type: 'separator' });
                 ruleMenuItems.push({
-                    label: '规则管理',
+                    label: 'Rule Management',
                     icon: '<span class="pi pi-pen-to-square"></span>',
                     onClick: () => {
                         rulesConfigManager.showRulesConfigModal();
@@ -910,7 +910,7 @@ class ImageCaption {
                     ...ruleMenuItems,
                     // { type: 'separator' },
                     {
-                        label: "选择服务",
+                        label: "Select Service",
                         icon: '<span class="pi pi-sparkles"></span>',
                         submenuAlign: 'bottom',
                         children: serviceMenuItems
@@ -930,41 +930,41 @@ class ImageCaption {
         }
     }
 
-    // ---流式输出辅助方法---
+    // ---Streaming output helper methods---
 
     /**
-     * 创建流式显示浮层
+     * Create streaming display overlay
      /**
-     * 创建节点内嵌流式显示容器
+     * Create node inline streaming display container
      */
     _createStreamingOverlay(assistant) {
         try {
             const nodeId = assistant.node?.id;
-            // 策略1：优先尝试获取 Vue 节点容器
+            // Strategy 1: Prefer getting Vue node container
             let mountContainer = document.querySelector(`[data-node-id="${nodeId}"]`);
             let isLiteGraph = false;
 
             if (!mountContainer) {
-                // 策略2：LiteGraph 模式，使用 Body 挂载 + Fixed 定位实现“裁切隔离”
+                // Strategy 2: LiteGraph mode, use Body mount + Fixed positioning for "clip isolation"
                 mountContainer = document.body;
                 isLiteGraph = true;
             }
 
-            // 创建外层容器
+            // Create outer container
             const container = document.createElement('div');
             container.className = 'node-streaming-text-container';
             if (isLiteGraph) {
                 container.classList.add('is-litegraph');
             }
 
-            // 创建文本内容容器
+            // Create text content container
             const content = document.createElement('div');
             content.className = 'node-streaming-text-content';
 
             container.appendChild(content);
             mountContainer.appendChild(container);
 
-            // LiteGraph 模式：启动帧同步位置锁定
+            // LiteGraph mode: start frame-synced position locking
             let syncHandler = null;
             if (isLiteGraph) {
                 const syncPos = () => {
@@ -975,20 +975,20 @@ class ImageCaption {
                 syncHandler = requestAnimationFrame(syncPos);
             }
 
-            // 触发入场动画
+            // Trigger entrance animation
             requestAnimationFrame(() => {
                 container.classList.add('show');
             });
 
             return { container, content, isLiteGraph, syncHandler };
         } catch (error) {
-            logger.error(`创建流式显示容器失败: ${error.message}`);
+            logger.error(`Failed to create streaming display container: ${error.message}`);
             return null;
         }
     }
 
     /**
-     * LiteGraph 模式下的位置与几何同步 (Viewport 绝对定位)
+     * LiteGraph mode position and geometry sync (Viewport absolute positioning)
      */
     _syncLiteGraphPosition(assistant, container) {
         const node = assistant.node;
@@ -999,7 +999,7 @@ class ImageCaption {
         const size = node.size;
         const scale = ds?.scale || 1;
 
-        // 1. 获取节点左上角的屏幕坐标
+        // 1. Get the screen coordinates of the node's top-left corner
         let screenX, screenY;
         if (ds && typeof ds.canvas_to_screen === 'function') {
             const screenPos = ds.canvas_to_screen(pos[0], pos[1]);
@@ -1010,25 +1010,25 @@ class ImageCaption {
             screenY = (pos[1] + (ds?.offset?.[1] || 0)) * scale;
         }
 
-        // 2. 同步几何尺寸：将节点的逻辑宽度、高度转换成屏幕物理像素
-        // 关键点：容器的宽高必须随 scale 同步，才能防止文字“溢出”节点物理边界
+        // 2. Sync geometry dimensions: convert node's logical width/height to screen physical pixels
+        // Key point: container width/height must sync with scale to prevent text from "overflowing" the node's physical boundaries
         const physicalWidth = size[0] * scale;
-        const physicalHeight = 100 * scale; // 逻辑高度 100px 转换为物理像素
+        const physicalHeight = 100 * scale; // Logical height 100px converted to physical pixels
 
-        // 3. 计算对齐位置
-        // 底部工具栏高度逻辑值为 35px，转换后为 35 * scale
+        // 3. Calculate alignment position
+        // Bottom toolbar logical height is 35px, converted as 35 * scale
         const bottomOffset = 35 * scale;
         const top = screenY + (size[1] * scale) - bottomOffset - physicalHeight;
 
-        // 4. 应用样式到同步容器
-        container.style.width = `${physicalWidth - 16 * scale}px`; // 减去边缘间距
+        // 4. Apply styles to sync container
+        container.style.width = `${physicalWidth - 16 * scale}px`; // Subtract edge margin
         container.style.height = `${physicalHeight}px`;
         container.style.left = `${screenX + 8 * scale}px`;
         container.style.top = `${top}px`;
 
-        // 5. 同步内容缩放：确保字号随节点大小变化
-        // 注意：我们通过改变容器的 fontSize 来影响内容。
-        // content 容器内部使用相对单位或依靠父级继承。
+        // 5. Sync content scaling: ensure font size changes with node size
+        // Note: We change the container's fontSize to affect content.
+        // Content container internally uses relative units or inherits from parent.
         const content = container.querySelector('.node-streaming-text-content');
         if (content) {
             content.style.fontSize = `${10 * scale}px`;
@@ -1037,13 +1037,13 @@ class ImageCaption {
     }
 
     /**
-     * 移除流式内嵌容器
+     * Remove streaming inline container
      */
     _removeStreamingOverlay(assistant, overlayObj) {
         if (!overlayObj || !overlayObj.container) return;
         const { container, syncHandler } = overlayObj;
 
-        // 停止同步循环
+        // Stop sync loop
         if (syncHandler) {
             cancelAnimationFrame(syncHandler);
         }
@@ -1056,105 +1056,105 @@ class ImageCaption {
                 }
             }, 300);
         } catch (error) {
-            logger.error(`移除流式容器失败: ${error.message}`);
+            logger.error(`Failed to remove streaming container: ${error.message}`);
             if (container.parentNode) container.parentNode.removeChild(container);
         }
     }
 
     /**
-     * 处理图像分析
+     * Handle image analysis
      */
     async handleImageAnalysis(assistant, lang) {
-        // 存储当前请求ID，用于取消操作
+        // Store current request ID for cancel operation
         let currentRequestId = null;
 
         try {
             const node = assistant.node;
 
-            // Vue Node 2.0 模式：从 DOM 获取当前显示的图像
-            // 传统 LiteGraph 模式：使用 node.imgs 属性
+            // Vue Node 2.0 mode: get currently displayed image from DOM
+            // Traditional LiteGraph mode: use node.imgs property
             let currentImage = null;
             const isVueMode = nodeMountService.isVueNodesMode();
 
             if (isVueMode) {
-                // Vue Node 2.0 模式：从节点容器的 DOM 中获取图像
+                // Vue Node 2.0 mode: get image from node container's DOM
                 const nodeContainer = document.querySelector(`[data-node-id="${node.id}"]`);
                 if (nodeContainer) {
-                    // 查找节点容器内的 img 元素（优先查找预览图像）
+                    // Find img element in node container (prefer preview image)
                     const imgElement = nodeContainer.querySelector('img');
                     if (imgElement && imgElement.src) {
-                        // 使用 DOM 中的图像 src
+                        // Use image src from DOM
                         currentImage = imgElement.src;
-                        logger.debug(`[图像小助手-Vue模式] 从DOM获取图像 | 节点ID: ${node.id}`);
+                        logger.debug(`[Image Assistant-Vue Mode] Got image from DOM | Node ID: ${node.id}`);
                     }
                 }
             }
 
-            // 如果 Vue 模式未找到图像，或者是传统模式，使用 node.imgs
+            // If Vue mode didn't find an image, or in traditional mode, use node.imgs
             if (!currentImage) {
                 if (!node.imgs || node.imgs.length === 0) {
-                    throw new Error('未找到有效的图像');
+                    throw new Error('No valid image found');
                 }
                 currentImage = node.imgs[node.imageIndex || 0];
                 if (!currentImage) {
-                    throw new Error('未找到有效的图像');
+                    throw new Error('No valid image found');
                 }
             }
 
-            // 获取按钮元素
+            // Get button element
             const buttonId = lang === 'en' ? 'caption_en' : 'caption_zh';
             const buttonElement = assistant.buttons[buttonId];
             if (!buttonElement) {
-                throw new Error('未找到按钮元素');
+                throw new Error('Button element not found');
             }
 
-            // 检查按钮是否已经处于处理状态，如果是，则取消当前请求
+            // Check if button is already in processing state, if so, cancel current request
             if (buttonElement.classList.contains('button-processing') && assistant.currentRequestId) {
-                // 取消当前请求
+                // Cancel current request
                 await APIService.cancelRequest(assistant.currentRequestId);
 
-                // 显示取消提示
+                // Show cancel tip
                 UIToolkit.showStatusTip(
                     buttonElement,
                     'info',
-                    '反推已取消',
+                    'Caption cancelled',
                     { x: buttonElement.getBoundingClientRect().left + buttonElement.offsetWidth / 2, y: buttonElement.getBoundingClientRect().top }
                 );
 
-                // 重置按钮状态
+                // Reset button state
                 this._setButtonState(assistant, buttonId, 'processing', false);
 
-                // 恢复其他按钮状态
+                // Restore other button states
                 Object.keys(assistant.buttons).forEach(id => {
                     if (id !== buttonId) {
                         this._setButtonState(assistant, id, 'disabled', false);
                     }
                 });
 
-                // 更新小助手状态为非激活状态
+                // Update assistant state to inactive
                 this._updateAssistantActiveState(assistant, false);
 
-                // 清除当前请求ID
+                // Clear current request ID
                 assistant.currentRequestId = null;
 
                 return;
             }
 
-            // 设置当前按钮为处理中状态
+            // Set current button to processing state
             this._setButtonState(assistant, buttonId, 'processing', true);
 
-            // 禁用其他按钮
+            // Disable other buttons
             Object.keys(assistant.buttons).forEach(id => {
                 if (id !== buttonId) {
                     this._setButtonState(assistant, id, 'disabled', true);
                 }
             });
 
-            // 更新小助手状态为激活状态
+            // Update assistant state to active
             this._updateAssistantActiveState(assistant, true);
 
-            // 显示加载状态提示
-            const tipMessage = lang === 'en' ? "反推提示词...（英文）" : "反推提示词...（中文）";
+            // Show loading status tip
+            const tipMessage = lang === 'en' ? "Captioning prompt... (English)" : "Captioning prompt... (Chinese)";
             UIToolkit.showStatusTip(
                 buttonElement,
                 'loading',
@@ -1162,34 +1162,34 @@ class ImageCaption {
                 { x: buttonElement.getBoundingClientRect().left + buttonElement.offsetWidth / 2, y: buttonElement.getBoundingClientRect().top }
             );
 
-            // 生成请求ID
-            // 生成请求ID
+            // Generate request ID
+            // Generate request ID
             currentRequestId = APIService.generateRequestId('icap', null, node.id);
-            // 保存到assistant对象中，以便取消操作
+            // Save to assistant object for cancel operation
             assistant.currentRequestId = currentRequestId;
 
-            // 将图像转换为Base64
+            // Convert image to Base64
             let imageBase64;
             try {
                 imageBase64 = await APIService.imageToBase64(currentImage);
                 if (!imageBase64) {
-                    throw new Error('图像转换失败');
+                    throw new Error('Image conversion failed');
                 }
             } catch (e) {
-                throw new Error(`图像转换失败: ${e.message || e}`);
+                throw new Error(`Image conversion failed: ${e.message || e}`);
             }
 
-            // 确保图像数据格式正确
+            // Ensure image data format is correct
             if (typeof imageBase64 !== 'string') {
-                throw new Error(`图像数据类型错误: ${typeof imageBase64}`);
+                throw new Error(`Image data type error: ${typeof imageBase64}`);
             }
 
-            // 确保图像数据是Base64格式
+            // Ensure image data is in Base64 format
             if (!imageBase64.startsWith('data:image')) {
                 imageBase64 = `data:image/jpeg;base64,${imageBase64}`;
             }
 
-            // 获取当前激活的提示词内容
+            // Get currently active prompt content
             let promptContent = '';
             try {
                 const response = await fetch(APIService.getApiUrl('/config/system_prompts'));
@@ -1202,52 +1202,52 @@ class ImageCaption {
                     }
                 }
                 if (!promptContent) {
-                    throw new Error(`未找到有效的 ${lang === 'zh' ? '中文' : '英文'} 反推提示词`);
+                    throw new Error(`No valid ${lang === 'zh' ? 'Chinese' : 'English'} caption prompt found`);
                 }
             } catch (error) {
-                throw new Error(`获取反推规则失败: ${error.message}`);
+                throw new Error(`Failed to get caption rules: ${error.message}`);
             }
 
-            // 根据开关选择流式或阻塞式 API
+            // Choose streaming or blocking API based on switch
             let result;
             let fullContent = '';
 
             if (FEATURES.enableStreaming !== false) {
-                // 创建内嵌流式对象
+                // Create inline streaming object
                 const overlayObj = this._createStreamingOverlay(assistant);
                 if (!overlayObj) {
-                    logger.error("[图像小助手] 无法创建内嵌流式显示对象");
+                    logger.error("[Image Assistant] Unable to create inline streaming display object");
                     return;
                 }
                 assistant.streamingOverlay = overlayObj;
-                // 使用流式 API 调用图像分析服务
+                // Use streaming API to call image analysis service
                 result = await APIService.llmAnalyzeImageStream(
                     imageBase64,
                     promptContent,
                     currentRequestId,
                     (chunk) => {
-                        // 流式回调：实时更新浮层内容
+                        // Streaming callback: update overlay content in real-time
                         fullContent += chunk;
                         if (assistant.streamingOverlay && assistant.streamingOverlay.content) {
                             const contentEl = assistant.streamingOverlay.content;
 
-                            // 更新文本内容
+                            // Update text content
                             contentEl.textContent = fullContent;
 
-                            // 滚动容器（保持在底部）
+                            // Scroll container (keep at bottom)
                             const container = assistant.streamingOverlay.container;
                             container.scrollTop = container.scrollHeight;
                         }
                     }
                 );
 
-                // 确保流式内容在完成后被赋值到结果对象中
+                // Ensure streaming content is assigned to result object after completion
                 if (result && result.success && fullContent) {
                     if (!result.data) result.data = {};
                     result.data.description = fullContent;
                 }
             } else {
-                // ---阻塞输出：直接调用图像分析服务---
+                // ---Blocking output: directly call image analysis service---
                 result = await APIService.llmAnalyzeImage(
                     imageBase64,
                     promptContent,
@@ -1255,41 +1255,41 @@ class ImageCaption {
                 );
             }
 
-            // 移除流式内嵌容器
+            // Remove streaming inline container
             if (assistant.streamingOverlay) {
                 this._removeStreamingOverlay(assistant, assistant.streamingOverlay);
                 assistant.streamingOverlay = null;
             }
 
-            // 清除当前请求ID
+            // Clear current request ID
             assistant.currentRequestId = null;
 
-            // 检查是否被取消
+            // Check if cancelled
             if (result && result.cancelled) {
-                logger.debug(`图像分析请求已取消 | ID: ${currentRequestId}`);
+                logger.debug(`Image analysis request cancelled | ID: ${currentRequestId}`);
                 return;
             }
 
             if (!result || !result.success) {
-                const errorMsg = result?.error || '未知错误';
+                const errorMsg = result?.error || 'Unknown error';
                 throw new Error(errorMsg);
             }
 
-            // 获取描述文本（优先使用流式收集的内容）
+            // Get description text (prefer streaming collected content)
             const description = fullContent || result.data?.description;
             if (!description) {
-                throw new Error('未获取到图像描述');
+                throw new Error('Failed to get image description');
             }
 
-            // 尝试复制到剪贴板
+            // Try to copy to clipboard
             let copySuccess = false;
             try {
-                // 优先使用现代的 Clipboard API
+                // Prefer modern Clipboard API
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(description);
                     copySuccess = true;
                 } else {
-                    // 创建一个临时的textarea元素
+                    // Create a temporary textarea element
                     const textarea = document.createElement('textarea');
                     textarea.value = description;
                     textarea.style.position = 'fixed';
@@ -1298,32 +1298,32 @@ class ImageCaption {
                     textarea.style.opacity = '0';
                     document.body.appendChild(textarea);
 
-                    // 尝试聚焦并选中文本
+                    // Try to focus and select text
                     textarea.focus();
                     textarea.select();
                     textarea.setSelectionRange(0, textarea.value.length);
 
-                    // 尝试复制
+                    // Try to copy
                     try {
                         copySuccess = document.execCommand('copy');
                     } catch (err) {
-                        logger.warn(`execCommand复制失败: ${err.message}`);
+                        logger.warn(`execCommand copy failed: ${err.message}`);
                     }
 
-                    // 移除临时元素
+                    // Remove temporary element
                     document.body.removeChild(textarea);
                 }
 
                 if (!copySuccess) {
-                    throw new Error('复制到剪贴板操作未能成功执行');
+                    throw new Error('Copy to clipboard operation failed');
                 }
             } catch (copyError) {
-                logger.warn(`复制到剪贴板失败: ${copyError.message}`);
-                // 即使复制失败也继续执行，不抛出错误，但记录状态
+                logger.warn(`Copy to clipboard failed: ${copyError.message}`);
+                // Continue execution even if copy fails, don't throw error, but record status
                 copySuccess = false;
             }
 
-            // 为当前图像节点创建历史记录
+            // Create history record for current image node
             HistoryCacheService.addHistory({
                 node_id: node.id,
                 input_id: "image",
@@ -1333,10 +1333,10 @@ class ImageCaption {
                 request_id: currentRequestId
             });
 
-            // 显示成功提示
+            // Show success tip
             const successMessage = copySuccess
-                ? (lang === 'en' ? "反推完成，已复制到剪贴板" : "反推完成，已复制到剪贴板")
-                : (lang === 'en' ? "反推完成，但复制失败" : "反推完成，但复制失败");
+                ? (lang === 'en' ? "Caption complete, copied to clipboard" : "Caption complete, copied to clipboard")
+                : (lang === 'en' ? "Caption complete, but copy failed" : "Caption complete, but copy failed");
 
             UIToolkit.showStatusTip(
                 buttonElement,
@@ -1345,39 +1345,39 @@ class ImageCaption {
                 { x: buttonElement.getBoundingClientRect().left + buttonElement.offsetWidth / 2, y: buttonElement.getBoundingClientRect().top }
             );
 
-            // 限制Toast显示的文本长度
+            // Limit Toast display text length
             const maxLength = 40;
             const truncatedDescription = description.length > maxLength
                 ? description.substring(0, maxLength) + '...'
                 : description;
 
-            // 显示Toast提示
+            // Show Toast notification
             app.extensionManager.toast.add({
                 severity: copySuccess ? "success" : "info",
                 summary: copySuccess
-                    ? (lang === 'en' ? "图像反推完成（英文），请使用 ctrl+v 粘贴" : "图像反推完成（中文），请使用 ctrl+v 粘贴")
-                    : (lang === 'en' ? "图像反推完成（英文），但复制失败，请手动复制" : "图像反推完成（中文），但复制失败，请手动复制"),
+                    ? (lang === 'en' ? "Image caption complete (English), use ctrl+v to paste" : "Image caption complete (Chinese), use ctrl+v to paste")
+                    : (lang === 'en' ? "Image caption complete (English), but copy failed, please copy manually" : "Image caption complete (Chinese), but copy failed, please copy manually"),
                 detail: truncatedDescription,
                 life: 5000
             });
 
-            // 如果复制失败，创建一个对话框显示结果，允许用户手动复制
+            // If copy failed, create a dialog to display result, allowing user to copy manually
             if (!copySuccess) {
                 this._showCopyDialog(description, lang);
             }
 
         } catch (error) {
-            // 清除当前请求ID
+            // Clear current request ID
             assistant.currentRequestId = null;
 
-            logger.error(`图像分析失败: ${error.message}`);
+            logger.error(`Image analysis failed: ${error.message}`);
 
-            // 获取按钮元素
+            // Get button element
             const buttonId = lang === 'en' ? 'caption_en' : 'caption_zh';
             const buttonElement = assistant.buttons[buttonId];
 
             if (buttonElement) {
-                // 显示错误提示
+                // Show error tip
                 UIToolkit.showStatusTip(
                     buttonElement,
                     'error',
@@ -1388,93 +1388,93 @@ class ImageCaption {
 
             app.extensionManager.toast.add({
                 severity: "error",
-                summary: lang === 'en' ? "Error" : "错误",
+                summary: lang === 'en' ? "Error" : "Error",
                 detail: error.message,
                 life: 3000
             });
         } finally {
-            // 获取按钮ID
+            // Get button ID
             const buttonId = lang === 'en' ? 'caption_en' : 'caption_zh';
 
-            // 重置当前按钮状态
+            // Reset current button state
             this._setButtonState(assistant, buttonId, 'processing', false);
 
-            // 恢复其他按钮状态
+            // Restore other button states
             Object.keys(assistant.buttons).forEach(id => {
                 if (id !== buttonId) {
                     this._setButtonState(assistant, id, 'disabled', false);
                 }
             });
 
-            // 更新小助手状态为非激活状态
+            // Update assistant state to inactive
             this._updateAssistantActiveState(assistant, false);
         }
     }
 
     /**
-     * 显示复制对话框
-     * 当剪贴板API失败时，提供一个对话框让用户手动复制内容
+     * Show copy dialog
+     * When Clipboard API fails, provides a dialog for user to manually copy content
      */
     _showCopyDialog(content, lang) {
-        // 创建对话框容器
+        // Create dialog container
         const dialogContainer = document.createElement('div');
         dialogContainer.className = 'image-assistant-copy-dialog';
 
-        // 创建标题
+        // Create title
         const title = document.createElement('div');
         title.className = 'image-assistant-copy-dialog-title';
-        title.textContent = '由于剪贴板权限被限制，请手动点击复制提示词内容';
+        title.textContent = 'Clipboard access is restricted, please manually click to copy the prompt content';
         dialogContainer.appendChild(title);
 
-        // 创建关闭按钮
+        // Create close button
         const closeButton = document.createElement('button');
         closeButton.className = 'image-assistant-copy-dialog-close';
         closeButton.onclick = () => {
             document.body.removeChild(dialogContainer);
         };
 
-        // 添加关闭图标
-        UIToolkit.addIconToButton(closeButton, 'pi-times', '关闭');
+        // Add close icon
+        UIToolkit.addIconToButton(closeButton, 'pi-times', 'Close');
         dialogContainer.appendChild(closeButton);
 
-        // 创建文本区域
+        // Create text area
         const contentArea = document.createElement('textarea');
         contentArea.className = 'image-assistant-copy-dialog-textarea';
         contentArea.value = content;
         contentArea.readOnly = true;
         dialogContainer.appendChild(contentArea);
 
-        // 创建复制按钮
+        // Create copy button
         const copyButton = document.createElement('button');
         copyButton.className = 'image-assistant-copy-dialog-copy-btn';
-        copyButton.textContent = '复制到剪贴板';
+        copyButton.textContent = 'Copy to Clipboard';
         copyButton.onclick = () => {
             contentArea.select();
             try {
                 const success = document.execCommand('copy');
                 if (success) {
-                    copyButton.textContent = '复制成功!';
-                    // 复制成功后，延迟500ms关闭弹窗，让用户看到成功提示
+                    copyButton.textContent = 'Copy successful!';
+                    // After successful copy, delay 500ms before closing dialog to show success tip
                     setTimeout(() => {
                         if (document.body.contains(dialogContainer)) {
                             document.body.removeChild(dialogContainer);
                         }
                     }, 500);
                 } else {
-                    copyButton.textContent = '复制失败，请手动选择和复制';
+                    copyButton.textContent = 'Copy failed, please select and copy manually';
                     contentArea.focus();
                 }
             } catch (err) {
-                copyButton.textContent = '复制失败，请手动选择和复制';
+                copyButton.textContent = 'Copy failed, please select and copy manually';
                 contentArea.focus();
             }
         };
         dialogContainer.appendChild(copyButton);
 
-        // 添加到文档
+        // Add to document
         document.body.appendChild(dialogContainer);
 
-        // 聚焦内容区域，使用户可以立即复制
+        // Focus content area so user can copy immediately
         setTimeout(() => {
             contentArea.focus();
             contentArea.select();
@@ -1482,7 +1482,7 @@ class ImageCaption {
     }
 
     /**
-     * 设置按钮状态
+     * Set button state
      */
     _setButtonState(assistant, buttonId, stateType, value = true) {
         try {
@@ -1493,70 +1493,70 @@ class ImageCaption {
 
             if (value) {
                 button.classList.add(stateClass);
-                // 如果是禁用状态，添加disabled属性
+                // If disabling, add disabled attribute
                 if (stateType === 'disabled') {
                     button.setAttribute('disabled', 'disabled');
                 }
             } else {
                 button.classList.remove(stateClass);
-                // 如果取消禁用状态，移除disabled属性
+                // If re-enabling, remove disabled attribute
                 if (stateType === 'disabled') {
                     button.removeAttribute('disabled');
                 }
             }
 
-            // 更新按钮可点击状态
+            // Update button clickability state
             this._updateButtonClickability(button, stateType, value);
 
         } catch (error) {
-            logger.error(`按钮状态 | 设置失败 | 按钮:${buttonId} | 状态:${stateType} | 错误:${error.message}`);
+            logger.error(`Button state | Setting failed | Button: ${buttonId} | State: ${stateType} | Error: ${error.message}`);
         }
     }
 
     /**
-     * 更新按钮可点击状态
+     * Update button clickability state
      */
     _updateButtonClickability(button, stateType, value) {
-        // 检查按钮是否处于禁用状态
+        // Check if button is in disabled state
         const isDisabled = button.classList.contains('button-disabled');
 
-        // 处理中的按钮仍然可点击（用于取消操作）
+        // Processing buttons remain clickable (for cancel operation)
         const isProcessing = button.classList.contains('button-processing');
 
         if (isDisabled) {
-            // 如果按钮被禁用，阻止点击事件
+            // If button is disabled, block click events
             button.style.pointerEvents = 'none';
         } else {
-            // 恢复点击事件，包括处理中的按钮
+            // Restore click events, including processing buttons
             button.style.pointerEvents = 'auto';
         }
     }
 
     /**
-     * 检查小助手是否有按钮处于激活状态
+     * Check if assistant has buttons in active state
      */
     _checkAssistantActiveState(assistant) {
         if (!assistant || !assistant.buttons) return false;
 
-        // 0. 检查是否正在切换弹窗（切换期间不允许折叠）
+        // 0. Check if popup is transitioning (don't allow collapse during transition)
         if (PopupManager._isTransitioning) {
 
             return true;
         }
 
-        // 1. 检查右键菜单是否可见（并且属于当前 assistant）
+        // 1. Check if context menu is visible (and belongs to current assistant)
         if (buttonMenu.isMenuVisible && buttonMenu.menuContext?.widget === assistant) {
 
             return true;
         }
 
-        // 2. 检查 PopupManager 的活动弹窗是否属于当前 assistant
+        // 2. Check if PopupManager's active popup belongs to current assistant
         if (PopupManager.activePopupInfo?.buttonInfo?.widget === assistant) {
 
             return true;
         }
 
-        // 3. 检查按钮的 active/processing 状态
+        // 3. Check button active/processing state
         for (const buttonId in assistant.buttons) {
             const button = assistant.buttons[buttonId];
             if (button.classList.contains('button-active') ||
@@ -1570,128 +1570,128 @@ class ImageCaption {
     }
 
     /**
-     * 更新小助手激活状态
+     * Update assistant active state
      */
     _updateAssistantActiveState(assistant, isActive) {
         if (!assistant) return;
 
-        // 更新激活状态
+        // Update active state
         assistant.isActive = isActive;
 
-        // 如果激活，强制显示小助手
+        // If active, force show assistant
         if (isActive) {
             this.showAssistantUI(assistant);
         } else {
-            // 如果不再激活，先更新可见性
+            // If no longer active, update visibility first
             this.updateAssistantVisibility(assistant);
 
-            // 然后手动触发自动折叠（如果小助手仍然可见且处于展开状态）
+            // Then manually trigger auto-collapse (if assistant is still visible and expanded)
             if (assistant.element &&
                 assistant.element.style.display !== 'none' &&
                 !assistant.isCollapsed &&
                 !assistant.isTransitioning) {
-                // 延迟一点时间再触发折叠，让用户有时间看到结果
+                // Delay before triggering collapse to give user time to see the result
                 setTimeout(() => {
                     this.triggerAutoCollapse(assistant);
-                }, 1500); // 1.5秒后自动折叠，给用户足够时间查看结果
+                }, 1500); // Auto-collapse after 1.5 seconds, giving user enough time to view result
             }
         }
     }
 
     /**
-     * 显示小助手UI 
+     * Show assistant UI
      */
     showAssistantUI(assistant) {
         if (!assistant?.element) return;
 
-        // 避免重复显示
+        // Avoid redundant show
         if (assistant.element.classList.contains('image-assistant-show')) {
-            // 确保元素可见
+            // Ensure element is visible
             assistant.element.style.display = 'flex';
             assistant.element.style.opacity = '1';
             return;
         }
 
-        // 直接显示，无动画过渡
+        // Show directly, no animation transition
         assistant.element.style.opacity = '1';
         assistant.element.style.display = 'flex';
         assistant.element.classList.add('image-assistant-show');
 
-        // 确保悬停区域可见（用于折叠状态下的交互）
+        // Ensure hover area is visible (for interaction in collapsed state)
         if (assistant.isCollapsed && assistant.hoverArea) {
             assistant.hoverArea.style.display = 'block';
         }
 
-        // 重置过渡状态
+        // Reset transition state
         assistant.isTransitioning = false;
 
-        // 只有当明确不是折叠状态时才触发自动折叠
+        // Only trigger auto-collapse when clearly not in collapsed state
         if (!assistant.isCollapsed) {
             this.triggerAutoCollapse(assistant);
         }
     }
 
     /**
-     * 隐藏小助手UI
+     * Hide assistant UI
      */
     hideAssistantUI(assistant) {
         if (!assistant?.element) return;
 
-        // 清除自动折叠定时器
+        // Clear auto-collapse timer
         if (assistant._autoCollapseTimer) {
             clearTimeout(assistant._autoCollapseTimer);
             assistant._autoCollapseTimer = null;
         }
 
-        // 隐藏元素
+        // Hide element
         assistant.element.style.display = 'none';
         assistant.element.classList.remove('image-assistant-show');
 
-        // 重置状态
+        // Reset state
         assistant.isTransitioning = false;
     }
 
     /**
-     * 更新小助手可见性
+     * Update assistant visibility
      */
     updateAssistantVisibility(assistant) {
-        // 检查实例是否已销毁
+        // Check if instance has been destroyed
         if (!assistant || assistant.isDestroyed) return;
 
-        // 动态获取节点
+        // Dynamically get node
         const node = assistant.node;
 
-        // 记录当前显示状态，用于检测变化
+        // Record current display state for change detection
         const wasVisible = assistant.element &&
             assistant.element.style.display !== 'none' &&
             assistant.element.classList.contains('image-assistant-show');
 
-        // 检查总开关和图像反推功能开关状态
+        // Check master switch and image caption feature switch state
         if (!window.FEATURES || !window.FEATURES.enabled || !window.FEATURES.imageCaption) {
             this.cleanup(assistant.nodeId);
             return;
         }
 
-        // 检查节点是否已被删除
+        // Check if node has been deleted
         if (!node) {
             this.cleanup(assistant.nodeId);
             return;
         }
 
-        // 使用统一的状态检测方法
+        // Use unified state detection method
         const nodeState = this._checkNodeAndCanvasState(assistant.node);
 
-        // 检查是否有按钮处于激活状态
+        // Check if any buttons are in active state
         const hasActiveButtons = this._checkAssistantActiveState(assistant);
 
-        // 确定新的可见性状态
+        // Determine new visibility state
         let shouldBeVisible = true;
 
-        // 如果有激活的按钮，强制显示小助手（覆盖其他隐藏条件）
+        // If there are active buttons, force show assistant (overrides other hide conditions)
         if (hasActiveButtons) {
             this.showAssistantUI(assistant);
 
-            // 如果当前是折叠状态，则展开
+            // If currently collapsed, expand
             if (assistant.isCollapsed) {
                 this._expandAssistant(assistant);
             }
@@ -1699,27 +1699,27 @@ class ImageCaption {
             return;
         }
 
-        // 如果节点折叠或画布缩放过小，隐藏小助手但不清理实例
+        // If node is collapsed or canvas zoom is too small, hide assistant but don't clean up instance
         if (nodeState.isCollapsed || nodeState.isLowQuality) {
             shouldBeVisible = false;
         }
 
-        // 如果节点没有有效图像，隐藏小助手但不清理实例
+        // If node has no valid image, hide assistant but don't clean up instance
         if (!nodeState.hasValidImage) {
             shouldBeVisible = false;
 
-            // ---异步图像检测逻辑 (针对性能优化)---
-            // 如果节点是支持的类型但暂时没图，启动一个内部轻量级探测器
+            // ---Async image detection logic (for performance optimization)---
+            // If node is a supported type but temporarily has no image, start a lightweight internal probe
             if (!assistant._imageDetectionTimer) {
                 const detectImage = () => {
                     if (!assistant.node) return;
                     const currentState = this._checkNodeAndCanvasState(assistant.node);
                     if (currentState.hasValidImage) {
-                        logger.debug(() => `[图像小助手] 异步图像加载成功 | ID: ${assistant.nodeId}`);
+                        logger.debug(() => `[Image Assistant] Async image load successful | ID: ${assistant.nodeId}`);
                         assistant._imageDetectionTimer = null;
                         this.updateAssistantVisibility(assistant);
                     } else if (document.body.contains(assistant.element)) {
-                        // 继续等待，每秒检测一次 (开销极低)
+                        // Continue waiting, check every second (very low overhead)
                         assistant._imageDetectionTimer = setTimeout(detectImage, 1000);
                     } else {
                         assistant._imageDetectionTimer = null;
@@ -1728,30 +1728,30 @@ class ImageCaption {
                 assistant._imageDetectionTimer = setTimeout(detectImage, 1000);
             }
         } else {
-            // 已有图像，清理探测定时器
+            // Image exists, clean up detection timer
             if (assistant._imageDetectionTimer) {
                 clearTimeout(assistant._imageDetectionTimer);
                 assistant._imageDetectionTimer = null;
             }
         }
 
-        // 跳过正在过渡的实例，避免动画中断
+        // Skip instances that are transitioning to avoid animation interruption
         if (assistant.isTransitioning) {
             return;
         }
 
-        // 根据可见性状态更新UI
+        // Update UI based on visibility state
         if (shouldBeVisible) {
-            // 条件满足时显示小助手
+            // Show assistant when conditions are met
             this.showAssistantUI(assistant);
         } else {
-            // 隐藏小助手
+            // Hide assistant
             this.hideAssistantUI(assistant);
         }
     }
 
     /**
-     * 展开小助手
+     * Expand assistant
      */
 
     _expandAssistant(assistant) {
@@ -1762,7 +1762,7 @@ class ImageCaption {
 
 
     /**
-     * 触发自动折叠
+     * Trigger auto-collapse
      */
 
     triggerAutoCollapse(assistant) {
@@ -1775,47 +1775,47 @@ class ImageCaption {
 
 
     /**
-     * 添加带图标的按钮
+     * Add button with icon
      */
     addButtonWithIcon(assistant, config) {
         if (!assistant?.element || !assistant?.innerContent) return null;
 
         const { id, title, icon, onClick, contextMenu } = config;
 
-        // 创建按钮
+        // Create button
         const button = document.createElement('button');
         button.className = 'image-assistant-button';
         button.title = title || '';
         button.dataset.id = id || `btn_${Date.now()}`;
 
-        // 添加图标 - 使用UIToolkit的SVG图标方法
+        // Add icon - use UIToolkit's SVG icon method
         if (icon) {
             UIToolkit.addIconToButton(button, icon, title || '');
         }
 
-        // 添加事件
+        // Add events
         if (typeof onClick === 'function') {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // 即使按钮正在处理中也允许点击，用于取消操作
-                // 如果按钮被禁用，不执行操作
+                // Allow click even when button is processing, for cancel operation
+                // If button is disabled, don't execute
                 if (button.classList.contains('button-disabled')) {
                     return;
                 }
 
-                // 执行点击回调
+                // Execute click callback
                 onClick(e, assistant);
             });
         }
 
-        // 添加右键菜单（如果有）
+        // Add context menu (if available)
         if (contextMenu && typeof contextMenu === 'function') {
             this._setupButtonContextMenu(button, contextMenu, assistant);
         }
 
-        // 保存引用
+        // Save reference
         if (id) {
             assistant.buttons[id] = button;
         }
@@ -1824,8 +1824,8 @@ class ImageCaption {
     }
 
     /**
-     * 设置UI位置
-     * 支持 Vue node2.0 和 litegraph.js 两种渲染模式
+     * Setup UI position
+     * Supports both Vue node2.0 and litegraph.js rendering modes
      */
     _setupUIPosition(assistant) {
         if (!assistant?.element || !assistant?.node) return;
@@ -1833,34 +1833,34 @@ class ImageCaption {
         const containerDiv = assistant.element;
         const renderMode = nodeMountService.detectRenderMode();
 
-        // 保存渲染模式到assistant
+        // Save render mode to assistant
         assistant._renderMode = renderMode;
 
         if (renderMode === RENDER_MODE.VUE_NODES) {
-            // Vue node2.0 模式：使用相对定位挂载到节点容器内
+            // Vue node2.0 mode: use relative positioning to mount inside node container
             this._setupUIPositionVueNodes(assistant, containerDiv);
         } else {
-            // litegraph.js 模式：使用fixed定位和画布坐标计算
+            // litegraph.js mode: use fixed positioning and canvas coordinate calculation
             this._setupUIPositionLitegraph(assistant, containerDiv);
         }
     }
 
     /**
-     * Vue node2.0 模式下的定位逻辑
+     * Vue node2.0 mode positioning logic
      */
     _setupUIPositionVueNodes(assistant, containerDiv) {
         const containerInfo = nodeMountService.findImageNodeContainer(assistant.node);
 
         if (!containerInfo || !containerInfo.container) {
-            logger.warn(`[图像小助手-Vue定位] 未找到节点容器 | ID: ${assistant.node.id}`);
-            // 降级到litegraph模式
+            logger.warn(`[Image Assistant-Vue Positioning] Node container not found | ID: ${assistant.node.id}`);
+            // Fallback to litegraph mode
             this._setupUIPositionLitegraph(assistant, containerDiv);
             return;
         }
 
         const { container: nodeContainer } = containerInfo;
 
-        // Vue模式：使用绝对定位，挂载到节点容器内
+        // Vue mode: use absolute positioning, mount inside node container
         containerDiv.style.position = 'absolute';
         containerDiv.style.left = '6px';
         containerDiv.style.bottom = '6px';
@@ -1868,21 +1868,21 @@ class ImageCaption {
         containerDiv.style.top = 'auto';
         containerDiv.style.zIndex = '10';
 
-        // 移除fixed定位相关样式
+        // Remove fixed positioning related styles
         containerDiv.style.transform = 'none';
 
-        // 添加Vue模式标记类
+        // Add Vue mode marker class
         containerDiv.classList.add('vue-node-mode');
 
-        // 从document.body移除（如果之前挂载过）
+        // Remove from document.body (if previously mounted)
         if (containerDiv.parentElement === document.body) {
             document.body.removeChild(containerDiv);
         }
 
-        // 挂载到节点容器
+        // Mount to node container
         nodeContainer.appendChild(containerDiv);
 
-        // 添加清理函数
+        // Add cleanup function
         assistant._eventCleanupFunctions = assistant._eventCleanupFunctions || [];
         assistant._eventCleanupFunctions.push(() => {
             if (containerDiv && containerDiv.parentElement) {
@@ -1890,85 +1890,85 @@ class ImageCaption {
             }
         });
 
-        logger.debug(`[图像小助手-Vue定位] 完成 | 节点ID: ${assistant.node.id}`);
+        logger.debug(`[Image Assistant-Vue Positioning] Complete | Node ID: ${assistant.node.id}`);
     }
 
     /**
-     * litegraph.js 模式下的定位逻辑（原有逻辑）
+     * litegraph.js mode positioning logic (original logic)
      */
     _setupUIPositionLitegraph(assistant, containerDiv) {
-        // 更新位置的函数
+        // Position update function
         const updatePosition = () => {
             if (!assistant.element || !assistant.node) return;
 
             try {
                 const canvas = app.canvas;
-                // 如果canvas未初始化，延迟重试
+                // If canvas is not initialized, retry with delay
                 if (!canvas) {
                     requestAnimationFrame(() => updatePosition());
                     return;
                 }
 
-                // 获取画布缩放比例
+                // Get canvas scale ratio
                 const scale = canvas.ds.scale;
 
-                // 获取节点边界
+                // Get node bounds
                 const [nodeX, nodeY, nodeWidth, nodeHeight] = assistant.node.getBounding();
 
-                // 计算内部偏移量（用于将小助手放在节点内部）
-                const INNER_OFFSET_X = 6; // 水平偏移量
-                const INNER_OFFSET_Y = 6; // 垂直偏移量
+                // Calculate inner offset (to place assistant inside node)
+                const INNER_OFFSET_X = 6; // Horizontal offset
+                const INNER_OFFSET_Y = 6; // Vertical offset
 
-                // 计算定位点位置（节点左下角）
+                // Calculate anchor position (bottom-left of node)
                 const anchorX = nodeX + INNER_OFFSET_X;
                 const anchorY = nodeY + nodeHeight - INNER_OFFSET_Y;
 
-                // 获取画布元素的边界
+                // Get canvas element bounds
                 const rect = canvas.canvas.getBoundingClientRect();
 
-                // 将定位点位置转换为屏幕坐标
+                // Convert anchor position to screen coordinates
                 const canvasPoint = canvas.convertOffsetToCanvas([anchorX, anchorY]);
 
                 if (!canvasPoint) return;
 
-                // 计算最终的屏幕坐标（考虑画布元素的位置）
+                // Calculate final screen coordinates (considering canvas element position)
                 const screenX = canvasPoint[0] + rect.left;
                 const screenY = canvasPoint[1] + rect.top;
 
-                // 设置容器位置，使其左下角与定位点对齐
+                // Set container position, aligning its bottom-left with the anchor point
                 containerDiv.style.left = `${screenX}px`;
                 containerDiv.style.bottom = `${window.innerHeight - screenY}px`;
                 containerDiv.style.right = 'auto';
                 containerDiv.style.top = 'auto';
 
-                // 应用缩放
+                // Apply scaling
                 containerDiv.style.setProperty('--assistant-scale', scale);
 
             } catch (error) {
-                // 仅在首次出错时记录
+                // Only log on first error
                 if (!assistant._lastPositionError) {
-                    logger.error(() => `更新小助手位置失败: ${error.message}`);
+                    logger.error(() => `Failed to update assistant position: ${error.message}`);
                     assistant._lastPositionError = Date.now();
                 }
             }
         };
 
-        // 初始更新位置
+        // Initial position update
         updatePosition();
 
-        // 使用防抖函数优化位置更新
+        // Use debounced function to optimize position updates
         const debouncedUpdatePosition = EventManager.debounce(updatePosition, 16);
 
-        // 添加窗口resize事件监听
+        // Add window resize event listener
         assistant._eventCleanupFunctions = assistant._eventCleanupFunctions || [];
         const removeResizeListener = EventManager.addDOMListener(window, 'resize', debouncedUpdatePosition);
         assistant._eventCleanupFunctions.push(removeResizeListener);
 
-        // 监听画布变化
+        // Monitor canvas changes
         if (app.canvas) {
-            // 监听画布重绘
-            // 优化：使用requestAnimationFrame在每一帧更新位置，或者直接利用 LiteGraph 的渲染循环
-            // 这里为了跟随平滑，直接在 drawBackground 钩子中更新
+            // Monitor canvas redraw
+            // Optimization: Use requestAnimationFrame to update position each frame, or leverage LiteGraph's render loop
+            // For smooth following, update directly in drawBackground hook
             const originalDrawBackground = app.canvas.onDrawBackground;
             const onDrawWrapper = function () {
                 const ret = originalDrawBackground?.apply(this, arguments);
@@ -1977,36 +1977,36 @@ class ImageCaption {
             };
             app.canvas.onDrawBackground = onDrawWrapper;
 
-            // 添加画布重绘清理函数
+            // Add canvas redraw cleanup function
             assistant._eventCleanupFunctions.push(() => {
                 if (app.canvas.onDrawBackground === onDrawWrapper) {
                     app.canvas.onDrawBackground = originalDrawBackground;
                 }
             });
 
-            // 监听节点移动
+            // Monitor node movement
             if (assistant.node) {
-                // 使用LiteGraph提供的onNodeMoved事件
+                // Use LiteGraph's onNodeMoved event
                 const originalOnNodeMoved = app.canvas.onNodeMoved;
                 app.canvas.onNodeMoved = function (node_dragged) {
                     if (originalOnNodeMoved) {
                         originalOnNodeMoved.apply(this, arguments);
                     }
 
-                    // 仅当移动的是当前节点时更新位置
+                    // Only update position when the moved node is the current one
                     if (node_dragged && node_dragged.id === assistant.node.id) {
                         updatePosition();
                     }
                 };
 
-                // 添加节点移动清理函数
+                // Add node movement cleanup function
                 assistant._eventCleanupFunctions.push(() => {
                     if (app.canvas) {
                         app.canvas.onNodeMoved = originalOnNodeMoved;
                     }
                 });
 
-                // 为节点本身添加移动监听（兼容性处理）
+                // Add movement listener to the node itself (compatibility handling)
                 const nodeOriginalOnNodeMoved = assistant.node.onNodeMoved;
                 assistant.node.onNodeMoved = function () {
                     const ret = nodeOriginalOnNodeMoved?.apply(this, arguments);
@@ -2014,7 +2014,7 @@ class ImageCaption {
                     return ret;
                 };
 
-                // 添加节点自身移动清理函数
+                // Add node's own movement cleanup function
                 assistant._eventCleanupFunctions.push(() => {
                     if (assistant.node && nodeOriginalOnNodeMoved) {
                         assistant.node.onNodeMoved = nodeOriginalOnNodeMoved;
@@ -2022,17 +2022,17 @@ class ImageCaption {
                 });
             }
 
-            // 监听画布缩放
+            // Monitor canvas zoom
             const originalDSModified = app.canvas.ds.onModified;
             app.canvas.ds.onModified = function (...args) {
                 if (originalDSModified) {
                     originalDSModified.apply(this, args);
                 }
-                // 缩放时直接更新
+                // Update directly on zoom
                 updatePosition();
             };
 
-            // 添加画布缩放清理函数
+            // Add canvas zoom cleanup function
             assistant._eventCleanupFunctions.push(() => {
                 if (app.canvas?.ds) {
                     app.canvas.ds.onModified = originalDSModified;
@@ -2040,7 +2040,7 @@ class ImageCaption {
             });
         }
 
-        // 添加DOM元素清理函数
+        // Add DOM element cleanup function
         assistant._eventCleanupFunctions.push(() => {
             if (containerDiv && document.body.contains(containerDiv)) {
                 document.body.removeChild(containerDiv);
@@ -2049,31 +2049,31 @@ class ImageCaption {
     }
 
     /**
-     * 设置节点折叠状态监听
+     * Setup node collapse state listener
      */
     _setupNodeCollapseListener(assistant) {
         if (!assistant?.node) return;
 
         const node = assistant.node;
 
-        // 保存原始的 collapse 方法
+        // Save original collapse method
         const originalCollapse = node.collapse;
 
-        // 重写 collapse 方法
+        // Override collapse method
         node.collapse = function () {
-            // 调用原始的 collapse 方法
+            // Call original collapse method
             originalCollapse.apply(this, arguments);
 
-            // 调用统一的可见性更新方法，而不是直接操作DOM
+            // Call unified visibility update method instead of directly manipulating DOM
             const imageCaptionInstance = window.imageCaptionInstance || imageCaption;
             if (imageCaptionInstance && typeof imageCaptionInstance.updateAssistantVisibility === 'function') {
                 imageCaptionInstance.updateAssistantVisibility(assistant);
             }
         };
 
-        // 保存清理函数
+        // Save cleanup function
         assistant._eventCleanupFunctions.push(() => {
-            // 恢复原始的 collapse 方法
+            // Restore original collapse method
             if (node.collapse !== originalCollapse) {
                 node.collapse = originalCollapse;
             }
@@ -2081,72 +2081,72 @@ class ImageCaption {
     }
 
     /**
-     * 设置画布缩放监听
+     * Setup canvas scale listener
      */
     _setupCanvasScaleListener(assistant) {
         if (!assistant?.node || !app.canvas) return;
 
         let lastScale = app.canvas.ds.scale;
 
-        // 使用类方法获取阈值，确保一致性
+        // Use class method to get threshold for consistency
         const threshold = this._getQualityThreshold();
 
-        // 直接检测缩放状态并更新UI可见性
+        // Directly detect zoom state and update UI visibility
         const checkScaleAndUpdate = () => {
             if (!assistant.element || !assistant.node || !app.canvas) return;
 
             const currentScale = app.canvas.ds.scale;
-            const threshold = imageCaption._getQualityThreshold(); // 修复：使用全局实例的方法
-            const epsilon = 0.001; // 增加容差值
+            const threshold = imageCaption._getQualityThreshold(); // Fix: use global instance's method
+            const epsilon = 0.001; // Increased tolerance value
 
-            // 计算与上次缩放的差值
+            // Calculate difference from last scale
             const scaleDiff = Math.abs(currentScale - lastScale);
 
-            // 更新上次缩放值
+            // Update last scale value
             lastScale = currentScale;
 
-            // 判断当前画质状态（使用容差值）
+            // Determine current quality state (using tolerance value)
             const isCurrentlyLowQuality = currentScale <= threshold + epsilon;
 
-            // 无条件更新UI可见性，让_checkNodeAndCanvasState方法决定是否显示
+            // Unconditionally update UI visibility, let _checkNodeAndCanvasState method decide whether to show
             this.updateAssistantVisibility(assistant);
         };
 
-        // 确保立即响应
+        // Ensure immediate response
         const immediateUpdate = checkScaleAndUpdate;
 
-        // 监听画布的鼠标滚轮事件（缩放）
+        // Monitor canvas mouse wheel event (zoom)
         const wheelHandler = (e) => {
             if (e.ctrlKey || e.metaKey) {
-                // 立即更新并安排延迟检查
+                // Update immediately and schedule delayed check
                 immediateUpdate();
                 setTimeout(immediateUpdate, 50);
             }
         };
 
-        // 监听画布的触摸事件（移动端缩放）
+        // Monitor canvas touch event (mobile zoom)
         const touchHandler = (e) => {
             if (e.touches && e.touches.length === 2) {
-                // 立即更新并安排延迟检查
+                // Update immediately and schedule delayed check
                 immediateUpdate();
                 setTimeout(immediateUpdate, 50);
             }
         };
 
-        // 添加事件监听器
+        // Add event listeners
         const canvas = app.canvas.canvas;
         if (canvas) {
             canvas.addEventListener('wheel', wheelHandler, { passive: true });
             canvas.addEventListener('touchmove', touchHandler, { passive: true });
         }
 
-        // 定期检查缩放变化
+        // Periodically check scale changes
         const scaleCheckInterval = setInterval(immediateUpdate, 50);
 
-        // 初始检查一次当前状态
+        // Initial check of current state
         immediateUpdate();
 
-        // 保存清理函数
+        // Save cleanup functions
         assistant._eventCleanupFunctions.push(() => {
             if (canvas) {
                 canvas.removeEventListener('wheel', wheelHandler);
@@ -2155,7 +2155,7 @@ class ImageCaption {
             clearInterval(scaleCheckInterval);
         });
 
-        // 监听画布缩放事件（直接监听ds.scale变化）
+        // Monitor canvas zoom event (directly monitor ds.scale changes)
         const originalDSScale = Object.getOwnPropertyDescriptor(app.canvas.ds, 'scale');
         if (originalDSScale && originalDSScale.set) {
             const originalSetter = originalDSScale.set;
@@ -2163,37 +2163,37 @@ class ImageCaption {
             Object.defineProperty(app.canvas.ds, 'scale', {
                 get: originalDSScale.get,
                 set: function (value) {
-                    // 获取旧值
+                    // Get old value
                     const oldValue = this.scale;
                     const threshold = imageCaption._getQualityThreshold();
 
-                    // 调用原始setter
+                    // Call original setter
                     originalSetter.call(this, value);
 
-                    // 检测是否跨越了阈值边界
+                    // Detect if threshold boundary was crossed
                     const epsilon = 0.001;
                     const crossedThreshold =
                         (oldValue <= threshold + epsilon && value > threshold + epsilon) ||
                         (oldValue > threshold + epsilon && value <= threshold + epsilon);
 
                     if (crossedThreshold) {
-                        // 如果跨越了阈值，只记录一次日志
-                        // 使用静态变量记录上次跨越阈值的时间，避免短时间内重复输出
+                        // If threshold was crossed, only log once
+                        // Use static variable to record last threshold crossing time, avoid repeated output in short intervals
                         const now = Date.now();
                         if (!ImageCaption._lastThresholdCrossTime || now - ImageCaption._lastThresholdCrossTime > 500) {
-                            logger.log(`[图像小助手-缩放监听] 跨越阈值 | 旧值: ${oldValue.toFixed(4)} | 新值: ${value.toFixed(4)} | 阈值: ${threshold}`);
+                            logger.log(`[Image Assistant-Scale Listener] Crossed threshold | Old: ${oldValue.toFixed(4)} | New: ${value.toFixed(4)} | Threshold: ${threshold}`);
                             ImageCaption._lastThresholdCrossTime = now;
                         }
                     }
 
-                    // 无论是否跨越阈值，都立即更新
+                    // Update immediately regardless of threshold crossing
                     immediateUpdate();
 
-                    // 多次检查确保状态正确应用
+                    // Multiple checks to ensure state is correctly applied
                     setTimeout(immediateUpdate, 10);
                     setTimeout(immediateUpdate, 50);
                     setTimeout(() => {
-                        // 更新所有已存在的图像小助手实例
+                        // Update all existing image assistant instances
                         ImageCaption.instances.forEach((instance) => {
                             if (instance && instance.node) {
                                 imageCaption.updateAssistantVisibility(instance);
@@ -2204,7 +2204,7 @@ class ImageCaption {
                 configurable: true
             });
 
-            // 添加清理函数
+            // Add cleanup function
             assistant._eventCleanupFunctions.push(() => {
                 if (app.canvas && app.canvas.ds) {
                     Object.defineProperty(app.canvas.ds, 'scale', originalDSScale);
@@ -2214,7 +2214,7 @@ class ImageCaption {
     }
 
     /**
-     * 设置展开折叠事件
+     * Setup collapse/expand events
      */
     _setupCollapseExpandEvents(assistant) {
         // Event handling is delegated to AssistantContainer
@@ -2223,20 +2223,20 @@ class ImageCaption {
 
 
     /**
-     * 设置按钮右键菜单
-     * @param {HTMLElement} button 按钮元素
-     * @param {Function} getMenuItems 获取菜单项的函数
-     * @param {Object} assistant 小助手实例
+     * Setup button context menu
+     * @param {HTMLElement} button Button element
+     * @param {Function} getMenuItems Function to get menu items
+     * @param {Object} assistant Assistant instance
      */
     _setupButtonContextMenu(button, getMenuItems, assistant) {
         if (!button || typeof getMenuItems !== 'function') return;
 
-        // 确保assistant对象具有正确的类型标识，方便右键菜单关闭时识别
+        // Ensure assistant object has correct type identifier for context menu close identification
         assistant.type = 'image_caption_assistant';
 
         const cleanup = buttonMenu.setupButtonMenu(button, () => {
             return getMenuItems(assistant);
-        }, { widget: assistant, buttonElement: button }); // 传递正确的上下文
+        }, { widget: assistant, buttonElement: button }); // Pass correct context
 
         if (cleanup) {
             assistant._eventCleanupFunctions = assistant._eventCleanupFunctions || [];
@@ -2244,9 +2244,9 @@ class ImageCaption {
         }
     }
 
-    // ---静态方法---
+    // ---Static methods---
     /**
-     * 添加实例到管理器
+     * Add instance to manager
      */
     static addInstance(nodeId, assistant) {
         if (nodeId != null && assistant != null) {
@@ -2257,12 +2257,12 @@ class ImageCaption {
     }
 
     /**
-     * 获取实例
+     * Get instance
      */
     static getInstance(nodeId) {
         if (nodeId == null) return null;
 
-        // 确保nodeId是字符串类型
+        // Ensure nodeId is string type
         const key = String(nodeId);
         const instance = this.instances.get(key);
 
@@ -2271,36 +2271,36 @@ class ImageCaption {
     }
 
     /**
-     * 检查实例是否存在
+     * Check if instance exists
      */
     static hasInstance(nodeId) {
         if (nodeId == null) return false;
-        // 确保nodeId是字符串类型
+        // Ensure nodeId is string type
         return this.instances.has(String(nodeId));
     }
 
     /**
-     * 清理小助手实例
-     * @param {string|null} nodeId - 节点ID，如果为null则清理所有实例
-     * @param {boolean} silent - 是否静默清理（不输出日志）
+     * Clean up assistant instance
+     * @param {string|null} nodeId - Node ID, if null clean up all instances
+     * @param {boolean} silent - Whether to clean up silently (no log output)
      */
     cleanup(nodeId = null, silent = false) {
-        // 如果正在切换工作流，完全清理图像小助手实例
+        // If switching workflows, fully clean up image assistant instances
         if (window.PROMPT_ASSISTANT_WORKFLOW_SWITCHING) {
-            // 简化日志：工作流切换期间不逐条打印节点清理日志
+            // Simplified logging: don't print individual node cleanup logs during workflow switching
 
             if (nodeId === null) {
-                // 清理所有实例，并从集合中移除
+                // Clean up all instances and remove from collection
                 const instanceCount = ImageCaption.instances.size;
                 if (instanceCount > 0) {
                     ImageCaption.instances.forEach((assistant, id) => {
                         this._cleanupSingleInstance(assistant);
                     });
-                    // 清空实例集合
+                    // Clear instance collection
                     ImageCaption.instances.clear();
                 }
             } else {
-                // 清理特定节点实例
+                // Clean up specific node instance
                 const assistant = ImageCaption.getInstance(nodeId);
                 if (assistant) {
                     this._cleanupSingleInstance(assistant);
@@ -2313,7 +2313,7 @@ class ImageCaption {
 
         try {
             if (nodeId === null) {
-                // 清理所有实例
+                // Clean up all instances
                 const instanceCount = ImageCaption.instances.size;
                 if (instanceCount > 0) {
                     ImageCaption.instances.forEach((assistant, id) => {
@@ -2321,42 +2321,42 @@ class ImageCaption {
                     });
                     ImageCaption.instances.clear();
                     if (!silent) {
-                        logger.log(`清理所有图像小助手实例 | 数量: ${instanceCount}`);
+                        logger.log(`Cleaned up all image assistant instances | Count: ${instanceCount}`);
                     }
                 }
             } else {
-                // 清理指定实例
+                // Clean up specified instance
                 const assistant = ImageCaption.getInstance(nodeId);
                 if (assistant) {
                     this._cleanupSingleInstance(assistant);
                     ImageCaption.instances.delete(String(nodeId));
                     if (!silent) {
-                        logger.log(`清理图像小助手实例 | ID: ${nodeId}`);
+                        logger.log(`Cleaned up image assistant instance | ID: ${nodeId}`);
                     }
                 }
             }
         } catch (error) {
-            logger.error(`清理图像小助手实例失败 | ${error.message}`);
+            logger.error(`Failed to clean up image assistant instance | ${error.message}`);
         }
     }
 
     /**
-     * 清理单个实例的内部方法
-     * @param {object} assistant - 小助手实例
+     * Internal method to clean up a single instance
+     * @param {object} assistant - Assistant instance
      */
     _cleanupSingleInstance(assistant) {
         if (!assistant) return;
 
-        // 标记实例为已销毁
+        // Mark instance as destroyed
         assistant.isDestroyed = true;
 
         try {
-            // 清理DOM元素
+            // Clean up DOM elements
             if (assistant.element && assistant.element.parentNode) {
                 assistant.element.parentNode.removeChild(assistant.element);
             }
 
-            // 清理事件监听器
+            // Clean up event listeners
             if (assistant._eventCleanupFunctions && Array.isArray(assistant._eventCleanupFunctions)) {
                 assistant._eventCleanupFunctions.forEach(cleanup => {
                     if (typeof cleanup === 'function') {
@@ -2366,7 +2366,7 @@ class ImageCaption {
                 assistant._eventCleanupFunctions = [];
             }
 
-            // 清理定时器
+            // Clean up timers
             if (assistant._timers) {
                 Object.values(assistant._timers).forEach(timer => {
                     if (timer) {
@@ -2381,44 +2381,44 @@ class ImageCaption {
                 assistant._imageDetectionTimer = null;
             }
 
-            // 清理引用（node 属性为动态 getter，无需手动清理）
+            // Clean up references (node property is a dynamic getter, no manual cleanup needed)
             assistant.element = null;
             assistant.innerContent = null;
             assistant.hoverArea = null;
             assistant.indicator = null;
             assistant.buttons = {};
         } catch (error) {
-            logger.error(`清理单个实例失败 | ${error.message}`);
+            logger.error(`Failed to clean up single instance | ${error.message}`);
         }
     }
 
     /**
-     * 统一控制总开关功能
+     * Unified master switch control
      */
     async toggleGlobalFeature(enable, force = false) {
-        // 更新状态
+        // Update state
         const oldValue = window.FEATURES.imageCaption;
         window.FEATURES.imageCaption = enable;
 
-        // 状态未变化时不执行操作，除非force为true
+        // Don't execute if state hasn't changed, unless force is true
         if (!force && oldValue === enable) {
             return;
         }
 
-        // 仅当状态变化或强制执行时才记录日志
+        // Only log when state changes or forced
         if (oldValue !== enable || force) {
-            logger.log(`图像反推功能 | 动作:${enable ? "启用" : "禁用"}`);
+            logger.log(`Image caption feature | Action: ${enable ? "enable" : "disable"}`);
         }
 
         try {
             if (enable) {
-                // === 启用图像反推功能 ===
-                // 确保管理器已初始化
+                // === Enable image caption feature ===
+                // Ensure manager is initialized
                 if (!EventManager.initialized) {
                     EventManager.init();
                 }
 
-                // 1. 重置节点初始化标记，准备重新检测
+                // 1. Reset node initialization flags, prepare for re-detection
                 if (app.canvas && app.canvas.graph) {
                     const nodes = app.canvas.graph._nodes || [];
                     nodes.forEach(node => {
@@ -2427,7 +2427,7 @@ class ImageCaption {
                         }
                     });
 
-                    // 2. 如果开启了自动创建，立即扫描所有有效节点
+                    // 2. If auto-creation is enabled, immediately scan all valid nodes
                     const icCreationMode = app.ui.settings.getSettingValue("PromptAssistant.Settings.ImageCaptionCreationMode") || "auto";
                     if (icCreationMode === "auto") {
                         nodes.forEach(node => {
@@ -2439,34 +2439,34 @@ class ImageCaption {
                     }
                 }
 
-                // 3. 设置或恢复节点选择事件监听
+                // 3. Setup or restore node selection event listener
                 this.registerNodeSelectionListener();
 
-                // 4. 检查当前选中的节点
+                // 4. Check currently selected nodes
                 if (app.canvas && app.canvas.selected_nodes) {
                     app.canvas._imageCaptionSelectionHandler(app.canvas.selected_nodes);
                 }
             } else {
-                // === 禁用图像反推功能 ===
-                // 1. 清理所有实例
+                // === Disable image caption feature ===
+                // 1. Clean up all instances
                 this.cleanup(null, true);
             }
 
-            // 更新按钮可见性
+            // Update button visibility
             if (window.FEATURES.updateButtonsVisibility) {
                 window.FEATURES.updateButtonsVisibility();
             }
         } catch (error) {
-            logger.error(`图像小助手功能开关操作失败 | 错误: ${error.message}`);
+            logger.error(`Image assistant feature toggle failed | Error: ${error.message}`);
         }
     }
 
     /**
-     * 更新所有实例的预设尺寸
-     * 当功能开关或配置变更时调用，触发容器的常量布局计算逻辑
+     * Update preset dimensions of all instances
+     * Called when feature switch or config changes, triggers container's constant layout calculation logic
      */
     updateAllInstancesWidth() {
-        logger.debug(`[图像小助手] 触发所有实例尺寸重算 | 实例数量: ${ImageCaption.instances.size}`);
+        logger.debug(`[Image Assistant] Triggered dimension recalculation for all instances | Instance count: ${ImageCaption.instances.size}`);
 
         ImageCaption.instances.forEach((assistant) => {
             if (assistant && assistant.container && typeof assistant.container.updateDimensions === 'function') {
@@ -2477,9 +2477,9 @@ class ImageCaption {
 
 }
 
-// 创建单例实例
+// Create singleton instance
 const imageCaption = new ImageCaption();
 
 
-// 导出
+// Export
 export { imageCaption, ImageCaption };
