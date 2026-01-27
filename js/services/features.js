@@ -1,27 +1,27 @@
 /**
- * 小助手功能特性管理模块
- * 负责管理所有功能开关、按钮可见性、功能状态变更等
+ * Assistant feature management module
+ * Manages all feature toggles, button visibility, feature state changes, etc.
  */
 
 import { logger } from '../utils/logger.js';
 
-// 外部注入的 promptAssistant 实例
+// Externally injected promptAssistant instance
 let promptAssistant = null;
-// 外部注入的 PromptAssistant 类
+// Externally injected PromptAssistant class
 let PromptAssistant = null;
-// 外部注入的 UIToolkit
+// Externally injected UIToolkit
 let UIToolkit = null;
-// 外部注入的 HistoryCacheService
+// Externally injected HistoryCacheService
 let HistoryCacheService = null;
-// 外部注入的 imageCaption 实例
+// Externally injected imageCaption instance
 let imageCaption = null;
-// 外部注入的 ImageCaption 类
+// Externally injected ImageCaption class
 let ImageCaption = null;
-// 外部注入的 nodeHelpTranslator 实例
+// Externally injected nodeHelpTranslator instance
 let nodeHelpTranslator = null;
 
 /**
- * 注入依赖实例（由主入口调用）
+ * Inject dependency instances (called by main entry)
  */
 export function setFeatureModuleDeps({ promptAssistant: pa, PromptAssistant: PAC, UIToolkit: ui, HistoryCacheService: hc, imageCaption: ic, ImageCaption: ICC, nodeHelpTranslator: nht }) {
     promptAssistant = pa;
@@ -31,7 +31,7 @@ export function setFeatureModuleDeps({ promptAssistant: pa, PromptAssistant: PAC
     imageCaption = ic;
     ImageCaption = ICC;
     nodeHelpTranslator = nht;
-    // 初始化时同步日志级别
+    // Sync log level during initialization
     try {
         if (typeof window !== 'undefined' && window.FEATURES) {
             if (typeof window.FEATURES.logLevel === 'undefined') {
@@ -45,46 +45,46 @@ export function setFeatureModuleDeps({ promptAssistant: pa, PromptAssistant: PAC
 }
 
 /**
- * 功能特性配置对象
- * 控制各个功能的启用状态
+ * Feature configuration object
+ * Controls the enabled state of each feature
  */
 export const FEATURES = {
-    // 基础功能开关
+    // Basic feature toggles
     enabled: true,
 
-    // 具体功能开关
-    history: true, // 历史功能（包含历史、撤销、重做）
+    // Specific feature toggles
+    history: true, // History feature (includes history, undo, redo)
     tag: true,
     expand: true,
     translate: true,
-    autoTranslate: false, // 自动翻译功能
-    imageCaption: true, // 图像反推提示词功能
-    nodeHelpTranslator: true, // 节点帮助文档翻译功能
+    autoTranslate: false, // Auto-translate feature
+    imageCaption: true, // Image caption (reverse prompt) feature
+    nodeHelpTranslator: true, // Node help document translation feature
 
-    // 翻译格式化选项
-    translateFormatPunctuation: true, // 标点符号自动转成半角
-    translateFormatSpace: true, // 移除多余空格
-    translateFormatDots: false, // 处理连续点号
-    translateFormatNewline: false, // 保留换行符
+    // Translation formatting options
+    translateFormatPunctuation: true, // Auto-convert punctuation to half-width
+    translateFormatSpace: true, // Remove extra spaces
+    translateFormatDots: false, // Handle consecutive dots
+    translateFormatNewline: false, // Preserve newlines
 
-    // 混合语言翻译缓存
-    cacheMixedLangTranslation: false, // 是否缓存混合语言翻译结果
+    // Mixed-language translation cache
+    cacheMixedLangTranslation: false, // Whether to cache mixed-language translation results
 
-    // 混合语言翻译规则
-    mixedLangTranslateRule: 'auto_minor', // 自动翻译小比例语言
+    // Mixed-language translation rules
+    mixedLangTranslateRule: 'auto_minor', // Auto-translate minor-proportion language
 
-    // 系统设置
-    showStreamingProgress: true, // 显示流式输出进度（终端日志）
-    enableStreaming: true, // 启用前端流式输出效果
+    // System settings
+    showStreamingProgress: true, // Show streaming output progress (terminal log)
+    enableStreaming: true, // Enable frontend streaming output effect
 
     /**
-     * 从配置加载功能开关状态
-     * 必须在 app.ui.settings 加载完成后调用
+     * Load feature toggle states from settings
+     * Must be called after app.ui.settings is loaded
      */
     loadSettings() {
         if (typeof app === 'undefined' || !app.ui || !app.ui.settings) return;
 
-        // 辅助函数：加载布尔值设置，如果未设置则保持默认值
+        // Helper function: load boolean setting, keep default if not set
         const loadBool = (key, settingId) => {
             const val = app.ui.settings.getSettingValue(settingId);
             if (typeof val === 'boolean') {

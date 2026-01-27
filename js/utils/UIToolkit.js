@@ -1,6 +1,6 @@
 /**
- * UI工具包
- * 提供通用的UI操作工具函数，供各模块共用
+ * UI Toolkit
+ * Provides common UI utility functions shared across modules
  */
 
 import { logger } from './logger.js';
@@ -8,63 +8,63 @@ import { ResourceManager } from "./resourceManager.js";
 import { APIService } from "../services/api.js";
 
 class UIToolkit {
-    // 中央按钮状态管理器 - 记录激活状态的按钮
+    // Central button state manager - tracks the active button
     static #activeButtonInfo = null; // {widget, buttonId, popupInstance}
 
-    // 状态提示管理器 - 记录每个按钮的状态提示元素
+    // Status tip manager - tracks the status tip element for each button
     static #statusTips = new Map(); // Map<buttonElement, tipElement>
 
-    // 支持的输入字段ID
+    // Supported input field IDs
     static VALID_INPUT_IDS = ["text", "text_positive", "text_negative", "text_g", "text_l"];
 
-    // 状态文本管理
+    // Status text management
     static STATUS_TEXTS = {
         translate: {
-            loading: '翻译中',
-            // success: (from, to) => `翻译完成 (${from} → ${to})`,
-            success: (from, to) => '翻译完成',
-            error: (msg) => msg || '翻译失败'
+            loading: 'Translating',
+            // success: (from, to) => `Translation complete (${from} → ${to})`,
+            success: (from, to) => 'Translation complete',
+            error: (msg) => msg || 'Translation failed'
         },
         expand: {
-            loading: '提示词优化中',
-            success: '提示词优化完成',
-            error: (msg) => msg || '提示词优化失败'
+            loading: 'Optimizing prompt',
+            success: 'Prompt optimization complete',
+            error: (msg) => msg || 'Prompt optimization failed'
         }
     };
 
     /**
-     * 检查输入控件是否为有效的文本输入
-     * 支持传统litegraph模式和Vue node2.0模式
+     * Check if the input widget is a valid text input
+     * Supports traditional litegraph mode and Vue node2.0 mode
      */
     static isValidInput(widget, options = {}) {
         const { debug = false, node = null } = options;
         let isValid = false;
         let reason = '';
 
-        // 方法1: 标准文本输入控件（传统litegraph模式）
+        // Method 1: Standard text input widget (traditional litegraph mode)
         if (widget.inputEl && widget.inputEl.tagName === "TEXTAREA" &&
             this.VALID_INPUT_IDS.includes(widget.name)) {
             isValid = true;
             reason = 'litegraph textarea matched';
         }
-        // 方法2: Note节点特殊输入
+        // Method 2: Note node special input
         else if (widget.element && widget.element.tagName === "TEXTAREA") {
             isValid = true;
             reason = 'Note textarea matched';
         }
-        // 方法3: Markdown Note节点特殊输入（Tiptap编辑器）
+        // Method 3: Markdown Note node special input (Tiptap editor)
         else if (this.isMarkdownNoteInput(widget)) {
             isValid = true;
             reason = 'Markdown Note matched';
         }
-        // 方法4: Vue node2.0 模式检测 - 通过节点类型判断
+        // Method 4: Vue node2.0 mode detection - determined by node type
         else if (this._isVueNodesModeWidget(widget, node)) {
             isValid = true;
             reason = 'Vue node2.0 mode widget';
         }
 
-        // ---可见性检测补救---
-        // 如果基本检测通过，但元素本身是隐藏的，则视为无效
+        // ---Visibility check fallback---
+        // If basic detection passed but the element itself is hidden, treat as invalid
         if (isValid) {
             const element = widget.inputEl || widget.element;
             if (element && !this.isElementVisible(element)) {
@@ -76,47 +76,47 @@ class UIToolkit {
         if (debug) {
             const widgetName = widget.name || widget.id || 'unknown';
             const nodeType = node?.type || widget.node?.type || 'unknown';
-            logger.debug(`[isValidInput] 控件: ${widgetName} | 节点类型: ${nodeType} | 有效: ${isValid} | 原因: ${reason}`);
+            logger.debug(`[isValidInput] Widget: ${widgetName} | Node type: ${nodeType} | Valid: ${isValid} | Reason: ${reason}`);
         }
 
         return isValid;
     }
 
     /**
-     * 检查是否为 Vue node2.0 模式下的有效文本控件
-     * 在Vue模式下，widget对象可能没有inputEl/element，但节点类型可以判断
+     * Check if the widget is a valid text widget in Vue node2.0 mode
+     * In Vue mode, the widget object may lack inputEl/element, but node type can determine validity
      */
     static _isVueNodesModeWidget(widget, node = null) {
-        // 获取节点引用
+        // Get node reference
         const nodeRef = node || widget.node;
         if (!nodeRef) return false;
 
-        // 检查是否为Vue节点模式
+        // Check if in Vue node mode
         if (typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode !== true) {
             return false;
         }
 
-        // 已知支持的节点类型
+        // Known supported node types
         const supportedNodeTypes = [
             'Note',
             'MarkdownNote',
-            'PreviewAny',       // Preview as Text节点（实际类型）
-            'PreviewTextNode',  // Preview节点可能的其他名称
+            'PreviewAny',       // Preview as Text node (actual type)
+            'PreviewTextNode',  // Possible alternative name for Preview node
             'Show any [Crystools]',
-            // 添加其他支持的节点类型
+            // Add other supported node types
         ];
 
-        // 检查节点类型
+        // Check node type
         if (supportedNodeTypes.includes(nodeRef.type)) {
             return true;
         }
 
-        // 检查控件名称是否为有效输入
+        // Check if widget name is a valid input
         if (this.VALID_INPUT_IDS.includes(widget.name)) {
             return true;
         }
 
-        // Markdown类型节点检测（包括Preview as Text等使用comfy-markdown的节点）
+        // Markdown type node detection (including Preview as Text and other nodes using comfy-markdown)
         const typeLower = nodeRef.type?.toLowerCase() || '';
         if (typeLower.includes('markdown') ||
             (typeLower.includes('preview') && typeLower.includes('text'))) {
@@ -127,20 +127,20 @@ class UIToolkit {
     }
 
     /**
-     * 检查是否为使用comfy-markdown的节点输入框
-     * 包括 MarkdownNote、Preview as Text 等使用 Tiptap/ProseMirror 编辑器的节点
+     * Check if the input is a node using comfy-markdown
+     * Includes MarkdownNote, Preview as Text, and other nodes using Tiptap/ProseMirror editor
      */
     static isMarkdownNoteInput(widget) {
-        // 方法1: 检查节点类型
+        // Method 1: Check node type
         const nodeRef = widget.node;
         if (nodeRef) {
-            // 支持的使用comfy-markdown的节点类型
+            // Supported node types using comfy-markdown
             const markdownNodeTypes = ['MarkdownNote', 'PreviewAny', 'PreviewTextNode'];
             if (markdownNodeTypes.includes(nodeRef.type)) {
                 return true;
             }
 
-            // 检查节点类型名称是否包含相关关键词
+            // Check if node type name contains relevant keywords
             const typeLower = nodeRef.type?.toLowerCase() || '';
             if (typeLower.includes('markdown') ||
                 (typeLower.includes('preview') && typeLower.includes('text'))) {

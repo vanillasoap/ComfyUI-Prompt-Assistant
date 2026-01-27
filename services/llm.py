@@ -1,7 +1,7 @@
 """
-LLM服务 - 重构版本
-提供大语言模型的扩写和翻译功能
-继承OpenAICompatibleService以复用通用逻辑
+LLM Service - Refactored version
+Provides prompt expansion and translation using large language models
+Inherits OpenAICompatibleService to reuse common logic
 """
 
 import json
@@ -20,13 +20,13 @@ from .thinking_control import build_thinking_suppression
 
 class LLMService(OpenAICompatibleService):
     """
-    大语言模型服务
-    支持提示词扩写和文本翻译
+    Large Language Model Service
+    Supports prompt expansion and text translation
     """
     
     @staticmethod
     def _get_config() -> Dict[str, Any]:
-        """获取LLM配置"""
+        """Get LLM configuration"""
         from ..config_manager import config_manager
         config = config_manager.get_llm_config()
         current_provider = config.get('provider')
@@ -48,7 +48,7 @@ class LLMService(OpenAICompatibleService):
     
     @staticmethod
     def _is_chinese(text: str) -> bool:
-        """判断文本是否包含中文"""
+        """Check if text contains Chinese characters"""
         return any('\u4e00' <= char <= '\u9fff' for char in text)
     
     @staticmethod
@@ -70,12 +70,12 @@ class LLMService(OpenAICompatibleService):
         source: str = None
     ) -> Dict[str, Any]:
         """
-        调用Ollama原生API（支持流式输出）
-        用于支持智能上下文窗口和思维链控制
-        
-        参数:
-            enable_advanced_params: 是否发送高级参数(temperature/top_p/num_predict)
-            thinking_extra: 思维链控制参数
+        Call Ollama native API (with streaming support)
+        Used to support smart context window and thinking chain control
+
+        Args:
+            enable_advanced_params: Whether to send advanced parameters (temperature/top_p/num_predict)
+            thinking_extra: Thinking chain control parameters
         """
         # ---初始化请求参数---
         

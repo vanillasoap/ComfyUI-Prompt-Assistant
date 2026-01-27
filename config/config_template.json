@@ -1,6 +1,6 @@
 {
     "__config_version": "2.0",
-    "__comment": "提示词小助手配置文件模板",
+    "__comment": "Prompt Assistant Configuration File Template",
     "baidu_translate": {
         "app_id": "",
         "secret_key": ""
@@ -9,8 +9,8 @@
         {
             "id": "zhipu",
             "type": "openai_compatible",
-            "name": "智谱",
-            "description": "免费GLM系列模型",
+            "name": "Zhipu",
+            "description": "Free GLM series models",
             "base_url": "https://open.bigmodel.cn/api/paas/v4",
             "api_key": "",
             "disable_thinking": true,
@@ -56,8 +56,8 @@
         {
             "id": "xFlow",
             "type": "openai_compatible",
-            "name": "xFlow-API聚合",
-            "description": "免魔法Gemini、Grok、chatGPT...",
+            "name": "xFlow API Aggregation",
+            "description": "VPN-free Gemini, Grok, ChatGPT...",
             "base_url": "https://api.xflow.cc/v1",
             "api_key": "",
             "disable_thinking": true,
@@ -88,7 +88,7 @@
             "id": "ollama",
             "type": "ollama",
             "name": "Ollama",
-            "description": "调用本地模型",
+            "description": "Call local models",
             "base_url": "http://localhost:11434/v1",
             "api_key": "ollama",
             "auto_unload": true,

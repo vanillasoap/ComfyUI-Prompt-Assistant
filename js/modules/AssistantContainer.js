@@ -3,9 +3,9 @@ import { EventManager } from "../utils/eventManager.js";
 import "../lib/Sortable.min.js";
 
 /**
- * 调试开关：禁止自动折叠
- * 在控制台输入 window.PA_DEBUG_NO_COLLAPSE = true 可禁止自动折叠
- * 输入 window.PA_DEBUG_NO_COLLAPSE = false 可恢复自动折叠
+ * Debug switch: disable auto-collapse
+ * Enter window.PA_DEBUG_NO_COLLAPSE = true in the console to disable auto-collapse
+ * Enter window.PA_DEBUG_NO_COLLAPSE = false to restore auto-collapse
  */
 window.PA_DEBUG_NO_COLLAPSE = window.PA_DEBUG_NO_COLLAPSE || false;
 

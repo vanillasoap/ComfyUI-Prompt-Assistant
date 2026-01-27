@@ -1,6 +1,6 @@
 /**
- * 提示词小助手 (PromptAssistant) 主入口文件
- * 负责扩展初始化、节点检测和功能注入
+ * PromptAssistant Main Entry File
+ * Responsible for extension initialization, node detection, and feature injection
  */
 
 import { app } from "../../../scripts/app.js";
@@ -15,86 +15,86 @@ import { HistoryCacheService, TagCacheService } from './services/cache.js';
 import { imageCaption, ImageCaption } from './modules/imageCaption.js';
 import { nodeHelpTranslator } from './modules/nodeHelpTranslator.js';
 import { nodeMountService, RENDER_MODE } from './services/NodeMountService.js';
-import './node/captionFrame.js'; // 导入视频手动抽帧功能
+import './node/captionFrame.js'; // Import video manual frame extraction feature
 
 
 
-// ====================== 全局配置与状态 ======================
+// ====================== Global Configuration & State ======================
 
-// 设置全局对象供其他模块访问
+// Set global objects for access by other modules
 window.FEATURES = ASSISTANT_FEATURES;
 
-// 将实例添加到全局对象
+// Add instances to global object
 window.promptAssistant = promptAssistant;
 window.imageCaption = imageCaption;
 
-// 将实例添加到全局app对象
+// Add instances to global app object
 app.promptAssistant = promptAssistant;
 app.imageCaption = imageCaption;
 
-// ====================== 扩展注册 ======================
+// ====================== Extension Registration ======================
 
 /**
- * 注册ComfyUI扩展
+ * Register ComfyUI extension
  */
 app.registerExtension({
     name: "Comfy.PromptAssistant",
 
-    // ---扩展生命周期钩子---
+    // ---Extension Lifecycle Hooks---
     /**
-     * 初始化扩展
+     * Initialize extension
      */
     async setup() {
         try {
-            // 初始化节点挂载服务（需要在其他初始化之前）
+            // Initialize node mount service (must be done before other initialization)
             nodeMountService.initialize();
 
-            // 注册渲染模式切换处理
+            // Register render mode switch handling
             nodeMountService.onModeChange(async (newMode, oldMode) => {
-                logger.log(`[index] 渲染模式切换检测 | ${oldMode} -> ${newMode}`);
-                // 重新初始化所有小助手
+                logger.log(`[index] Render mode switch detected | ${oldMode} -> ${newMode}`);
+                // Re-initialize all assistants
                 if (window.FEATURES.enabled) {
-                    // 先清理所有现有实例
+                    // Clean up all existing instances first
                     promptAssistant.cleanup(null, true);
                     imageCaption.cleanup(null, true);
 
-                    // 等待一帧确保 DOM 更新
+                    // Wait one frame to ensure DOM update
                     await new Promise(resolve => requestAnimationFrame(resolve));
 
                     await promptAssistant.toggleGlobalFeature(true, true);
                     if (window.FEATURES.imageCaption) {
                         await imageCaption.toggleGlobalFeature(true, true);
                     }
-                    logger.log(`[index] 渲染模式切换后重新初始化完成`);
+                    logger.log(`[index] Re-initialization complete after render mode switch`);
                 }
             });
 
-            // 注册设置选项
+            // Register settings options
             registerSettings();
 
-            // 初始化自动翻译拦截器（独立于提示词小助手）
+            // Initialize auto-translation interceptor (independent of Prompt Assistant)
 
 
-            // 初始化提示词小助手（内部会处理版本号检查和总开关状态）
+            // Initialize Prompt Assistant (internally handles version check and master switch state)
             await promptAssistant.initialize();
 
-            // 初始化图像小助手（只初始化一次）
+            // Initialize Image Assistant (only initialize once)
             if (!imageCaption.initialized) {
                 await imageCaption.initialize();
             }
 
-            // 清理旧引用
+            // Clean up old references
             if (app.canvas) {
                 app.canvas.updateNodeAssistantsVisibility = null;
                 app.canvas._onNodeSelectionChange = null;
             }
 
-            // 将管理器添加到app对象，使其可以通过window.app访问
+            // Add managers to app object so they can be accessed via window.app
             app.EventManager = EventManager;
             app.ResourceManager = ResourceManager;
             app.UIToolkit = UIToolkit;
 
-            // 先初始化 features.js 依赖
+            // Initialize features.js dependencies first
             setFeatureModuleDeps({
                 promptAssistant,
                 PromptAssistant,

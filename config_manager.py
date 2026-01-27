@@ -7,57 +7,57 @@ import folder_paths
 
 class ConfigManager:
     def __init__(self):
-        # 插件目录
+        # Plugin directory
         self.dir_path = os.path.dirname(os.path.abspath(__file__))
         
-        # 获取 ComfyUI 用户目录
+        # Get ComfyUI user directory
         try:
             user_dir = folder_paths.get_user_directory()
             if user_dir and os.path.isdir(user_dir):
-                # 使用 user/default/prompt-assistant 作为基础目录
+                # Use user/default/prompt-assistant as base directory
                 self.base_dir = os.path.join(user_dir, "default", "prompt-assistant")
-                # self._log(f"使用用户配置目录: {self.base_dir}")
+                # self._log(f"Using user config directory: {self.base_dir}")
             else:
-                # 回退到插件目录
+                # Fall back to plugin directory
                 self.base_dir = self.dir_path
-                self._log(f"回退到插件配置目录: {self.base_dir}")
+                self._log(f"Falling back to plugin config directory: {self.base_dir}")
         except Exception as e:
-            # 异常处理，回退到插件目录
+            # Exception handling, fall back to plugin directory
             self.base_dir = self.dir_path
-            self._log(f"无法获取用户目录({str(e)})，使用插件配置目录")
+            self._log(f"Unable to get user directory ({str(e)}), using plugin config directory")
         
-        # 定义各个子目录
+        # Define subdirectories
         self.config_dir = os.path.join(self.base_dir, "config")
         self.rules_dir = os.path.join(self.base_dir, "rules")
         self.tags_dir = os.path.join(self.base_dir, "tags")
         
-        # 确保目录存在
+        # Ensure directories exist
         os.makedirs(self.config_dir, exist_ok=True)
         os.makedirs(self.rules_dir, exist_ok=True)
         os.makedirs(self.tags_dir, exist_ok=True)
 
-        # 配置文件路径（用户配置和选择）
+        # Config file paths (user configuration and selection)
         self.config_path = os.path.join(self.config_dir, "config.json")
         self.active_prompts_path = os.path.join(self.config_dir, "active_prompts.json")
         self.tags_user_path = os.path.join(self.config_dir, "tags_user.json")
         self.tags_selection_path = os.path.join(self.config_dir, "tags_selection.json")
         
-        # 规则文件路径（规则定义和模板）
+        # Rules file paths (rule definitions and templates)
         self.system_prompts_path = os.path.join(self.rules_dir, "system_prompts.json")
         self.kontext_presets_path = os.path.join(self.rules_dir, "kontext_presets.json")
 
-        # ---模板目录（插件内置）---
+        # ---Template directory (built-in to plugin)---
         self.templates_dir = os.path.join(self.dir_path, "config")
         
-        # 存储模板版本号（用于版本比对）
+        # Store template version numbers (for version comparison)
         self._template_versions = {}
 
-        # ---加载默认配置（从模板文件）---
+        # ---Load default configurations (from template files)---
         self.default_config = self._load_template("config", {"version": "2.0", "model_services": []})
         self.default_system_prompts = self._load_template("system_prompts", {})
         self.default_kontext_presets = self._load_template("kontext_presets", {})
         
-        # ---简单默认配置（无需模板，直接定义）---
+        # ---Simple default configurations (no template needed, defined directly)---
         self.default_active_prompts = {
             "expand": "expand_扩写-通用",
             "vision_zh": "vision_zh_图像描述-Tag风格",
@@ -65,16 +65,16 @@ class ConfigManager:
         }
         self.default_user_tags = {"favorites": []}
         
-        # 默认标签选择
+        # Default tag selection
         self.default_tags_selection = {"selected_file": "用户标签.csv"}
 
 
 
-        # 执行数据迁移和配置文件初始化
-        # migration_tool 统一处理：确保文件存在 -> CSV标签迁移 -> 旧版迁移 -> 增量更新
+        # Execute data migration and config file initialization
+        # migration_tool handles uniformly: ensure files exist -> CSV tag migration -> legacy migration -> incremental update
         self._run_migrations()
 
-        # 验证并修复激活提示词（静默模式，仅异常时修复）
+        # Validate and fix active prompts (silent mode, fix only on exceptions)
         self.validate_and_fix_active_prompts()
 
         # 验证并修复模型参数配置

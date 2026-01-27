@@ -1,4 +1,4 @@
-# 导出服务类
+# Export service classes
 from .baidu import BaiduTranslateService
 from .llm import LLMService
 from .vlm import VisionService
