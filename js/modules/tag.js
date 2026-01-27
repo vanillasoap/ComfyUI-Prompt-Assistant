@@ -2246,7 +2246,7 @@ class TagManager {
             nameInput.placeholder = ' ';
 
             const nameLabel = document.createElement('label');
-            nameLabel.textContent = '分类名称';
+            nameLabel.textContent = 'Category Name';
 
             nameFloatContainer.appendChild(nameInput);
             nameFloatContainer.appendChild(nameLabel);
@@ -2528,7 +2528,7 @@ class TagManager {
             nameInput.value = oldName;
 
             const nameLabel = document.createElement('label');
-            nameLabel.textContent = '分类名称';
+            nameLabel.textContent = 'Category Name';
 
             nameFloatContainer.appendChild(nameInput);
             nameFloatContainer.appendChild(nameLabel);
@@ -2793,7 +2793,7 @@ class TagManager {
             nameInput.placeholder = ' '; // 使用空格触发 :not(:placeholder-shown)
 
             const nameLabel = document.createElement('label');
-            nameLabel.textContent = '标签名称';
+            nameLabel.textContent = 'Tag Name';
 
             nameFloatContainer.appendChild(nameInput);
             nameFloatContainer.appendChild(nameLabel);
@@ -2816,7 +2816,7 @@ class TagManager {
             valueInput.style.minHeight = '80px';
 
             const valueLabel = document.createElement('label');
-            valueLabel.textContent = '标签内容';
+            valueLabel.textContent = 'Tag Content';
 
             valueFloatContainer.appendChild(valueInput);
             valueFloatContainer.appendChild(valueLabel);
@@ -2972,7 +2972,7 @@ class TagManager {
             nameInput.placeholder = ' '; // 使用空格触发 :not(:placeholder-shown)
 
             const nameLabel = document.createElement('label');
-            nameLabel.textContent = '标签名称';
+            nameLabel.textContent = 'Tag Name';
 
             nameFloatContainer.appendChild(nameInput);
             nameFloatContainer.appendChild(nameLabel);
@@ -2995,7 +2995,7 @@ class TagManager {
             valueInput.style.minHeight = '80px';
 
             const valueLabel = document.createElement('label');
-            valueLabel.textContent = '标签内容';
+            valueLabel.textContent = 'Tag Content';
 
             valueFloatContainer.appendChild(valueInput);
             valueFloatContainer.appendChild(valueLabel);
@@ -3602,7 +3602,7 @@ class TagManager {
             if (!categoryData || Object.keys(categoryData).length === 0) {
                 const emptyTip = document.createElement('div');
                 emptyTip.className = 'empty_tip';
-                emptyTip.textContent = '暂无收藏标签，在标签上右键点击可添加到收藏';
+                emptyTip.textContent = 'No favorite tags. Right-click on a tag to add to favorites';
                 emptyTip.style.padding = '20px';
                 emptyTip.style.textAlign = 'center';
                 emptyTip.style.color = 'var(--text-color-secondary)';
@@ -3664,7 +3664,7 @@ class TagManager {
 
                 // 创建错误提示
                 const errorMessage = document.createElement('div');
-                errorMessage.textContent = `加载${categoryName}分类失败`;
+                errorMessage.textContent = `Failed to load ${categoryName} category`;
                 errorMessage.style.textAlign = 'center';
                 errorMessage.style.padding = '20px';
                 errorMessage.style.color = '#ff6b6b';
@@ -3914,7 +3914,7 @@ class TagManager {
                         }, 50);
                     } catch (error) {
                         logger.error(`切换CSV文件失败: ${error.message}`);
-                        loadingIndicator.textContent = '加载失败，请重试';
+                        loadingIndicator.textContent = 'Loading failed, please retry';
                     }
                 }
             };
@@ -3978,7 +3978,7 @@ class TagManager {
                     contentContainer.innerHTML = '';
                     const refreshLoadingIndicator = document.createElement('div');
                     refreshLoadingIndicator.className = 'loading_indicator';
-                    refreshLoadingIndicator.textContent = '重新加载标签数据...';
+                    refreshLoadingIndicator.textContent = 'Reloading tag data...';
                     refreshLoadingIndicator.style.textAlign = 'center';
                     refreshLoadingIndicator.style.padding = '20px';
                     refreshLoadingIndicator.style.color = 'var(--text-color-secondary)';
@@ -4011,7 +4011,7 @@ class TagManager {
                     contentContainer.innerHTML = '';
                     const errorMsg = document.createElement('div');
                     errorMsg.className = 'loading_indicator';
-                    errorMsg.textContent = '刷新失败,请重试';
+                    errorMsg.textContent = 'Refresh failed, please retry';
                     errorMsg.style.textAlign = 'center';
                     errorMsg.style.padding = '20px';
                     errorMsg.style.color = 'var(--error-color)';
@@ -4133,7 +4133,7 @@ class TagManager {
             // 显示加载指示器
             const loadingIndicator = document.createElement('div');
             loadingIndicator.className = 'loading_indicator';
-            loadingIndicator.textContent = '加载标签数据...';
+            loadingIndicator.textContent = 'Loading tag data...';
             loadingIndicator.style.textAlign = 'center';
             loadingIndicator.style.padding = '20px';
             loadingIndicator.style.color = 'var(--text-color-secondary)';
@@ -4771,7 +4771,7 @@ class TagManager {
             // 无结果提示
             if (matchCount === 0) {
                 const empty = document.createElement('div');
-                empty.textContent = '无匹配标签';
+                empty.textContent = 'No matching tags';
                 empty.className = 'search_empty_message';
                 searchResultList.appendChild(empty);
             }
@@ -4779,7 +4779,7 @@ class TagManager {
         } catch (error) {
             logger.error(`搜索标签数据失败: ${error.message}`);
             const errorMessage = document.createElement('div');
-            errorMessage.textContent = '搜索失败，请重试';
+            errorMessage.textContent = 'Search failed, please retry';
             errorMessage.className = 'search_empty_message';
             searchResultList.appendChild(errorMessage);
         }
@@ -5082,7 +5082,7 @@ class TagManager {
             // 如果没有已插入标签
             const emptyMessage = document.createElement('div');
             emptyMessage.className = 'empty_tags_message';
-            emptyMessage.textContent = '没有已插入标签';
+            emptyMessage.textContent = 'No inserted tags';
             emptyMessage.style.textAlign = 'center';
             emptyMessage.style.padding = '20px';
             emptyMessage.style.color = 'var(--text-color-secondary)';
@@ -5127,7 +5127,7 @@ class TagManager {
 
                     const tagText = document.createElement('span');
                     tagText.className = 'tag_item_text';
-                    tagText.textContent = tagName; // 使用中文名称
+                    tagText.textContent = tagName; // Use Chinese name if available
 
                     tagItem.appendChild(tagText);
 
@@ -5172,7 +5172,7 @@ class TagManager {
 
                 const errorMessage = document.createElement('div');
                 errorMessage.className = 'error_message';
-                errorMessage.textContent = '加载已插入标签失败';
+                errorMessage.textContent = 'Failed to load inserted tags';
                 errorMessage.style.textAlign = 'center';
                 errorMessage.style.padding = '20px';
                 errorMessage.style.color = '#ff6b6b';

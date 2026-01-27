@@ -1572,7 +1572,7 @@ class PromptAssistant {
         const buttonConfigs = [
             {
                 id: 'history',
-                title: '历史',
+                title: 'History',
                 icon: 'icon-history',
                 onClick: (e, widget) => {
                     UIToolkit.handlePopupButtonClick(
@@ -1588,7 +1588,7 @@ class PromptAssistant {
             },
             {
                 id: 'undo',
-                title: '撤销',
+                title: 'Undo',
                 icon: 'icon-undo',
                 onClick: (e, widget) => {
                     e.preventDefault();
@@ -1614,7 +1614,7 @@ class PromptAssistant {
             },
             {
                 id: 'redo',
-                title: '重做',
+                title: 'Redo',
                 icon: 'icon-redo',
                 onClick: (e, widget) => {
                     e.preventDefault();
@@ -1645,7 +1645,7 @@ class PromptAssistant {
             },
             {
                 id: 'tag',
-                title: '标签工具',
+                title: 'Tags',
                 icon: 'icon-tag',
                 onClick: (e, widget) => {
                     // 创建一个带有标签选择功能的显示函数
@@ -1692,7 +1692,7 @@ class PromptAssistant {
             },
             {
                 id: 'expand',
-                title: '提示词优化',
+                title: 'Enhance',
                 icon: 'icon-expand',
                 onClick: async (e, widget) => {
                     logger.debug('按钮点击 | 动作: 提示词优化');
@@ -1714,7 +1714,7 @@ class PromptAssistant {
                                 logger.debug(`[提示词优化] 获取到的输入值长度: ${inputValue?.length || 0}`);
 
                                 if (!inputValue || inputValue.trim() === '') {
-                                    throw new Error('请输入要优化的提示词');
+                                    throw new Error('Please enter a prompt to enhance');
                                 }
 
                                 // 生成唯一request_id
@@ -1883,13 +1883,13 @@ class PromptAssistant {
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ service_type: 'llm', service_id: service.id, model_name: model.name })
                                             });
-                                            if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
+                                            if (!res.ok) throw new Error(`Server error: ${res.status}`);
                                             const modelLabel = model.display_name || model.name;
-                                            UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name} - ${modelLabel}`);
+                                            UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name} - ${modelLabel}`);
                                             logger.log(`提示词优化服务切换 | 服务: ${service.name} | 模型: ${modelLabel}`);
                                         } catch (err) {
                                             logger.error(`切换提示词优化模型失败: ${err.message}`);
-                                            UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                            UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                         }
                                     }
                                 };
@@ -1905,12 +1905,12 @@ class PromptAssistant {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ service_type: 'llm', service_id: service.id })
                                         });
-                                        if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name}`);
+                                        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name}`);
                                         logger.log(`提示词优化服务切换 | 服务: ${service.name}`);
                                     } catch (err) {
                                         logger.error(`切换提示词优化服务失败: ${err.message}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                     }
                                 },
                                 children: modelChildren.length > 0 ? modelChildren : undefined
@@ -1933,13 +1933,13 @@ class PromptAssistant {
                                     body: JSON.stringify({ type: 'expand', prompt_id: prompt.id })
                                 });
                                 if (response.ok) {
-                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${prompt.name}`);
+                                    UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${prompt.name}`);
                                 } else {
-                                    throw new Error(`服务器返回错误: ${response.status}`);
+                                    throw new Error(`Server error: ${response.status}`);
                                 }
                             } catch (error) {
                                 logger.error(`切换提示词优化失败: ${error.message}`);
-                                UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${error.message}`);
+                                UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${error.message}`);
                             }
                         }
                     });
@@ -1970,10 +1970,10 @@ class PromptAssistant {
                     });
 
 
-                    // 添加规则管理选项
+                    // Add rule management option
                     ruleMenuItems.push({ type: 'separator' });
                     ruleMenuItems.push({
-                        label: '规则管理',
+                        label: 'Rule Manager',
                         icon: '<span class="pi pi-pen-to-square"></span>',
                         onClick: () => {
                             rulesConfigManager.showRulesConfigModal();
@@ -1994,7 +1994,7 @@ class PromptAssistant {
             },
             {
                 id: 'translate',
-                title: '翻译',
+                title: 'Translate',
                 icon: 'icon-translate',
                 onClick: async (e, widget) => {
                     logger.debug('按钮点击 | 动作: 翻译');
@@ -2023,7 +2023,7 @@ class PromptAssistant {
                                 const inputValue = getInputValue(widget, { html: isMarkdownLiteGraph });
 
                                 if (!inputValue || inputValue.trim() === '') {
-                                    throw new Error('请输入要翻译的内容');
+                                    throw new Error('Please enter text to translate');
                                 }
 
                                 let contentToTranslate = inputValue;
@@ -2037,7 +2037,7 @@ class PromptAssistant {
                                         // 如果提取后没有文本（只有标签/代码），则认为空或者无需翻译
                                         if (!contentToTranslate || contentToTranslate.trim() === '') {
                                             // 保持原样或抛出错误，这里选择抛出提示
-                                            throw new Error('没有检测到可翻译的内容');
+                                            throw new Error('No translatable content detected');
                                         }
                                         // 如果原内容有东西但提取为空，可能全是代码块，保留原内容作为待翻译（实际上API可能跳过）
                                         // 或者这里 contentToTranslate 为 inputValue ?
@@ -2047,7 +2047,7 @@ class PromptAssistant {
                                 }
 
                                 if (!contentToTranslate || contentToTranslate.trim() === '') {
-                                    throw new Error('请输入要翻译的内容');
+                                    throw new Error('Please enter text to translate');
                                 }
 
                                 // 显示翻译中提示
@@ -2176,7 +2176,7 @@ class PromptAssistant {
                                     }
 
                                     if (!result) {
-                                        throw new Error('翻译服务返回空结果');
+                                        throw new Error('Translation service returned empty result');
                                     }
                                 } catch (error) {
                                     logger.error(`翻译失败 | 错误:${error.message}`);
@@ -2291,8 +2291,8 @@ class PromptAssistant {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ service_type: 'translate', service_id: 'baidu' })
                                 });
-                                if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
-                                UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: 百度翻译`);
+                                if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                                UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: Baidu Translate`);
                                 logger.log(`翻译服务切换 | 服务: 百度翻译`);
 
                                 // 派发全局事件通知其他组件同步
@@ -2301,7 +2301,7 @@ class PromptAssistant {
                                 }));
                             } catch (err) {
                                 logger.error(`切换翻译服务失败: ${err.message}`);
-                                UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                             }
                         }
                     });
@@ -2325,9 +2325,9 @@ class PromptAssistant {
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ service_type: 'translate', service_id: service.id, model_name: model.name })
                                             });
-                                            if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
+                                            if (!res.ok) throw new Error(`Server error: ${res.status}`);
                                             const modelLabel = model.display_name || model.name;
-                                            UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name} - ${modelLabel}`);
+                                            UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name} - ${modelLabel}`);
                                             logger.log(`翻译服务切换 | 服务: ${service.name} | 模型: ${modelLabel}`);
 
                                             // 派发全局事件通知其他组件同步
@@ -2336,7 +2336,7 @@ class PromptAssistant {
                                             }));
                                         } catch (err) {
                                             logger.error(`切换翻译模型失败: ${err.message}`);
-                                            UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                            UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                         }
                                     }
                                 };
@@ -2352,8 +2352,8 @@ class PromptAssistant {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ service_type: 'translate', service_id: service.id })
                                         });
-                                        if (!res.ok) throw new Error(`服务器返回错误: ${res.status}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `已切换到: ${service.name}`);
+                                        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'success', `Switched to: ${service.name}`);
                                         logger.log(`翻译服务切换 | 服务: ${service.name}`);
 
                                         // 派发全局事件通知其他组件同步
@@ -2362,7 +2362,7 @@ class PromptAssistant {
                                         }));
                                     } catch (err) {
                                         logger.error(`切换翻译服务失败: ${err.message}`);
-                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `切换失败: ${err.message}`);
+                                        UIToolkit.showStatusTip(context.buttonElement, 'error', `Switch failed: ${err.message}`);
                                     }
                                 },
                                 children: modelChildren.length > 0 ? modelChildren : undefined

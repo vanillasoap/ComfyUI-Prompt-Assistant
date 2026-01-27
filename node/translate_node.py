@@ -113,11 +113,11 @@ class PromptTranslate(LLMNodeBase):
             skip_translation = False
             if to_lang == 'en' and detected_lang == 'en':
                 from ..utils.common import _ANSI_CLEAR_EOL
-                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} English input detected, target is English, no translation needed", flush=True)
+                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} English input detected, target is English, skipping translation", flush=True)
                 skip_translation = True
             elif to_lang == 'zh' and detected_lang == 'zh':
                 from ..utils.common import _ANSI_CLEAR_EOL
-                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} Chinese input detected, target is Chinese, no translation needed", flush=True)
+                print(f"\r{_ANSI_CLEAR_EOL}{self.REQUEST_PREFIX} Chinese input detected, target is Chinese, skipping translation", flush=True)
                 skip_translation = True
 
             if skip_translation:
